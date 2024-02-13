@@ -17,7 +17,7 @@ if __name__ == '__main__':
     path_trace = []
 
     while ((np.abs(uav1.current_position.x - uav1.end_point.x)>5) and (np.abs(uav1.current_position.y - uav1.end_point.y)>5)):
-        uav1.step()
+        uav1.step() #! in the visual we see the uav move, actual NMAC and collision needs to be determined in step
         path_trace.append(uav1.current_position)
     
     
@@ -54,7 +54,10 @@ if __name__ == '__main__':
     for i in range(len(path_trace)):
         plt.cla()
         static_plot()
-        gpd.GeoSeries([path_trace[i]]).plot(ax=ax, color='red', alpha=0.3)
+        gpd.GeoSeries([path_trace[i]]).plot(ax=ax, color='red', alpha=0.3) #
+        # gpd.GeoSeries([path_trace[i]]).plot(ax=ax, color='yellow', alpha=0.2)
+        gpd.GeoSeries([path_trace[i]]).buffer(60).plot(ax=ax, color='yellow', alpha=0.2) #!proof of concept, attaching a buffer zone to a point
+
         fig.canvas.draw()
         fig.canvas.flush_events()
         time.sleep(0.1)

@@ -25,6 +25,7 @@ class Airspace:
     def __repr__(self) -> str:
         return ('Airspace({location_name})'.format(location_name = self.location_name))
     
+    #TODO - this function will be superseded by methods from airtrafficcontroller 
     def get_random_start_end_points(self) -> Tuple[Point, Point]:
         '''Returns two random points as a tuple of Point object from the location map.'''
         sample_points_gdf = self.location_utm_gdf.sample_points(2) # returns two random points in the map (GeoSeries)
@@ -32,6 +33,16 @@ class Airspace:
         start_point = sample_points.geoms[0]
         end_point = sample_points.geoms[1]
         return start_point, end_point
+    
+    #TODO - this function will be superseded by methods from airtrafficcontroller 
+    def set_start_end_point(start, end):
+        '''User defined start and end point for uav'''
+        return (Point(start), Point(end))
+    
+    #TODO - this function will be superseded by methods from airtrafficcontroller 
+    def create_random_vertiports(self, num_vertiports):
+        sample_points_gdf = self.location_utm.sample_points(6)
+        sample_points = sample_points_gdf[0]
 
 
     

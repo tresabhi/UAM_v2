@@ -36,7 +36,7 @@ class Simulator:
             plt.cla()
             static_plot()
             for uav_obj in self.uav_list: #! all uavs are stepping
-                uav_obj.step_new() 
+                uav_obj.step() 
             for uav_obj in self.uav_list:
                 gpd.GeoSeries(uav_obj.current_position).plot(ax=ax, color='red', alpha=0.3)
                 gpd.GeoSeries(uav_obj.current_position).buffer(60).plot(ax=ax, color='yellow', alpha=0.2)

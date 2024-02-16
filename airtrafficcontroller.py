@@ -52,8 +52,3 @@ class ATC:
         The mix is controlled by percentage argument.'''
         pass
     
-
-
-
-airspace = Airspace('Austin, Texas, USA')
-atc = ATC(airspace)

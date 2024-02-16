@@ -1,66 +1,49 @@
 import airspace
 import uav
+from airtrafficcontroller import ATC
 import numpy as np
 import matplotlib.pyplot as plt
+from simulator import Simulator
 from matplotlib.animation import FuncAnimation
 import geopandas as gpd
+import plotter
 import time
 
 
+ #TODO - Complete the following checks 
+'''
+Once the main simulator.py is built, it should have the following 
+1) make sure there is at least 2 vertiports at all time 
+2) There is at least one uav - if 0 UAV, no need to run simulation(simulation should not run, but check to make sure)
+3) make sure location name is valid
+4) make sure vertiports are not on top of buildings and other structures 
+
+'''
+
 if __name__ == '__main__':
-    location_name = 'Austin, Texas, USA' #pass to airspace
-    airspace = airspace.Airspace(location_name=location_name)
-    start_point, end_point = airspace.get_random_start_end_points()
     
-    uav1 = uav.UAV(start_point, end_point,)
+    sim = Simulator('Austin, Texas, USA', 11, 5)
+    #*Plotting Logic
+    # #TODO - Use FuncAnimation to animate the path of the UAV
+    # #TODO - call a plotter function here that encapsulates this loop 
 
-    path_trace = []
-
-    while ((np.abs(uav1.current_position.x - uav1.end_point.x)>5) and (np.abs(uav1.current_position.y - uav1.end_point.y)>5)):
-        uav1.step() #! in the visual we see the uav move, actual NMAC and collision needs to be determined in step
-        path_trace.append(uav1.current_position)
-    
-    
-    # print('Start Point:', start_point, 'End Point:', end_point)
-    # print("Flight completed.")
-    # print(len(path_trace))
-    # print(type(path_trace[0]))
     plt.ion() 
     fig, ax = plt.subplots()
-    start_end_point = gpd.GeoSeries([start_point, end_point])
-    # airspace.location_utm_gdf.plot(ax=ax, color='blue', linewidth=0.6)
-    # airspace.location_utm_hospital_buffer.plot(ax=ax, color='red', alpha=0.3)
-    # airspace.location_utm_hospital.plot(ax=ax, color='black')
+    # vertiports_gs = gpd.GeoSeries(sim.vertiports)
+    
     def static_plot():
-        airspace.location_utm_gdf.plot(ax=ax, color='blue', linewidth=0.6)
-        airspace.location_utm_hospital_buffer.plot(ax=ax, color='red', alpha=0.3)
-        airspace.location_utm_hospital.plot(ax=ax, color='black')
-        start_end_point.plot(ax=ax, color='black')
+        sim.airspace.location_utm_gdf.plot(ax=ax, color='gray', linewidth=0.6)
+        sim.airspace.location_utm_hospital_buffer.plot(ax=ax, color='green', alpha=0.3)
+        sim.airspace.location_utm_hospital.plot(ax=ax, color='black')
+        #adding vertiports to static plot
+        gpd.GeoSeries(sim.vertiports).plot(ax=ax, color='black')
     
-    #Plot start and end point
-    # start_end_point = gpd.GeoSeries([start_point, end_point])
-    # start_end_point.plot(ax=ax, color='black')
     
-     
-    #* Using FuncAnimation to animate the path of the UAV
-    # def animate(frame):
-    #     gpd.GeoSeries([path_trace[frame]]).plot(ax=ax, color='red', alpha=0.3)
-    
-    # ani = FuncAnimation(fig, animate, frames=len(path_trace), interval=100, repeat=False)
-    # plt.show()
+    static_plot()
+    sim.RUN_SIMULATOR(fig, ax, static_plot)
 
-    #* Using for loop to animate the path of the UAV - without trace
-    static_plot() 
-    for i in range(len(path_trace)):
-        plt.cla()
-        static_plot()
-        gpd.GeoSeries([path_trace[i]]).plot(ax=ax, color='red', alpha=0.3) #
-        # gpd.GeoSeries([path_trace[i]]).plot(ax=ax, color='yellow', alpha=0.2)
-        gpd.GeoSeries([path_trace[i]]).buffer(60).plot(ax=ax, color='yellow', alpha=0.2) #!proof of concept, attaching a buffer zone to a point
+        
 
-        fig.canvas.draw()
-        fig.canvas.flush_events()
-        time.sleep(0.1)
 
 
     

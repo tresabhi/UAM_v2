@@ -7,13 +7,16 @@ from geopandas import GeoSeries
 class UAV:
     def __init__(self, 
                  start_point:Point, #need to be provided by the airspace for valid points
-                 end_point:Point,  
+                 end_point:Point, 
+                 proximity = 50, 
                  speed = 79.0, # Airbus H175 - max curise speed 287 kmph - 79 meters per second
                  heading_deg = np.random.randint(-178,178)+np.random.rand(), # random heading between -180 and 180
                  ):
         #UAV technical properties
         self.id = id(self)
         self.speed:float = speed
+        self.proximity = proximity
+        self.reached = False
         
         #UAV position properties
         self.start_point:Point = start_point
@@ -38,22 +41,19 @@ class UAV:
         return f"UAV({self.start_point}, {self.end_point})"
     
     
-    #! might need to turn this into an internal function
-    #! this method has side effects - no returns
-    def update_position(self,d_t:float, ):
+
+    def _update_position(self,d_t:float, ):
         '''Updates current_position of the UAV after d_t seconds.
            This uses a first order Euler's method to update the position.
            '''
-
+        #TODO - add acceleration term, and update the equation
         update_x = self.current_position.x + d_t * self.speed * np.cos(self.current_heading_radians)
         update_y = self.current_position.y + d_t * self.speed * np.sin(self.current_heading_radians)
-        
         self.current_position = Point(update_x,update_y)
         
     
-    #! might need to turn this into an internal function
-    #! this method has side effects - no returns
-    def update_ref_final_heading(self, ): 
+
+    def _update_ref_final_heading(self, ): 
         '''Updates the heading of the aircraft, pointed towards end_point'''
         self.current_ref_final_heading_rad = np.arctan2(self.end_point.y - self.current_position.y, 
                                                         self.end_point.x - self.current_position.x)
@@ -61,9 +61,7 @@ class UAV:
         
         
 
-    #! might need to turn this into an internal function
-    #! this method has side effects - no returns
-    def heading_correction(self, ): 
+    def _heading_correction(self, ): 
         '''Updates heading of the aircraft, pointed towards ref_final_heading_deg''' 
         
         avg_rate_of_turn = 20 #degree, collected from google - https://skybrary.aero/articles/rate-turn#:~:text=Description,%C2%B0%20turn%20in%20two%20minutes.
@@ -146,49 +144,18 @@ class UAV:
         pass
 
 
-
-    def step(self,):
+    def step(self, ):
         '''Updates the position of the UAV.'''
         
-        
-        self.update_position(d_t=1) #seconds
-        self.update_ref_final_heading()
-        self.heading_correction()
-        
-
-    def navigate_to_proximity(self,vertiport_proximity=20):
-        '''This method navigates the uav to its end point, 
-            the uav motion is terminated 
-            vertiport_proximity distance away 
-            from end point
-        '''
-        while ((np.abs(self.current_position.x - self.end_point.x)>vertiport_proximity) and (np.abs(self.current_position.y - self.end_point.y)>vertiport_proximity)):
-            self.step() #TODO in the visual we see the uav move, actual NMAC and collision needs to be determined in step
-            self.path_trace.append(self.current_position)
-        
-    
-        
+        if self.current_position.distance(self.end_point)>self.proximity:
+            self._update_position(d_t=1) #seconds
+            self._update_ref_final_heading()
+            self._heading_correction()
 
 
 
 
-#* Test
-        
-# start_point = Point(0,0)
-# end_point = Point(-1200,-1000)
-# uav = UAV(start_point=start_point, end_point=end_point, speed=10.0)
-# print(uav)
 
-# while ((np.abs(uav.current_position.x - end_point.x)>5) and (np.abs(uav.current_position.y - end_point.y)>5)):
-#     uav.step()
-#     print(uav)
-
-# # for i in range(100):
-# #     uav.step()
-# #     print(uav)
-    
-
-# print('Reached destination:', uav.current_position)
 
         
     

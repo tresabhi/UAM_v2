@@ -1,5 +1,8 @@
+#Deterministic uavs
+
 import numpy as np
 from shapely.geometry import Point
+from geopandas import GeoSeries
 
 class UAV:
     def __init__(self, 
@@ -25,18 +28,22 @@ class UAV:
         self.current_ref_final_heading_rad = np.arctan2(self.end_point.y - self.current_position.y, 
                                                                     self.end_point.x - self.current_position.x)
         self.current_ref_final_heading_deg = np.rad2deg(self.current_ref_final_heading_rad)
+
+        #path trace of uav
+        self.path_trace = []
         
         
 
     def __repr__(self):
-        return ('UAV({id}), start_point: {start}, end_point:{end}, current_point: {current}, current_heading: {current_heading}, final_heading: {final_heading}'
-                .format(id = self.id, start = self.start_point, end =self.end_point ,current = self.current_position,current_heading = self.current_heading_deg, final_heading = self.current_ref_final_heading_deg))
+        return f"UAV({self.start_point}, {self.end_point})"
     
     
     #! might need to turn this into an internal function
     #! this method has side effects - no returns
     def update_position(self,d_t:float, ):
-        '''Updates current_position of the UAV after d_t seconds.'''
+        '''Updates current_position of the UAV after d_t seconds.
+           This uses a first order Euler's method to update the position.
+           '''
 
         update_x = self.current_position.x + d_t * self.speed * np.cos(self.current_heading_radians)
         update_y = self.current_position.y + d_t * self.speed * np.sin(self.current_heading_radians)
@@ -102,6 +109,44 @@ class UAV:
             raise Exception
         
 
+    
+    def collision_detection(self,uav_list:GeoSeries, raz_list:GeoSeries):
+        # check intersection with uav list - here return is true or false, true meaning intersection 
+        # 
+        # check intersection with raz_list
+        pass
+
+    def nmac_detection(self, uav_list:GeoSeries, raz_list:GeoSeries) : # return contact_uav_id 
+        # check intersection with uav list -  return is geoseries with true or false, true meaning intersection with contact_uav 
+        # collect contact_uav id for true in geoseries
+        # use the contact_uav id to collect information of the uav - 
+        # required info 
+        #                contact_uav - heading, distance from contactuav(can be calculated using position), velocity
+        #                ownship_uav     - deviation, velocity, has_intruder
+        #                relative bearing - calculate as -> ownship_heading - absolute_angle_between_contact_and_ownship
+        
+        # check intersection with raz_list
+        pass
+        
+    def contact_uav_information(self, contact_uav_id, uav_db):
+        # using contact_uav_id collect the following 
+        #   contact_uav - heading, position, velocity, 
+        pass
+
+    def state_observation(self, ):
+        # Here return a list with the following states
+        # state -> [deviation = (self.current_heading - self.ref_final_headin)
+        #           speed, 
+        #           current heading, 
+        #           has_contact,      NOT SURE WHY THIS IS IMPORTANT, AND HOW THIS IS USED IN THE RL FRAMEWORK
+        #           contact heading,           
+        #           distance from contact np.abs(self.current_position - contact_uav.current_position)
+        #           contact speed
+        #           relative bearing 
+        pass
+
+
+
     def step(self,):
         '''Updates the position of the UAV.'''
         
@@ -110,7 +155,16 @@ class UAV:
         self.update_ref_final_heading()
         self.heading_correction()
         
-        #! need to add a check for reaching the end point
+
+    def navigate_to_proximity(self,vertiport_proximity=20):
+        '''This method navigates the uav to its end point, 
+            the uav motion is terminated 
+            vertiport_proximity distance away 
+            from end point
+        '''
+        while ((np.abs(self.current_position.x - self.end_point.x)>vertiport_proximity) and (np.abs(self.current_position.y - self.end_point.y)>vertiport_proximity)):
+            self.step() #TODO in the visual we see the uav move, actual NMAC and collision needs to be determined in step
+            self.path_trace.append(self.current_position)
         
     
         

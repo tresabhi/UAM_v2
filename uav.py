@@ -3,25 +3,37 @@
 import numpy as np
 from shapely.geometry import Point
 from geopandas import GeoSeries
+from vertiport import Vertiport
+from vertiport import Vertiport
 
 class UAV:
-    def __init__(self, 
-                 start_point:Point, #need to be provided by the airspace for valid points
-                 end_point:Point, 
-                 proximity = 50, 
+    '''Representation of UAV in airspace. UAV translates in 2D plane, 
+     object is to move from start vertiport to end vertiport.
+     This object has builtin collision avoidance mechanism.'''
+    def __init__(self,
+                 start_vertiport,
+                 landing_proximity = 50, 
                  speed = 79.0, # Airbus H175 - max curise speed 287 kmph - 79 meters per second
                  heading_deg = np.random.randint(-178,178)+np.random.rand(), # random heading between -180 and 180
                  ):
         #UAV technical properties
         self.id = id(self)
         self.speed:float = speed
-        self.proximity = proximity
-        self.reached = False
+        self.landing_proximity = landing_proximity
+        
+        #UAV soft properties
+        self.left_start_vertiport = False
+        self.reached_end_vertiport = False
+        self.first_flight_of_day = True
+
+        #Vertiport assignement
+        self.start_vertiport:Vertiport = start_vertiport
+        self.end_vertiport:Vertiport = start_vertiport 
         
         #UAV position properties
-        self.start_point:Point = start_point
-        self.end_point:Point = end_point
-        self.current_position:Point = start_point
+        self.start_point:Point = self.start_vertiport.location
+        self.end_point:Point = self.end_vertiport.location
+        self.current_position:Point = self.start_point
         
         #UAV heading properties
         self.current_heading_deg:float = heading_deg
@@ -32,18 +44,35 @@ class UAV:
                                                                     self.end_point.x - self.current_position.x)
         self.current_ref_final_heading_deg = np.rad2deg(self.current_ref_final_heading_rad)
 
-        #path trace of uav
-        self.path_trace = []
-        
-        
 
-    def __repr__(self):
-        return f"UAV({self.start_point}, {self.end_point})"
     
-    
+    def reset_uav(self, new_start_vertiport,):
+        '''Update the start vertiport of a UAV 
+        to a new start vertiport, 
+        argument of this method '''
+        self.start_vertiport = new_start_vertiport
+        self.end_vertiport = self.start_vertiport
+        #TODO - needs new endpoint assignment or will stay at current endpoint
 
+    
+    def has_reached_end_vertiport(self,):
+        '''Check if a UAV has reached its end vertiport'''
+        if self.current_position.distance(self.end_point) <= self.landing_proximity:
+            self.reached_end_vertiport = True
+
+    def has_left_start_vertiport(self,):
+        '''Check if a UAV has left its start vertiport'''
+        if not (self.current_position.distance(self.start_point) <= self.landing_proximity):
+            self.left_start_vertiport = True
+
+    
+    def update_end_point(self,):
+        '''Updates the UAV end point using its own end_vertiport location'''
+        self.end_point = self.end_vertiport.location
+
+    
     def _update_position(self,d_t:float, ):
-        '''Updates current_position of the UAV after d_t seconds.
+        '''Internal method. Updates current_position of the UAV after d_t seconds.
            This uses a first order Euler's method to update the position.
            '''
         #TODO - add acceleration term, and update the equation
@@ -54,7 +83,7 @@ class UAV:
     
 
     def _update_ref_final_heading(self, ): 
-        '''Updates the heading of the aircraft, pointed towards end_point'''
+        '''Internal method. Updates the heading of the aircraft, pointed towards end_point'''
         self.current_ref_final_heading_rad = np.arctan2(self.end_point.y - self.current_position.y, 
                                                         self.end_point.x - self.current_position.x)
         self.current_ref_final_heading_deg = np.rad2deg(self.current_ref_final_heading_rad)
@@ -62,7 +91,7 @@ class UAV:
         
 
     def _heading_correction(self, ): 
-        '''Updates heading of the aircraft, pointed towards ref_final_heading_deg''' 
+        '''Internal method. Updates heading of the aircraft, pointed towards ref_final_heading_deg''' 
         
         avg_rate_of_turn = 20 #degree, collected from google - https://skybrary.aero/articles/rate-turn#:~:text=Description,%C2%B0%20turn%20in%20two%20minutes.
 
@@ -147,7 +176,7 @@ class UAV:
     def step(self, ):
         '''Updates the position of the UAV.'''
         
-        if self.current_position.distance(self.end_point)>self.proximity:
+        if self.current_position.distance(self.end_point)>self.landing_proximity:
             self._update_position(d_t=1) #seconds
             self._update_ref_final_heading()
             self._heading_correction()

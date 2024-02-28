@@ -22,7 +22,7 @@ Once the main simulator.py is built, it should have the following
 
 if __name__ == '__main__':
     
-    sim = Simulator('Austin, Texas, USA', 11, 5)
+    sim = Simulator('Austin, Texas, USA', 4, 2)
     #*Plotting Logic
     # #TODO - Use FuncAnimation to animate the path of the UAV
     # #TODO - call a plotter function here that encapsulates this loop 
@@ -36,7 +36,7 @@ if __name__ == '__main__':
         sim.airspace.location_utm_hospital_buffer.plot(ax=ax, color='green', alpha=0.3)
         sim.airspace.location_utm_hospital.plot(ax=ax, color='black')
         #adding vertiports to static plot
-        gpd.GeoSeries(sim.vertiports).plot(ax=ax, color='black')
+        gpd.GeoSeries(sim.sim_vertiports_point_array).plot(ax=ax, color='black')
     
     
     static_plot()

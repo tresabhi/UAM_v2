@@ -1,8 +1,12 @@
 #Welcome to the simulator, this takes all the classes from all the modules, and builds an instance of the simulator
-import airspace, airtrafficcontroller, uav, autonomous_uav, vertiport
+from airspace import Airspace
+from airtrafficcontroller import ATC
+from uav import UAV
 import matplotlib.pyplot as plt
 import geopandas as gpd
 import time
+from typing import List
+
 '''
     Read before continuing. 
     
@@ -21,41 +25,74 @@ import time
 '''
 
 class Simulator:
-    def __init__(self, location_name, num_vertiports, num_reg_uavs):
-        self.airspace = airspace.Airspace(location_name=location_name)
-        self.atc = airtrafficcontroller.ATC(self.airspace)
-        self.vertiports = self.atc.create_n_random_vertiports(num_vertiports)
-        self.atc.create_n_reg_uavs(num_reg_uavs, self.vertiports)
-        self.uav_list = self.atc.reg_uav_list
+    def __init__(self, location_name, num_vertiports, num_reg_uavs, sleep_time): 
+        """
+        Initializes a Simulator object.
+
+        Args:
+            location_name (str): The name of the location for the simulation.
+            num_vertiports (int): The number of vertiports to create in the simulation.
+            num_reg_uavs (int): The number of regular UAVs to create in the simulation.
+        """       
+        # sim airspace and ATC
+        self.airspace = Airspace(location_name=location_name)
+        self.atc = ATC(self.airspace)
+        # Initialize sim's vertiports and uavs using ATC 
+        self.atc.create_n_random_vertiports(num_vertiports)
+        self.atc.create_n_reg_uavs(num_reg_uavs,)
+        # unpacking atc.vertiports in airspace
+        vertiports_point_array = [vertiport.location for vertiport in self.atc.vertiports_in_airspace]
+        # sim data
+        self.sim_vertiports_point_array = vertiports_point_array
+        self.uav_list:List[UAV] = self.atc.reg_uav_list 
+        # sim sleep time
+        self.sleep_time = sleep_time
 
     
     
-    
     def RUN_SIMULATOR(self, fig, ax, static_plot,):
+        """
+        Runs the simulator.
+
+        Args:
+            fig (matplotlib.figure.Figure): The figure object for plotting.
+            ax (matplotlib.axes.Axes): The axes object for plotting.
+            static_plot (function): A function that plots the static elements of the simulation.
+
+        Returns:
+            None
+        """
         while True:
             plt.cla()
             static_plot()
-            for uav_obj in self.uav_list: #! all uavs are stepping
-                uav_obj.step() 
+
+            # PLOT LOGIC
             for uav_obj in self.uav_list:
                 gpd.GeoSeries(uav_obj.current_position).plot(ax=ax, color='red', alpha=0.3)
                 gpd.GeoSeries(uav_obj.current_position).buffer(60).plot(ax=ax, color='yellow', alpha=0.2)
             
             fig.canvas.draw()
             fig.canvas.flush_events()
-            time.sleep(0.1)
+            time.sleep(self.sleep_time)
+
+            # UAV VERTIPORT REASSIGNMENT LOGIC
+            for uav_obj in self.atc.reg_uav_list:
+                self.atc.has_left_start_vertiport(uav_obj)
+                self.atc.has_reached_end_vertiport(uav_obj)
+
+            # UAV STEP LOGIC
+            for uav_obj in self.uav_list: #! all uavs are stepping
+                uav_obj.step()
+
+            #TODO - collision detection and avoidance logic
             
-            for uav_obj in self.uav_list:
-                if uav_obj.current_position.distance(uav_obj.end_point) <= uav_obj.proximity:
-                    uav_obj.reached = True
-            
-            all_reached = all([uav_obj.reached for uav_obj in self.uav_list])
+            #! LOOP END LOGIC (NOT being used) - Once all UAVs are at their end point, the while loop breaks
+            all_reached = all([uav_obj.reached_end_vertiport for uav_obj in self.uav_list])
             if all_reached:
                 break
 
+        print('Simulation complete.')
 
-
-        print('Simulation complete. Path traces of UAVs are ready')
     
 
     

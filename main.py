@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 from simulator import Simulator
 from matplotlib.animation import FuncAnimation
 import geopandas as gpd
-
+from utils import static_plot
 
 
  #TODO - Complete the following checks 
@@ -15,41 +15,17 @@ Once the main simulator.py is built, it should have the following
 
 '''
 
+
+
+
 if __name__ == '__main__':
     
-    sim = Simulator('Austin, Texas, USA', 7, 12, sleep_time=0.05)
+    sim = Simulator('Austin, Texas, USA', 7, 12, sleep_time=0.05, total_timestep = 250)
     #*Plotting Logic
     # #TODO - Use FuncAnimation to animate the path of the UAV
     # #TODO - call a plotter function here that encapsulates this loop 
 
     plt.ion() 
     fig, ax = plt.subplots()
-    # vertiports_gs = gpd.GeoSeries(sim.vertiports)
-    
-    def static_plot():
-        sim.airspace.location_utm_gdf.plot(ax=ax, color='gray', linewidth=0.6)
-        sim.airspace.location_utm_hospital_buffer.plot(ax=ax, color='green', alpha=0.3)
-        sim.airspace.location_utm_hospital.plot(ax=ax, color='black')
-        #adding vertiports to static plot
-        gpd.GeoSeries(sim.sim_vertiports_point_array).plot(ax=ax, color='black')
-    
-    
-    static_plot()
-    sim.RUN_SIMULATOR(fig, ax, static_plot)
-
-        
-
-
-
-    
-    
-
-
-
-
-
-
-
-   
-
-
+    static_plot(sim, ax, gpd)
+    sim.RUN_SIMULATOR(fig, ax, static_plot,sim, gpd)

@@ -4,14 +4,16 @@ import numpy as np
 from shapely.geometry import Point
 from geopandas import GeoSeries
 from vertiport import Vertiport
-from vertiport import Vertiport
+
+
 
 class UAV:
     '''Representation of UAV in airspace. UAV translates in 2D plane, 
      object is to move from start vertiport to end vertiport.
      This object has builtin collision avoidance mechanism.'''
     def __init__(self,
-                 start_vertiport,
+                 start_vertiport ,
+                 end_vertiport,
                  landing_proximity = 50, 
                  speed = 79.0, # Airbus H175 - max curise speed 287 kmph - 79 meters per second
                  heading_deg = np.random.randint(-178,178)+np.random.rand(), # random heading between -180 and 180
@@ -25,10 +27,11 @@ class UAV:
         self.left_start_vertiport = False
         self.reached_end_vertiport = False
         self.first_flight_of_day = True
+        #self.uav_atc = uav_atc
 
         #Vertiport assignement
-        self.start_vertiport:Vertiport = start_vertiport
-        self.end_vertiport:Vertiport = start_vertiport 
+        self.start_vertiport = start_vertiport
+        self.end_vertiport = end_vertiport
         
         #UAV position properties
         self.start_point:Point = self.start_vertiport.location
@@ -45,30 +48,24 @@ class UAV:
         self.current_ref_final_heading_deg = np.rad2deg(self.current_ref_final_heading_rad)
 
 
-    
-    def reset_uav(self, new_start_vertiport,):
+
+    def reset_uav(self, ):
         '''Update the start vertiport of a UAV 
         to a new start vertiport, 
         argument of this method '''
-        self.start_vertiport = new_start_vertiport
-        self.end_vertiport = self.start_vertiport
-        #TODO - needs new endpoint assignment or will stay at current endpoint
+        #TODO - Reset soft properties back to original properties
+        self.left_start_vertiport = False
+        self.reached_end_vertiport = False 
 
-    
-    def has_reached_end_vertiport(self,):
-        '''Check if a UAV has reached its end vertiport'''
-        if self.current_position.distance(self.end_point) <= self.landing_proximity:
-            self.reached_end_vertiport = True
-
-    def has_left_start_vertiport(self,):
-        '''Check if a UAV has left its start vertiport'''
-        if not (self.current_position.distance(self.start_point) <= self.landing_proximity):
-            self.left_start_vertiport = True
 
     
     def update_end_point(self,):
         '''Updates the UAV end point using its own end_vertiport location'''
         self.end_point = self.end_vertiport.location
+
+    #! Might not need this - check usage if any
+    def update_start_point(self,):
+        self.start_point = self.start_vertiport.location
 
     
     def _update_position(self,d_t:float, ):

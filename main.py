@@ -1,13 +1,8 @@
-import airspace
-import uav
-from airtrafficcontroller import ATC
-import numpy as np
 import matplotlib.pyplot as plt
 from simulator import Simulator
 from matplotlib.animation import FuncAnimation
 import geopandas as gpd
-import plotter
-import time
+
 
 
  #TODO - Complete the following checks 
@@ -22,7 +17,7 @@ Once the main simulator.py is built, it should have the following
 
 if __name__ == '__main__':
     
-    sim = Simulator('Austin, Texas, USA', 4, 2)
+    sim = Simulator('Austin, Texas, USA', 7, 12, sleep_time=0.05)
     #*Plotting Logic
     # #TODO - Use FuncAnimation to animate the path of the UAV
     # #TODO - call a plotter function here that encapsulates this loop 

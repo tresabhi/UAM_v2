@@ -2,9 +2,7 @@ import geopandas as gpd
 from osmnx import features as ox_features
 from osmnx import geocode_to_gdf as geocode_to_gdf 
 from osmnx import projection as ox_projection
-import numpy as np
-from typing import List, Tuple
-from shapely.geometry import Point
+
 
 
 class Airspace:

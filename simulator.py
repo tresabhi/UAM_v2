@@ -25,7 +25,7 @@ from typing import List
 '''
 
 class Simulator:
-    def __init__(self, location_name, num_vertiports, num_reg_uavs, sleep_time): 
+    def __init__(self, location_name, num_vertiports, num_reg_uavs, sleep_time, total_timestep): 
         """
         Initializes a Simulator object.
 
@@ -47,10 +47,12 @@ class Simulator:
         self.uav_list:List[UAV] = self.atc.reg_uav_list 
         # sim sleep time
         self.sleep_time = sleep_time
+        #sim run time
+        self.total_timestep = total_timestep
 
     
     
-    def RUN_SIMULATOR(self, fig, ax, static_plot,):
+    def RUN_SIMULATOR(self, fig, ax, static_plot, sim, gpd):
         """
         Runs the simulator.
 
@@ -62,9 +64,9 @@ class Simulator:
         Returns:
             None
         """
-        while True:
+        for _ in range(self.total_timestep):
             plt.cla()
-            static_plot()
+            static_plot(sim, ax, gpd)
 
             # PLOT LOGIC
             for uav_obj in self.uav_list:
@@ -83,13 +85,13 @@ class Simulator:
             # UAV STEP LOGIC
             for uav_obj in self.uav_list: #! all uavs are stepping
                 uav_obj.step()
+                print('UAV current speed - ', uav_obj.current_speed)
+                print('UAV current acceleration', uav_obj.current_acceleration)
 
             #TODO - collision detection and avoidance logic
             
-            #! LOOP END LOGIC (NOT being used) - Once all UAVs are at their end point, the while loop breaks
-            all_reached = all([uav_obj.reached_end_vertiport for uav_obj in self.uav_list])
-            if all_reached:
-                break
+
+            
 
         print('Simulation complete.')
 

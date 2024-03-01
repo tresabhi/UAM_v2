@@ -20,7 +20,7 @@ Once the main simulator.py is built, it should have the following
 
 if __name__ == '__main__':
     
-    sim = Simulator('Austin, Texas, USA', 7, 12, sleep_time=0.05, total_timestep = 250)
+    sim = Simulator('Austin, Texas, USA', 7, 1, sleep_time=0.05, total_timestep = 1500)
     #*Plotting Logic
     # #TODO - Use FuncAnimation to animate the path of the UAV
     # #TODO - call a plotter function here that encapsulates this loop 

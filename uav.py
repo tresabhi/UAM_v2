@@ -15,19 +15,21 @@ class UAV:
                  start_vertiport ,
                  end_vertiport,
                  landing_proximity = 50, 
-                 speed = 79.0, # Airbus H175 - max curise speed 287 kmph - 79 meters per second
+                 max_speed = 79, # Airbus H175 - max curise speed 287 kmph - 79 meters per second
                  heading_deg = np.random.randint(-178,178)+np.random.rand(), # random heading between -180 and 180
                  ):
         #UAV technical properties
         self.id = id(self)
-        self.speed:float = speed
+        self.current_speed = 0
+        self.max_speed:float = max_speed
+        self.max_acceleration = 1 # m/s^2
         self.landing_proximity = landing_proximity
+
         
         #UAV soft properties
         self.left_start_vertiport = False
         self.reached_end_vertiport = False
         self.first_flight_of_day = True
-        #self.uav_atc = uav_atc
 
         #Vertiport assignement
         self.start_vertiport = start_vertiport
@@ -68,16 +70,34 @@ class UAV:
         self.start_point = self.start_vertiport.location
 
     
-    def _update_position(self,d_t:float, ):
+    def _update_position(self,d_t:float,):
         '''Internal method. Updates current_position of the UAV after d_t seconds.
            This uses a first order Euler's method to update the position.
            '''
-        #TODO - add acceleration term, and update the equation
-        update_x = self.current_position.x + d_t * self.speed * np.cos(self.current_heading_radians)
-        update_y = self.current_position.y + d_t * self.speed * np.sin(self.current_heading_radians)
+        self.acceleration_controller()
+        update_x = self.current_position.x + self.current_speed * np.cos(self.current_heading_radians) * d_t 
+        update_y = self.current_position.y + self.current_speed * np.sin(self.current_heading_radians) * d_t 
         self.current_position = Point(update_x,update_y)
         
     
+    
+    def _update_speed(self,d_t, ):
+        self.acceleration_controller()
+        if self.current_position.distance(self.end_point) <= 700:
+            self.current_speed = self.current_speed + self.current_acceleration
+        else:
+            if self.current_speed < self.max_speed:
+                self.current_speed = self.current_speed + (0.5)*self.current_acceleration*d_t
+            else:
+                self.current_speed = self.max_speed
+        
+
+    def acceleration_controller(self,):
+        if self.current_position.distance(self.end_point) < 1500:
+            self.current_acceleration = -2*self.max_acceleration
+        else:
+            self.current_acceleration = self.max_acceleration
+
 
     def _update_ref_final_heading(self, ): 
         '''Internal method. Updates the heading of the aircraft, pointed towards end_point'''
@@ -172,11 +192,10 @@ class UAV:
 
     def step(self, ):
         '''Updates the position of the UAV.'''
-        
-        if self.current_position.distance(self.end_point)>self.landing_proximity:
-            self._update_position(d_t=1) #seconds
-            self._update_ref_final_heading()
-            self._heading_correction()
+        self._update_position(d_t=1, ) 
+        self._update_speed(d_t=1)
+        self._update_ref_final_heading()
+        self._heading_correction()
 
 
 

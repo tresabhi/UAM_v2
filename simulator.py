@@ -71,6 +71,7 @@ class Simulator:
             # PLOT LOGIC
             for uav_obj in self.uav_list:
                 gpd.GeoSeries(uav_obj.current_position).plot(ax=ax, color='red', alpha=0.3)
+                #TODO - wrap uav with Point instead of gpd.Geoseries
                 gpd.GeoSeries(uav_obj.current_position).buffer(60).plot(ax=ax, color='yellow', alpha=0.2)
             
             fig.canvas.draw()
@@ -85,8 +86,6 @@ class Simulator:
             # UAV STEP LOGIC
             for uav_obj in self.uav_list: #! all uavs are stepping
                 uav_obj.step()
-                print('UAV current speed - ', uav_obj.current_speed)
-                print('UAV current acceleration', uav_obj.current_acceleration)
 
             #TODO - collision detection and avoidance logic
             

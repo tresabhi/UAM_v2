@@ -61,7 +61,11 @@ class ATC:
         Side Effects:
             - Creates the vertiports and updates the vertiports in the airspace list.
         """
-        sample_vertiport:GeoSeries = self.airspace.location_utm_gdf.sample_points(num_vertiports)
+        
+        # Need to remove the hospital regions first so that vertiports are not sampled from hospital and buffer zones
+        sample_space = self.airspace.location_utm_gdf.iloc[0,0].difference(self.airspace.location_utm_hospital_buffer.unary_union)
+        sample_space_gdf = GeoSeries(sample_space)
+        sample_vertiport:GeoSeries = sample_space_gdf.sample_points(num_vertiports)
         sample_vertiport_array:np.ndarray = shapely.get_parts(sample_vertiport[0])
 
         for location in sample_vertiport_array:

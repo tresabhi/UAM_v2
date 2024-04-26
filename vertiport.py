@@ -17,6 +17,7 @@ class Vertiport:
         self.id = id(self)
         self.location = location
         self.uav_list:List = uav_list
+        #TODO - add buffer area attribute 
 
     # def __repr__(self,):
     #     return 'Vertiport({location}, {uav_list})'.format(location=self.location, uav_list=self.uav_list)

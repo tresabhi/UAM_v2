@@ -4,6 +4,7 @@ from airtrafficcontroller import ATC
 from uav import UAV
 import matplotlib.pyplot as plt
 import geopandas as gpd
+from shapely import Point
 import time
 from typing import List
 
@@ -68,11 +69,15 @@ class Simulator:
             plt.cla()
             static_plot(sim, ax, gpd)
 
-            # PLOT LOGIC
+            # UAV PLOT LOGIC
             for uav_obj in self.uav_list:
-                gpd.GeoSeries(uav_obj.current_position).plot(ax=ax, color='red', alpha=0.3)
+                #gpd.GeoSeries(uav_obj.current_position).plot(ax=ax, color='red', alpha=0.3)
+                uav_footprint_poly = uav_obj.uav_footprint_polygon()
+                uav_nmac_poly = uav_obj.uav_nmac_polygon()
+                uav_footprint_poly.plot(ax=ax, color=uav_obj.uav_footprint_color, alpha=0.3)
+                uav_nmac_poly.plot(ax=ax, color=uav_obj.uav_nmac_radius_color, alpha=0.3)
                 #TODO - wrap uav with Point instead of gpd.Geoseries
-                gpd.GeoSeries(uav_obj.current_position).buffer(60).plot(ax=ax, color='yellow', alpha=0.2)
+                #gpd.GeoSeries(uav_obj.current_position).buffer(800).plot(ax=ax, color='yellow', alpha=0.2)
             
             fig.canvas.draw()
             fig.canvas.flush_events()
@@ -87,8 +92,12 @@ class Simulator:
             for uav_obj in self.uav_list: #! all uavs are stepping
                 uav_obj.step()
 
-            #TODO - collision detection and avoidance logic
-            
+            # Collision detection and avoidance logic
+            for uav_obj in self.uav_list:
+                uav_obj.static_nmac_detection(self.airspace.location_utm_hospital_buffer)
+                uav_obj.static_collision_detection(self.airspace.location_utm_hospital)
+                uav_obj.uav_collision_detection(self.uav_list)
+                uav_obj.uav_nmac_detection(self.uav_list)
 
             
 

@@ -17,7 +17,12 @@ class UAV:
                  landing_proximity = 50, 
                  max_speed = 79, # Airbus H175 - max curise speed 287 kmph - 79 meters per second
                  heading_deg = np.random.randint(-178,178)+np.random.rand(), # random heading between -180 and 180
+                 uav_footprint = 17, #H175 nose to tail length of 17m,
+                 nmac_radius = 150, #NMAC radius
+                 uav_footprint_color = 'blue',
+                 uav_nmac_radius_color = 'orange'
                  ):
+        #TODO - add buffer area attribute for UAV(object collision), and NMAC
         #UAV technical properties
         self.id = id(self)
         self.current_speed = 0
@@ -25,7 +30,12 @@ class UAV:
         self.max_acceleration = 1 # m/s^2
         self.landing_proximity = landing_proximity
 
-        
+        #UAV footprint and NMAC
+        self.uav_footprint = uav_footprint 
+        self.nmac_radius =  nmac_radius
+        self.uav_footprint_color = uav_footprint_color
+        self.uav_nmac_radius_color = uav_nmac_radius_color
+
         #UAV soft properties
         self.left_start_vertiport = False
         self.reached_end_vertiport = False
@@ -48,6 +58,13 @@ class UAV:
         self.current_ref_final_heading_rad = np.arctan2(self.end_point.y - self.current_position.y, 
                                                                     self.end_point.x - self.current_position.x)
         self.current_ref_final_heading_deg = np.rad2deg(self.current_ref_final_heading_rad)
+
+
+        #UAV polygon object 
+        #TODO - delete if not needed
+        # self.uav_object = GeoSeries(self.current_position)
+        # self.uav_nmac_polygon = self.uav_object.buffer(self.uav_footprint)
+        # self.uav_nmac_polygon = self.uav_object.buffer(self.nmac_radius)
 
 
 
@@ -79,6 +96,13 @@ class UAV:
         update_y = self.current_position.y + self.current_speed * np.sin(self.current_heading_radians) * d_t 
         self.current_position = Point(update_x,update_y)
         
+    
+    #TODO - these two methods are called over and over again, rethink logic 
+    def uav_footprint_polygon(self, ):
+        return GeoSeries(self.current_position).buffer(self.uav_footprint)
+    
+    def uav_nmac_polygon(self,):
+        return GeoSeries(self.current_position).buffer(self.nmac_radius)
     
     
     def _update_speed(self,d_t, ):
@@ -150,27 +174,81 @@ class UAV:
             self.current_heading_radians = np.deg2rad(self.current_heading_deg)
 
         else:
-            raise Exception
+            raise Exception('Error in heading correction')
         
 
     
-    def collision_detection(self,uav_list:GeoSeries, raz_list:GeoSeries):
+
+
+    def uav_collision_detection(self, uav_list): #TODO - uav_list argument includes self, thats why I am observing 'Collision Detected' continuously
+        '''
+        This procedure has to be performed first 
+        if distance of UAV from vertiport less than equal to some value
+            DO NOT PERFORM collision avoidance 
+        THEN - i can perform what I have below
+        '''
+        modified_uav_list = []
+        for uav in uav_list:
+            if self.id != uav.id:
+                modified_uav_list.append(uav)
+        
+        uav_footprint_polygon = GeoSeries(self.current_position).buffer(self.uav_footprint).iloc[0]
+        for uav_other in modified_uav_list:
+            if uav_footprint_polygon.intersects(GeoSeries(uav_other.current_position).buffer(uav_other.uav_footprint).iloc[0]):
+                print('UAV Collision Detected')
+
+
+    def uav_nmac_detection(self, uav_list): #TODO - uav_list argument includes self, thats why I am observing 'Collision Detected' continuously
+        '''
+        This procedure has to be performed first 
+        if distance of UAV from vertiport less than equal to some value
+            DO NOT PERFORM collision avoidance 
+        THEN - i can perform what I have below
+        '''
+        modified_uav_list = []
+        for uav in uav_list:
+            if self.id != uav.id:
+                modified_uav_list.append(uav)
+        
+        uav_nmac_polygon = GeoSeries(self.current_position).buffer(self.nmac_radius).iloc[0]
+        for uav_other in modified_uav_list:
+            if uav_nmac_polygon.intersects(GeoSeries(uav_other.current_position).buffer(uav_other.nmac_radius).iloc[0]):
+                self.current_heading_deg = 45
+                self.current_heading_radians = np.deg2rad(self.current_heading_deg)
+        
+
+    def static_collision_detection(self, static_object_df:GeoSeries):
         # check intersection with uav list - here return is true or false, true meaning intersection 
         # 
         # check intersection with raz_list
-        pass
+        uav_footprint_polygon = GeoSeries(self.current_position).buffer(self.uav_footprint).iloc[0]
 
-    def nmac_detection(self, uav_list:GeoSeries, raz_list:GeoSeries) : # return contact_uav_id 
+        for i in range(len(static_object_df)):
+            if uav_footprint_polygon.intersects(static_object_df.geometry.iloc[i]):
+                print('Static object collision')
+
+    def static_nmac_detection(self, static_object_df) : #static_object_df -> dataframe  # return contact_uav_id 
         # check intersection with uav list -  return is geoseries with true or false, true meaning intersection with contact_uav 
         # collect contact_uav id for true in geoseries
         # use the contact_uav id to collect information of the uav - 
         # required info 
-        #                contact_uav - heading, distance from contactuav(can be calculated using position), velocity
+        #                contact_uav - heading, distance from contact_uav(can be calculated using position), velocity
         #                ownship_uav     - deviation, velocity, has_intruder
         #                relative bearing - calculate as -> ownship_heading - absolute_angle_between_contact_and_ownship
         
-        # check intersection with raz_list
-        pass
+        # check intersection with static_object_df ??  
+
+        uav_nmac_polygon = GeoSeries(self.current_position).buffer(self.nmac_radius).iloc[0]
+        # print('type: ', type(uav_nmac_polygon.iloc[0]))
+
+        for i in range(len(static_object_df)):
+            if uav_nmac_polygon.intersects(static_object_df.iloc[i]):
+                # 90 degree clockwise rotation 
+                self.current_heading_deg = 45
+                self.current_heading_radians = np.deg2rad(self.current_heading_deg)
+
+
+        
         
     def contact_uav_information(self, contact_uav_id, uav_db):
         # using contact_uav_id collect the following 
@@ -187,17 +265,19 @@ class UAV:
         #           distance from contact np.abs(self.current_position - contact_uav.current_position)
         #           contact speed
         #           relative bearing 
-        pass
+        pass    
 
 
-    def step(self, ):
+    def step(self,):
         '''Updates the position of the UAV.'''
         self._update_position(d_t=1, ) 
         self._update_speed(d_t=1)
         self._update_ref_final_heading()
         self._heading_correction()
+        
 
-
+        #print('uav: ', self.id, 'current position: ', self.current_position)
+    
 
 
 

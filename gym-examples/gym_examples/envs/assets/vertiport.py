@@ -16,8 +16,7 @@ class Vertiport:
     def __init__(self,location, uav_list=[]): #sim:simulator.Simulator,
         self.id = id(self)
         self.location = location
-        self.uav_list:List = uav_list
-        #TODO - add buffer area attribute 
+        self.uav_list:List = uav_list 
 
     # def __repr__(self,):
     #     return 'Vertiport({location}, {uav_list})'.format(location=self.location, uav_list=self.uav_list)

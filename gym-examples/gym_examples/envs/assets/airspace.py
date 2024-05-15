@@ -8,7 +8,7 @@ from osmnx import projection as ox_projection
 class Airspace:
     def __init__(self, location_name:str, buffer_radius = 500):
 
-        self.location_name = location_name#'Austin, Texas, USA'
+        self.location_name = location_name #'Austin, Texas, USA'
         self.buffer_radius = buffer_radius
         
         #TODO - Buffer area needs to be added to all location of interest as they are added to the airspace 

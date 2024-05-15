@@ -31,7 +31,7 @@ import copy
 
 class ATC:
 
-    def __init__(self, airspace:Airspace, controller:Collision_controller):
+    def __init__(self, airspace:Airspace, ):
         '''ATC (Air Traffic Controller) - maintains information on UAVs and Vertiports.
 
         Args:
@@ -46,7 +46,7 @@ class ATC:
         self.airspace = airspace
         self.reg_uav_list:List[UAV] = [] #:List[UAV]
         self.vertiports_in_airspace:List[Vertiport] = [] #:List[Vertiport]
-        self.controller = controller
+        #self.controller = controller
         
     
     
@@ -86,25 +86,6 @@ class ATC:
         Returns:
             None
         """
-        # for uav_no in range(num_uavs):
-        #     start_vertiport, end_vertiport = self.provide_vertiport(), self.provide_vertiport()
-        #     while start_vertiport.location == end_vertiport.location:
-        #         end_vertiport = self.provide_vertiport()
-        #     uav = UAV(start_vertiport=start_vertiport, end_vertiport=end_vertiport)
-        #     start_vertiport.uav_list.append(uav)
-        #     self.reg_uav_list.append(uav)
-
-        # for uav in self.reg_uav_list:
-        #     temp_uav_list = []
-        #     for other_uav in self.reg_uav_list:
-        #         if uav.id != other_uav.id:
-        #             temp_uav_list.append(other_uav)
-        #     for other_uav in temp_uav_list:
-        #         if uav.start_vertiport.location == other_uav.start_vertiport.location:
-        #             filtered_vertiport = self._vertiport_filtering(other_uav.start_vertiport)
-        #             new_vertiport_other_uav = np.random.choice(filtered_vertiport)
-        #             other_uav.start_vertiport = new_vertiport_other_uav
-        #             other_uav.update_start_point()
         
         start_vertiport_list = copy.deepcopy(self.vertiports_in_airspace)
         end_vertiport_list = copy.deepcopy(self.vertiports_in_airspace)
@@ -114,36 +95,12 @@ class ATC:
             uav_end_vertiport = random.choice(end_vertiport_list)
             while uav_start_vertiport.location == uav_end_vertiport.location:
                 uav_end_vertiport = random.choice(end_vertiport_list)
-            uav = UAV(uav_start_vertiport, uav_end_vertiport, self.controller)
+            uav = UAV(uav_start_vertiport, uav_end_vertiport)
             start_vertiport_list.pop(start_vertiport_list.index(uav_start_vertiport))
             end_vertiport_list.pop(end_vertiport_list.index(uav_end_vertiport))
             self.reg_uav_list.append(uav)
 
             
-
-
-    #! This is for a new uav generator method - this method will ensure that two uav whose start and end vertiports are the same do not colide from start to end. 
-    #! Essentially they need to choose separate paths as they move towards their end vertiport 
-    # def create_n_reg_uavs(self, num_uavs):
-    #     for i in range(num_uavs):
-    #         start_verti = self.provide_vertiport()
-    #         end_verti = self.provide_vertiport()
-    #         if end_verti == start_verti:
-    
-    # def create_reg_uav(self, ):
-    #     start_vertiport, end_vertiport = self.provide_vertiport(), self.provide_vertiport()
-    #     # while loop to check if start and end are same, 
-    #     # if same then end gets a new assignment
-    #     # loop stops when start and end are not same 
-    #     while (start_vertiport.location == end_vertiport.location):
-    #         end_vertiport = self.provide_vertiport()
-    #     uav = UAV(start_vertiport, end_vertiport)
-    #     self.reg_uav_list.append(uav)
-
-        
-        
-
-
     
     def _vertiport_filtering(self, some_vertiport):
         '''Internal method. Used for selecting end vertiports for UAVs,
@@ -300,23 +257,6 @@ class ATC:
         pass
     
         
-
-
-# Test 
-
-# airspace = Airspace('Austin, Texas, USA')
-# atc = ATC(airspace)
-
-# atc.create_n_random_vertiports(6)
-# for vertiport in atc.vertiports_in_airspace:
-#     print('this is a vertiport: ', vertiport)
-#     print('this is vertiport location: ', vertiport.location)
-
-# v1 = atc.vertiports_in_airspace[0]
-# v2 = atc.vertiports_in_airspace[1]
-
-# print(v1 == v2)
-# print(v1.location == v2.location)
 
 
 

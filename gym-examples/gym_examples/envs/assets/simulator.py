@@ -29,11 +29,12 @@ from typing import List
 since the simulator instance will follow gym_env remove total_timestep, 
 in __main__ create an instance of the simulator(env), and run that for total_timesteps 
 '''
+#TODO - remove total_timestep and 
+#TODO - sleep_time should be defined inside the class
 
 class Simulator:
-    #TODO - remove total_timestep and 
-    #TODO - sleep_time should be defined inside the class 
-    def __init__(self, location_name, num_vertiports, num_reg_uavs, sleep_time, total_timestep, controller): 
+ 
+    def __init__(self, location_name, num_vertiports, num_reg_uavs, sleep_time, total_timestep): 
         """
         Initializes a Simulator object.
 
@@ -44,12 +45,12 @@ class Simulator:
         """       
         # sim airspace and ATC
         self.airspace = Airspace(location_name=location_name)
-        self.atc = ATC(self.airspace, controller)
+        self.atc = ATC(self.airspace, )
         # uav controller 
         #self.controller = controller
         # Initialize sim's vertiports and uavs using ATC 
         self.atc.create_n_random_vertiports(num_vertiports)
-        self.atc.create_n_reg_uavs(num_reg_uavs,controller)
+        self.atc.create_n_reg_uavs(num_reg_uavs,)
         # unpacking atc.vertiports in airspace
         vertiports_point_array = [vertiport.location for vertiport in self.atc.vertiports_in_airspace]
         # sim data
@@ -83,8 +84,8 @@ class Simulator:
             # UAV PLOT LOGIC
             for uav_obj in self.uav_list:
                 #gpd.GeoSeries(uav_obj.current_position).plot(ax=ax, color='red', alpha=0.3)
-                uav_footprint_poly = uav_obj.uav_footprint_polygon()
-                uav_nmac_poly = uav_obj.uav_nmac_polygon()
+                uav_footprint_poly = uav_obj.uav_polygon_plot(uav_obj.uav_footprint)
+                uav_nmac_poly = uav_obj.uav_polygon_plot(uav_obj.nmac_radius)
                 uav_footprint_poly.plot(ax=ax, color=uav_obj.uav_footprint_color, alpha=0.3)
                 uav_nmac_poly.plot(ax=ax, color=uav_obj.uav_nmac_radius_color, alpha=0.3)
                 #TODO - wrap uav with Point instead of gpd.Geoseries
@@ -101,7 +102,7 @@ class Simulator:
 
             # UAV STEP LOGIC
             for uav_obj in self.uav_list: #! all uavs are stepping
-                uav_obj.step(self.airspace.location_utm_hospital, self.airspace.location_utm_hospital_buffer, self.uav_list)
+                uav_obj.step(self.uav_list)
 
             #TODO - remove this section of code, integrate the collision inside UAVs step function
 
@@ -117,8 +118,8 @@ class Simulator:
 
         print('Simulation complete.')
 
-    def __init__(self, airspace,airtrafficcontroller,uav,autonomous_uav,vertiport,render_mode=None):
-        pass 
+    #def __init__(self, airspace,airtrafficcontroller,uav,autonomous_uav,vertiport,render_mode=None):
+        #pass 
 
     def _get_obs(self,):
         pass 

@@ -21,13 +21,13 @@ class UAV:
                  ):
         
         #UAV builtin properties 
-        self.heading_deg = np.random.randint(-178,178)+np.random.rand(), # random heading between -180 and 180
-        self.uav_footprint = 17, #H175 nose to tail length of 17m,
-        self.nmac_radius = 150, #NMAC radius
-        self.detection_radius = 250,
-        self.uav_footprint_color = 'blue',
-        self.uav_nmac_radius_color = 'orange',
-        self.uav_detection_radius_color = 'green',
+        self.heading_deg = np.random.randint(-178,178) + np.random.rand() # random heading between -180 and 180
+        self.uav_footprint = 17 #H175 nose to tail length of 17m,
+        self.nmac_radius = 150 #NMAC radius
+        self.detection_radius = 550
+        self.uav_footprint_color = 'blue'
+        self.uav_nmac_radius_color = 'orange'
+        self.uav_detection_radius_color = 'green'
         self.uav_collision_controller = None
         
         #UAV technical properties
@@ -66,6 +66,9 @@ class UAV:
 
     def uav_polygon(self, dimension):
         return GeoSeries(self.current_position).buffer(dimension).iloc[0]
+    
+    def uav_polygon_plot(self, dimension):
+        return GeoSeries(self.current_position).buffer(dimension)
     
     def reset_uav(self, ):
         '''Update the start vertiport of a UAV 
@@ -163,130 +166,7 @@ class UAV:
 
         else:
             raise Exception('Error in heading correction')
-        
-
-    
-
-
-    # def uav_collision_detection(self, uav_list): #TODO - uav_list argument includes self, thats why I am observing 'Collision Detected' continuously
-    #     '''
-    #     This procedure has to be performed first 
-    #     if distance of UAV from vertiport less than equal to some value
-    #         DO NOT PERFORM collision avoidance 
-    #     THEN - i can perform what I have below
-    #     '''
-    #     modified_uav_list = []
-    #     for uav in uav_list:
-    #         if self.id != uav.id:
-    #             modified_uav_list.append(uav)
-        
-    #     uav_footprint_polygon = GeoSeries(self.current_position).buffer(self.uav_footprint).iloc[0]
-    #     for uav_other in modified_uav_list:
-    #         if uav_footprint_polygon.intersects(GeoSeries(uav_other.current_position).buffer(uav_other.uav_footprint).iloc[0]):
-    #             print('UAV Collision Detected')
-
-
-    # def uav_nmac_detection(self, uav_list): #TODO - uav_list argument includes self, thats why I am observing 'Collision Detected' continuously
-    #     '''
-    #     This procedure has to be performed first 
-    #     if distance of UAV from vertiport less than equal to some value
-    #         DO NOT PERFORM collision avoidance 
-    #     THEN - i can perform what I have below
-    #     '''
-    #     modified_uav_list = []
-    #     for uav in uav_list:
-    #         if self.id != uav.id:
-    #             modified_uav_list.append(uav)
-        
-    #     uav_self = GeoSeries(self.current_position).buffer(self.nmac_radius).iloc[0]
-    #     for uav_other in modified_uav_list:
-    #         if uav_self.intersects(GeoSeries(uav_other.current_position).buffer(uav_other.nmac_radius).iloc[0]):
-    #             #TODO - this is not a good implementation - needs a good fix 
-    #             self.current_heading_deg = np.random.randint(low=-45, high=46)
-    #             self.current_heading_radians = np.deg2rad(self.current_heading_deg)
-        
-
-    # def static_collision_detection(self, static_object_df:GeoSeries):
-    #     # check intersection with uav list - here return is true or false, true meaning intersection 
-    #     # 
-    #     # check intersection with raz_list
-    #     uav_footprint_polygon = GeoSeries(self.current_position).buffer(self.uav_footprint).iloc[0]
-
-    #     for i in range(len(static_object_df)):
-    #         if uav_footprint_polygon.intersects(static_object_df.geometry.iloc[i]):
-    #             print('Static object collision')
-
-    # def static_nmac_detection(self, static_object_df) : #static_object_df -> dataframe  # return contact_uav_id 
-    #     # check intersection with uav list -  return is geoseries with true or false, true meaning intersection with contact_uav 
-    #     # collect contact_uav id for true in geoseries
-    #     # use the contact_uav id to collect information of the uav - 
-    #     # required info 
-    #     #                contact_uav - heading, distance from contact_uav(can be calculated using position), velocity
-    #     #                ownship_uav     - deviation, velocity, has_intruder
-    #     #                relative bearing - calculate as -> ownship_heading - absolute_angle_between_contact_and_ownship
-        
-    #     # check intersection with static_object_df ??  
-
-    #     uav_self = GeoSeries(self.current_position).buffer(self.nmac_radius).iloc[0]
-    #     # print('type: ', type(uav_self.iloc[0]))
-
-    #     for i in range(len(static_object_df)):
-    #         if uav_self.intersects(static_object_df.iloc[i]):
-    #             # 90 degree clockwise rotation 
-    #             #TODO - need to update this NOW !!!
-    #             self.current_heading_deg = self.current_ref_final_heading_deg - 45
-    #             self.current_heading_radians = np.deg2rad(self.current_heading_deg)
-
-    
-    #TODO - test this method, check output of this method and ensure the self.detected_uav_list is getting updated everystep 
-    def uav_detection(self,uav_list):
-        '''
-        this method will be called over and over again with a changing stepindex value 
-        an array that will hold uavs that are detected.
-        this array will update each step.
-        if there is no uav detected at any given step then the array should be empty.
-        '''
-        detected_uav_list = []
-        modified_uav_list = []
-        for uav in uav_list:
-            if self.id != uav.id:
-                modified_uav_list.append(uav)
-        #TODO - look this line is repeated all the time change this to an attribute 
-        uav_self = GeoSeries(self.current_position).buffer(self.detection_radius).iloc[0]
-        
-        for uav_other in modified_uav_list:
-            #TODO - same this line is repeated all the time for creating a buffer GeoSeries object for other_uav, this needs a method too 
-            if uav_self.intersects(GeoSeries(uav_other.current_position).buffer(uav_other.detection_radius).iloc[0]):
-                detected_uav_list.append(uav_other)
-        
-        self.detected_uav_list = detected_uav_list
-
-
-
-
-
-
-
-
-        
-            
-        
-        
-    #TODO - test this method   
-    def contact_uav_information(self,):
-        # using contact_uav_id collect the following 
-        #   contact_uav - heading, position, velocity, 
-        
-        uav_info_dict = dict()
-        if len(self.detected_uav_list) == 0:
-            return None
-        else:
-            for other_uav in self.detected_uav_list:
-                uav_info_dict[other_uav.id] = (other_uav.current_position,
-                                               other_uav.current_heading_deg,
-                                               other_uav.current_ref_final_heading_deg)
-
-            
+                     
 
     def find_other_uav(self, uav_list):
         other_uav_list = []
@@ -308,6 +188,7 @@ class UAV:
         for other_uav in other_uav_list:
             if self.uav_polygon(self.detection_radius).intersects(other_uav.uav_polygon(other_uav.detection_radius)):
                 self.intruder_uav_list.append(other_uav)
+        return len(self.intruder_uav_list)
 
     def calculate_intruder_distance(self, ):
         self.distance_to_intruder = []
@@ -325,23 +206,11 @@ class UAV:
         for other_uav in self.intruder_uav_list:
             self.intruder_heading.append(abs(self.current_heading_deg - other_uav.current_heading_deg))
 
-
-
-
     
-    def get_state(self, ):
-        # Here return a list with the following states
-        # state -> [deviation = (self.current_heading - self.ref_final_headin)
-        #           speed, 
-        #           current heading, 
-        #           has_contact,      NOT SURE WHY THIS IS IMPORTANT, AND HOW THIS IS USED IN THE RL FRAMEWORK
-        #           contact heading,           
-        #           distance from contact np.abs(self.current_position - contact_uav.current_position)
-        #           contact speed
-        #           relative bearing 
+    def get_state(self,uav_list ):
         deviation = self.current_heading_deg - self.current_ref_final_heading_deg
         speed = self.current_speed
-        num_intruder = len(self.calculate_intruder())
+        num_intruder = self.calculate_intruder(uav_list)
         intruder_distance = self.calculate_intruder_distance()
         intruder_speed = self.calculate_intruder_speed()
         intruder_heading = self.calculate_intruder_heading()
@@ -352,16 +221,19 @@ class UAV:
                       'intruder_distance':intruder_distance,
                       'intruder_speed':intruder_speed,
                       'intruder_heading':intruder_heading}
+        
             
 
 
-    def step(self, location,location_buffer, uav_list):
+    def step(self, uav_list):
         '''Updates the position of the UAV.'''
 
         self._update_position(d_t=1, ) 
         self._update_speed(d_t=1)
         self._update_ref_final_heading()
         self._heading_correction()
+        self.get_state(uav_list)
+        
 
 
     

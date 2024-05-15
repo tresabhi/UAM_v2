@@ -25,7 +25,14 @@ from typing import List
      
 '''
 
+'''
+since the simulator instance will follow gym_env remove total_timestep, 
+in __main__ create an instance of the simulator(env), and run that for total_timesteps 
+'''
+
 class Simulator:
+    #TODO - remove total_timestep and 
+    #TODO - sleep_time should be defined inside the class 
     def __init__(self, location_name, num_vertiports, num_reg_uavs, sleep_time, total_timestep, controller): 
         """
         Initializes a Simulator object.
@@ -54,7 +61,7 @@ class Simulator:
         self.total_timestep = total_timestep
 
     
-    
+    #TODO - break this method so that all the subfunctions are distributed to the methods below
     def RUN_SIMULATOR(self, fig, ax, static_plot, sim, gpd):
         """
         Runs the simulator.
@@ -109,6 +116,34 @@ class Simulator:
             
 
         print('Simulation complete.')
+
+    def __init__(self, airspace,airtrafficcontroller,uav,autonomous_uav,vertiport,render_mode=None):
+        pass 
+
+    def _get_obs(self,):
+        pass 
+
+    def _get_info(self,):
+        pass 
+
+    #TODO - this is necessary 
+    def reset(self,):
+        pass 
+    
+    #TODO - this is necessary 
+    def step(self,action):
+        pass
+    
+    #TODO - this is necessary 
+    def render(self,):
+        pass
+
+    def _render_frame(self,):
+        pass
+
+    #TODO - this is necessary 
+    def close(self,):
+        pass
 
     
 

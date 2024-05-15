@@ -14,35 +14,32 @@ class UAV:
      object is to move from start vertiport to end vertiport.
      This object has builtin collision avoidance mechanism.'''
     def __init__(self,
-                 start_vertiport , #TODO - remove start and end vertiport, assign them later 
+                 start_vertiport ,  
                  end_vertiport,
                  landing_proximity = 50., 
-                 max_speed = 79., # Airbus H175 - max curise speed 287 kmph - 79 meters per second
-                 heading_deg = np.random.randint(-178,178)+np.random.rand(), # random heading between -180 and 180 #TODO - this can be assigned later 
-                 uav_footprint = 17, #H175 nose to tail length of 17m,
-                 nmac_radius = 150, #NMAC radius
-                 detection_radius = 250,
-                 uav_footprint_color = 'blue',
-                 uav_nmac_radius_color = 'orange',
-                 uav_detection_radius_color = 'green',
-                 uav_collision_controller = None
+                 max_speed = 79,
                  ):
-        #TODO - add buffer area attribute for UAV(object collision), and NMAC
+        
+        #UAV builtin properties 
+        self.heading_deg = np.random.randint(-178,178)+np.random.rand(), # random heading between -180 and 180
+        self.uav_footprint = 17, #H175 nose to tail length of 17m,
+        self.nmac_radius = 150, #NMAC radius
+        self.detection_radius = 250,
+        self.uav_footprint_color = 'blue',
+        self.uav_nmac_radius_color = 'orange',
+        self.uav_detection_radius_color = 'green',
+        self.uav_collision_controller = None
+        
         #UAV technical properties
         self.id = id(self)
         self.current_speed = 0
         self.max_speed:float = max_speed
         self.max_acceleration = 1 # m/s^2
         self.landing_proximity = landing_proximity 
-        self.collision_controller = uav_collision_controller
-
-        #UAV footprint and NMAC
-        self.uav_footprint = uav_footprint # this value is used to draw a circle around uavs current position
-        self.nmac_radius =  nmac_radius # same
-        self.detection_radius = detection_radius #TODO - may1, 1153, start from here, next - develop the detection system for uav and create states
-        self.uav_footprint_color = uav_footprint_color
-        self.uav_nmac_radius_color = uav_nmac_radius_color
-        self.uav_detection_radius_color = uav_detection_radius_color
+        
+        # UAV collision controller
+        #TODO - the collision controller should be added here
+        self.collision_controller = None
 
         #UAV soft properties
         self.leaving_start_vertiport = False
@@ -58,7 +55,7 @@ class UAV:
         self.current_position:Point = self.start_point
         
         #UAV heading properties
-        self.current_heading_deg:float = heading_deg
+        self.current_heading_deg:float = self.heading_deg
         self.current_heading_radians = np.deg2rad(self.current_heading_deg)
         
         #Final heading calculation
@@ -66,19 +63,10 @@ class UAV:
                                                                     self.end_point.x - self.current_position.x)
         self.current_ref_final_heading_deg = np.rad2deg(self.current_ref_final_heading_rad)
 
-        #UAV detection properties
-        self.detected_uav_list = []
-        self.detected_airspace_list = []
 
-
-        #UAV polygon object 
-        #TODO - delete if not needed
-        # self.uav_object = GeoSeries(self.current_position)
-        # self.uav_self = self.uav_object.buffer(self.uav_footprint)
-        # self.uav_self = self.uav_object.buffer(self.nmac_radius)
-
-
-
+    def uav_polygon(self, dimension):
+        return GeoSeries(self.current_position).buffer(dimension).iloc[0]
+    
     def reset_uav(self, ):
         '''Update the start vertiport of a UAV 
         to a new start vertiport, 
@@ -103,14 +91,6 @@ class UAV:
         update_x = self.current_position.x + self.current_speed * np.cos(self.current_heading_radians) * d_t 
         update_y = self.current_position.y + self.current_speed * np.sin(self.current_heading_radians) * d_t 
         self.current_position = Point(update_x,update_y)
-        
-    
-    #TODO - need to see what this polygon looks like  
-    def uav_footprint_polygon(self, ):
-        return GeoSeries(self.current_position).buffer(self.uav_footprint)
-    
-    def uav_nmac_polygon(self,):
-        return GeoSeries(self.current_position).buffer(self.nmac_radius)
     
     
     def _update_speed(self,d_t, ):
@@ -271,10 +251,11 @@ class UAV:
         for uav in uav_list:
             if self.id != uav.id:
                 modified_uav_list.append(uav)
-    
+        #TODO - look this line is repeated all the time change this to an attribute 
         uav_self = GeoSeries(self.current_position).buffer(self.detection_radius).iloc[0]
         
         for uav_other in modified_uav_list:
+            #TODO - same this line is repeated all the time for creating a buffer GeoSeries object for other_uav, this needs a method too 
             if uav_self.intersects(GeoSeries(uav_other.current_position).buffer(uav_other.detection_radius).iloc[0]):
                 detected_uav_list.append(uav_other)
         
@@ -307,7 +288,48 @@ class UAV:
 
             
 
-    def state_observation(self, ):
+    def find_other_uav(self, uav_list):
+        other_uav_list = []
+        for uav in uav_list:
+            if uav.id != self.id:
+                other_uav_list.append(uav)
+        return other_uav_list
+
+    def calculate_intruder(self,uav_list):
+        '''
+        Here the self.intruder_uav_list is created everytime as an empty list, 
+        So everystep this attribute is an empty list and its populated with uavs that are within detection radius.
+        There is no return from this method, the data is stored in the attribute and should be accessed immediately after calling this method.
+        Any subsequent routines can call the attribute and use the attribute for data processing 
+        '''
+        self.intruder_uav_list = []
+        other_uav_list = self.find_other_uav(uav_list)
+
+        for other_uav in other_uav_list:
+            if self.uav_polygon(self.detection_radius).intersects(other_uav.uav_polygon(other_uav.detection_radius)):
+                self.intruder_uav_list.append(other_uav)
+
+    def calculate_intruder_distance(self, ):
+        self.distance_to_intruder = []
+        for other_uav in self.intruder_uav_list:
+            self.distance_to_intruder.append(self.current_position.distance(other_uav.current_position))
+        #TODO - should this list be organised based on distance 
+
+    def calculate_intruder_speed(self,):
+        self.intruder_speed_list = []
+        for other_uav in self.intruder_uav_list:
+            self.intruder_speed_list.append(abs(self.current_speed - other_uav.current_speed))
+    
+    def calculate_intruder_heading(self,):
+        self.intruder_heading = []
+        for other_uav in self.intruder_uav_list:
+            self.intruder_heading.append(abs(self.current_heading_deg - other_uav.current_heading_deg))
+
+
+
+
+    
+    def get_state(self, ):
         # Here return a list with the following states
         # state -> [deviation = (self.current_heading - self.ref_final_headin)
         #           speed, 
@@ -317,30 +339,31 @@ class UAV:
         #           distance from contact np.abs(self.current_position - contact_uav.current_position)
         #           contact speed
         #           relative bearing 
-        pass    
+        deviation = self.current_heading_deg - self.current_ref_final_heading_deg
+        speed = self.current_speed
+        num_intruder = len(self.calculate_intruder())
+        intruder_distance = self.calculate_intruder_distance()
+        intruder_speed = self.calculate_intruder_speed()
+        intruder_heading = self.calculate_intruder_heading()
+
+        self.state = {'deviation':deviation,
+                      'speed':speed,
+                      'num_intruder':num_intruder,
+                      'intruder_distance':intruder_distance,
+                      'intruder_speed':intruder_speed,
+                      'intruder_heading':intruder_heading}
+            
 
 
     def step(self, location,location_buffer, uav_list):
         '''Updates the position of the UAV.'''
 
+        self._update_position(d_t=1, ) 
+        self._update_speed(d_t=1)
+        self._update_ref_final_heading()
+        self._heading_correction()
 
-        if self.collision_controller == None:
-            self._update_position(d_t=1, ) 
-            self._update_speed(d_t=1)
-            self._update_ref_final_heading()
-            self._heading_correction()
-        elif isinstance(self.collision_controller, Collision_controller):
-            self._update_position(d_t=1, ) 
-            self._update_speed(d_t=1)
-            self._update_ref_final_heading()
-            self._heading_correction()
-            self.collision_controller.static_nmac_detection(self,location_buffer)
-            self.collision_controller.uav_nmac_detection(self, uav_list)
-            self.collision_controller.uav_collision_detection(self, uav_list)
-            self.collision_controller.static_collision_detection(self, location)
-            
 
-            #print('uav: ', self.id, 'current position: ', self.current_position)
     
 
 

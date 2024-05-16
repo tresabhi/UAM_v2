@@ -4,7 +4,7 @@ import numpy as np
 from shapely.geometry import Point
 from geopandas import GeoSeries
 from vertiport import Vertiport
-from collision_controller import Collision_controller
+from das import Collision_controller
 #TODO - abstract controller, basic collision controller 
 #from collision_avoidance_controller_basic import uav_collision_detection, uav_nmac_detection, static_collision_detection, static_nmac_detection
 
@@ -20,6 +20,7 @@ class UAV:
                  max_speed = 79,
                  ):
         
+        
         #UAV builtin properties 
         self.heading_deg = np.random.randint(-178,178) + np.random.rand() # random heading between -180 and 180
         self.uav_footprint = 17 #H175 nose to tail length of 17m,
@@ -34,13 +35,9 @@ class UAV:
         self.id = id(self)
         self.current_speed = 0
         self.max_speed:float = max_speed
-        self.max_acceleration = 1 # m/s^2
+        #self.max_acceleration = 1 # m/s^2
         self.landing_proximity = landing_proximity 
         
-        # UAV collision controller
-        #TODO - the collision controller should be added here
-        self.collision_controller = None
-
         #UAV soft properties
         self.leaving_start_vertiport = False
         self.reaching_end_vertiport = False
@@ -90,28 +87,20 @@ class UAV:
         '''Internal method. Updates current_position of the UAV after d_t seconds.
            This uses a first order Euler's method to update the position.
            '''
-        self.acceleration_controller()
         update_x = self.current_position.x + self.current_speed * np.cos(self.current_heading_radians) * d_t 
         update_y = self.current_position.y + self.current_speed * np.sin(self.current_heading_radians) * d_t 
         self.current_position = Point(update_x,update_y)
     
-    
-    def _update_speed(self,d_t, ):
-        self.acceleration_controller()
-        if self.current_position.distance(self.end_point) <= 700:
-            self.current_speed = self.current_speed + self.current_acceleration
-        else:
-            if self.current_speed < self.max_speed:
-                self.current_speed = self.current_speed + (0.5)*self.current_acceleration*d_t
-            else:
-                self.current_speed = self.max_speed
-        
 
-    def acceleration_controller(self,):
-        if self.current_position.distance(self.end_point) < 1500:
-            self.current_acceleration = -2*self.max_acceleration
+    def _update_speed(self, d_t, acceleration):
+        
+        if acceleration is None:
+            acceleration = 0
         else:
-            self.current_acceleration = self.max_acceleration
+            acceleration = acceleration
+        
+        self.current_speed = self.current_speed + (acceleration * d_t)
+
 
 
     def _update_ref_final_heading(self, ): 
@@ -187,7 +176,7 @@ class UAV:
 
         for other_uav in other_uav_list:
             if self.uav_polygon(self.detection_radius).intersects(other_uav.uav_polygon(other_uav.detection_radius)):
-                self.intruder_uav_list.append(other_uav)
+                self.intruder_uav_list.append((other_uav.id, other_uav))
         return len(self.intruder_uav_list)
 
     def calculate_intruder_distance(self, ):
@@ -215,24 +204,56 @@ class UAV:
         intruder_speed = self.calculate_intruder_speed()
         intruder_heading = self.calculate_intruder_heading()
 
-        self.state = {'deviation':deviation,
+        state = {'deviation':deviation,
                       'speed':speed,
                       'num_intruder':num_intruder,
                       'intruder_distance':intruder_distance,
                       'intruder_speed':intruder_speed,
                       'intruder_heading':intruder_heading}
+        return state
+        
+    
+    def get_global_state(self, uav_list):
+        '''
+        This method will be for debugging the uav. 
+        All state information regarding uav will be gathered here and saved to a csv file.
+        '''
+        uav_id = self.id
+        current_position = self.current_position
+        start_v = self.start_point
+        end_v = self.end_point
+        dist_to_end_vertiport = abs(self.current_position - self.end_point)
+        speed = self.current_speed
+        num_intruder = self.calculate_intruder(uav_list)
+        intruder_distance = self.calculate_intruder_distance()
+        intruder_speed = self.calculate_intruder_speed()
+        intruder_heading = self.calculate_intruder_heading()
+        
+        global_state = {uav_id,
+                             current_position,
+                             start_v,
+                             end_v,
+                             dist_to_end_vertiport,
+                             speed,
+                             num_intruder,
+                             intruder_distance,
+                             intruder_speed,
+                             intruder_heading}
+
+        return global_state
         
             
 
-
-    def step(self, uav_list):
+    # the action argument should be a named_tuple acceleration and theta_dd
+    # for simplicity only using acceleration now 
+    def step(self,acceleration):
         '''Updates the position of the UAV.'''
 
         self._update_position(d_t=1, ) 
-        self._update_speed(d_t=1)
+        self._update_speed(d_t=1, acceleration=acceleration)
         self._update_ref_final_heading()
         self._heading_correction()
-        self.get_state(uav_list)
+    
         
 
 

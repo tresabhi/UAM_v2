@@ -1,5 +1,4 @@
-    # collision_avoidance_controller_basic.py
-    # 
+# Detection and avoidance system DAS 
 
 from geopandas import GeoSeries
 import numpy as np 

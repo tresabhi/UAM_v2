@@ -75,26 +75,34 @@ class Simulator:
         Returns:
             None
         """
+        #TODO - everything in this for loop needs to be encapsulated in the different methods - RUN_SIMULATOR will call the step, render and other methods for total_timesteps 
+
         for _ in range(self.total_timestep):
-            #TODO - implement the env step function - we could rename RUN_SIMULATOR and organise the input arguments
-            #* From here 
+            
+            #* render - method from here 
             plt.cla()
             static_plot(sim, ax, gpd)
-
+            
             # UAV PLOT LOGIC
             for uav_obj in self.uav_list:
                 #gpd.GeoSeries(uav_obj.current_position).plot(ax=ax, color='red', alpha=0.3)
                 uav_footprint_poly = uav_obj.uav_polygon_plot(uav_obj.uav_footprint)
-                uav_nmac_poly = uav_obj.uav_polygon_plot(uav_obj.nmac_radius)
                 uav_footprint_poly.plot(ax=ax, color=uav_obj.uav_footprint_color, alpha=0.3)
+
+                uav_nmac_poly = uav_obj.uav_polygon_plot(uav_obj.nmac_radius)
                 uav_nmac_poly.plot(ax=ax, color=uav_obj.uav_nmac_radius_color, alpha=0.3)
-                #TODO - wrap uav with Point instead of gpd.Geoseries
-                #gpd.GeoSeries(uav_obj.current_position).buffer(800).plot(ax=ax, color='yellow', alpha=0.2)
-            
+
+                uav_detection_poly = uav_obj.uav_polygon_plot(uav_obj.detection_radius)
+                uav_detection_poly.plot(ax=ax, color=uav_obj.uav_detection_radius_color,alpha=0.3)
+
             fig.canvas.draw()
             fig.canvas.flush_events()
             time.sleep(self.sleep_time)
-
+        
+            #* render - upto here - all of this will be wrapped in a env render method 
+            
+            #TODO - implement the env step function - we could rename RUN_SIMULATOR and organise the input arguments
+            #*step method - from here
             # UAV VERTIPORT REASSIGNMENT LOGIC
             for uav_obj in self.atc.reg_uav_list:
                 self.atc.has_left_start_vertiport(uav_obj)
@@ -103,7 +111,9 @@ class Simulator:
             # UAV STEP LOGIC
             for uav_obj in self.uav_list: #! all uavs are stepping
                 uav_obj.step(self.uav_list)
-
+            #*step method - ends here 
+            
+            
             #TODO - remove this section of code, integrate the collision inside UAVs step function
 
             # Collision detection and avoidance logic
@@ -112,39 +122,38 @@ class Simulator:
             #     uav_obj.static_collision_detection(self.airspace.location_utm_hospital)
             #     uav_obj.uav_collision_detection(self.uav_list)
             #     uav_obj.uav_nmac_detection(self.uav_list)
-            #* upto here - all of this will be wrapped in a env step function 
 
             
 
         print('Simulation complete.')
 
-    #def __init__(self, airspace,airtrafficcontroller,uav,autonomous_uav,vertiport,render_mode=None):
-        #pass 
+    # def __init__(self, airspace,airtrafficcontroller,uav,autonomous_uav,vertiport,render_mode=None):
+    #     #pass 
 
-    def _get_obs(self,):
-        pass 
+    # def _get_obs(self,):
+    #     pass 
 
-    def _get_info(self,):
-        pass 
+    # def _get_info(self,):
+    #     pass 
 
-    #TODO - this is necessary 
-    def reset(self,):
-        pass 
+    # #TODO - this is necessary 
+    # def reset(self,):
+    #     pass 
     
-    #TODO - this is necessary 
-    def step(self,action):
-        pass
+    # #TODO - this is necessary 
+    # def step(self,action):
+    #     pass
     
-    #TODO - this is necessary 
-    def render(self,):
-        pass
+    # #TODO - this is necessary 
+    # def render(self,):
+    #     pass
 
-    def _render_frame(self,):
-        pass
+    # def _render_frame(self,):
+    #     pass
 
-    #TODO - this is necessary 
-    def close(self,):
-        pass
+    # #TODO - this is necessary 
+    # def close(self,):
+    #     pass
 
     
 

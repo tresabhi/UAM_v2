@@ -16,7 +16,7 @@ class Airspace:
         
         #location
         location_gdf = geocode_to_gdf(location_name) #converts named geocode - 'Austin,Texas' location to gdf 
-        self.location_utm_gdf:gpd.GeoDataFrame = ox_projection.project_gdf(location_gdf) #default projection - UTM projection 
+        self.location_utm_gdf:gpd.GeoDataFrame = ox_projection.project_gdf(location_gdf) #default projection - UTM projection #! GeoDataFrame has deprication warning - need quick fix
         self.location_utm_gdf['boundary'] = self.location_utm_gdf.boundary #adding column 'boundary' 
         
         #hospital        

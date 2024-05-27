@@ -1,0 +1,16 @@
+name: AAM_AMOD
+channels:
+  - defaults
+dependencies:
+  - matplotlib
+  - numpy
+  - poetry
+  - geopandas
+  - osmnx
+  - ipykernel
+  - ffmpeg
+  - geodatasets
+  - rasterio
+  - scipy
+  - gymnasium
+prefix: /Users/aadit/miniconda3/envs/AAM_AMOD

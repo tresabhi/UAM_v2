@@ -1,31 +1,75 @@
+import os
 import matplotlib.pyplot as plt
 from simulator import Simulator
 from matplotlib.animation import FuncAnimation
 import geopandas as gpd
 from utils import static_plot
-from collision_controller import Collision_controller
+from das import Collision_controller, Zero_controller
 
- #TODO - Complete the following checks 
-'''
-Once the main simulator.py is built, it should have the following 
-1) make sure there is at least 2 vertiports at all time 
-2) There is at least one uav - if 0 UAV, no need to run simulation(simulation should not run, but check to make sure)
-3) make sure location name is valid
-4) make sure vertiports are not on top of buildings and other structures 
-
-'''
-
-
+ 
+#! - Complete the following checks 
+#TODO - 1) make sure there is at least 2 vertiports at all time 
+#TODO - 2) There is at least one uav - if 0 UAV, no need to run simulation(simulation should not run, but check to make sure)
+#TODO - 3) make sure location name is valid
+#TODO - 4) make sure vertiports are not on top of buildings and other structures 
+#TODO - 5) run headless(without video) 
+#TODO - 6) be able to dynamically add locations using strings  
 
 
 if __name__ == '__main__':
     
-    sim = Simulator('Austin, Texas, USA', 16, 15,sleep_time=0.03, total_timestep=1000 )
-    #*Plotting Logic
+    # controller = Zero_controller()
+    controller = Collision_controller()
+    controller_predict = controller.get_action
+    
+    sim = Simulator('Austin, Texas, USA', 20, 18,sleep_time=0.005, total_timestep=1000)
+    
+    #fig, ax initialization 
+    plt.ion() 
+    fig, ax = plt.subplots()
+
+    #* remember this is a convinience function
+    sim.RUN_SIMULATOR(fig, ax, static_plot,sim, gpd, controller_predict=controller_predict)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    # *Plotting Logic
     # #TODO - Use FuncAnimation to animate the path of the UAV
     # #TODO - call a plotter function here that encapsulates this loop 
 
-    plt.ion() 
-    fig, ax = plt.subplots()
-    static_plot(sim, ax, gpd)
-    sim.RUN_SIMULATOR(fig, ax, static_plot,sim, gpd)
+
+
+
+
+    # logfile = '</change /to /logfile /path>'
+    # print('Simulation initialization -  ')
+    # print('Current working dir', os.getcwd())
+    # os.chdir(path='gym-examples/gym_examples/envs/assets')
+    # print('Current working dir: ', os.getcwd())
+    # print('state log files will be saved in ', logfile)

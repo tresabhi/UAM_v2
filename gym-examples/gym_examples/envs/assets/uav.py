@@ -1,5 +1,5 @@
 #Deterministic uavs
-
+from random import sample as random_sample
 import numpy as np
 from shapely.geometry import Point
 from geopandas import GeoSeries
@@ -10,14 +10,16 @@ from das import Collision_controller
 
 
 class UAV:
-    '''Representation of UAV in airspace. UAV translates in 2D plane, 
-     object is to move from start vertiport to end vertiport.
-     This object has builtin collision avoidance mechanism.'''
+    '''Representation of UAV in airspace. UAV motion represented in 2D plane. 
+     Object is to move from start vertiport to end vertiport.
+     A UAV instance requires a start and end vertiport.
+     '''
+    
     def __init__(self,
                  start_vertiport ,  
                  end_vertiport,
                  landing_proximity = 50., 
-                 max_speed = 79,
+                 max_speed = 43,
                  ):
         
         
@@ -26,7 +28,7 @@ class UAV:
         self.uav_footprint = 17 #H175 nose to tail length of 17m,
         self.nmac_radius = 150 #NMAC radius
         self.detection_radius = 550
-        self.uav_footprint_color = 'blue'
+        self.uav_footprint_color = 'blue' # this color represents the UAV object 
         self.uav_nmac_radius_color = 'orange'
         self.uav_detection_radius_color = 'green'
         self.uav_collision_controller = None
@@ -35,8 +37,8 @@ class UAV:
         self.id = id(self)
         self.current_speed = 0
         self.max_speed:float = max_speed
-        #self.max_acceleration = 1 # m/s^2
-        self.landing_proximity = landing_proximity 
+        self.max_acceleration = 1 # m/s^2, this has been obtained from internet 
+        self.landing_proximity = landing_proximity # UAV object considered landed when within this radius
         
         #UAV soft properties
         self.leaving_start_vertiport = False
@@ -82,6 +84,18 @@ class UAV:
     def update_start_point(self,):
         self.start_point = self.start_vertiport.location
 
+    def speed_controller(self,):
+        if self.current_speed == 0:
+            acc = self.max_acceleration
+        elif self.current_position.distance(self.end_point) <= 500:
+            acc = - ((self.max_speed)**2 / (2*500))
+        elif self.current_speed <= self.max_speed:
+            acc = self.max_acceleration
+        else:
+            acc = 0
+    
+        return acc 
+
     
     def _update_position(self,d_t:float,):
         '''Internal method. Updates current_position of the UAV after d_t seconds.
@@ -92,14 +106,22 @@ class UAV:
         self.current_position = Point(update_x,update_y)
     
 
-    def _update_speed(self, d_t, acceleration):
+    def _update_speed(self, d_t, acceleration_from_controller):
+        '''
+        Arg: acceleration_from_controller is an input from controller/das_system
+        '''
+        base_acc = self.speed_controller()
         
-        if acceleration is None:
-            acceleration = 0
+        if acceleration_from_controller is None:
+            final_acc = base_acc
         else:
-            acceleration = acceleration
+            if acceleration_from_controller != 0 :
+                final_acc = acceleration_from_controller
+            else:
+                final_acc = base_acc
+
         
-        self.current_speed = self.current_speed + (acceleration * d_t)
+        self.current_speed = self.current_speed + (final_acc * d_t)
 
 
 
@@ -110,11 +132,11 @@ class UAV:
         self.current_ref_final_heading_deg = np.rad2deg(self.current_ref_final_heading_rad)
         
         
-
-    def _heading_correction(self, ): 
+    def _update_theta_d(self, theta_dd_controller = None, d_t = None): 
+        #TODO - update method to include theta_dd and d_t
         '''Internal method. Updates heading of the aircraft, pointed towards ref_final_heading_deg''' 
         
-        avg_rate_of_turn = 20 #degree, collected from google - https://skybrary.aero/articles/rate-turn#:~:text=Description,%C2%B0%20turn%20in%20two%20minutes.
+        avg_rate_of_turn = 20 #degree/s, collected from google - https://skybrary.aero/articles/rate-turn#:~:text=Description,%C2%B0%20turn%20in%20two%20minutes.
 
         #! need to find how to dynamically slow down the turn rate as we get close to the ref_final_heading
         if np.abs(self.current_ref_final_heading_deg - self.current_heading_deg) < avg_rate_of_turn:
@@ -157,102 +179,153 @@ class UAV:
             raise Exception('Error in heading correction')
                      
 
-    def find_other_uav(self, uav_list):
+    def get_intruder_distance(self, other_uav):
+        return self.current_position.distance(other_uav.current_position)
+ 
+
+    def get_intruder_speed(self,other_uav):
+        rel_heading = self.calculate_intruder_heading(other_uav)
+        return self.current_speed - (np.cos(np.deg2rad(rel_heading)) * other_uav.current_speed)
+    
+    def get_intruder_heading(self,other_uav):
+        return self.current_heading_deg - other_uav.current_heading_deg
+    
+    def get_other_uav_list(self, uav_list):
         other_uav_list = []
         for uav in uav_list:
             if uav.id != self.id:
                 other_uav_list.append(uav)
         return other_uav_list
 
-    def calculate_intruder(self,uav_list):
+    def get_intruder_uav_list(self,uav_list, radius_str):
         '''
         Here the self.intruder_uav_list is created everytime as an empty list, 
-        So everystep this attribute is an empty list and its populated with uavs that are within detection radius.
+        So everystep this attribute is an empty list and its populated with uavs that are within any(detection, nmac, collision) radius.
         There is no return from this method, the data is stored in the attribute and should be accessed immediately after calling this method.
         Any subsequent routines can call the attribute and use the attribute for data processing 
         '''
+        if radius_str == 'detection':
+            own_radius = other_radius = self.detection_radius
+            
+        elif radius_str == 'nmac':
+            own_radius = other_radius = self.nmac_radius
+            
+        elif radius_str == 'collision':
+            own_radius = other_radius = self.collision_radius
+            
+        else:
+            raise RuntimeError('Unknown radius string passed.')
+
         self.intruder_uav_list = []
-        other_uav_list = self.find_other_uav(uav_list)
+        other_uav_list = self.get_other_uav_list(uav_list)
 
         for other_uav in other_uav_list:
-            if self.uav_polygon(self.detection_radius).intersects(other_uav.uav_polygon(other_uav.detection_radius)):
-                self.intruder_uav_list.append((other_uav.id, other_uav))
-        return len(self.intruder_uav_list)
-
-    def calculate_intruder_distance(self, ):
-        self.distance_to_intruder = []
-        for other_uav in self.intruder_uav_list:
-            self.distance_to_intruder.append(self.current_position.distance(other_uav.current_position))
-        #TODO - should this list be organised based on distance 
-
-    def calculate_intruder_speed(self,):
-        self.intruder_speed_list = []
-        for other_uav in self.intruder_uav_list:
-            self.intruder_speed_list.append(abs(self.current_speed - other_uav.current_speed))
-    
-    def calculate_intruder_heading(self,):
-        self.intruder_heading = []
-        for other_uav in self.intruder_uav_list:
-            self.intruder_heading.append(abs(self.current_heading_deg - other_uav.current_heading_deg))
-
-    
-    def get_state(self,uav_list ):
-        deviation = self.current_heading_deg - self.current_ref_final_heading_deg
-        speed = self.current_speed
-        num_intruder = self.calculate_intruder(uav_list)
-        intruder_distance = self.calculate_intruder_distance()
-        intruder_speed = self.calculate_intruder_speed()
-        intruder_heading = self.calculate_intruder_heading()
-
-        state = {'deviation':deviation,
-                      'speed':speed,
-                      'num_intruder':num_intruder,
-                      'intruder_distance':intruder_distance,
-                      'intruder_speed':intruder_speed,
-                      'intruder_heading':intruder_heading}
-        return state
+            if self.uav_polygon(own_radius).intersects(other_uav.uav_polygon(other_radius)):
+                self.intruder_uav_list.append(other_uav)
         
-    
-    def get_global_state(self, uav_list):
+        return self.intruder_uav_list
+
+
+
+    #! 
+    '''
+    currently the get_state method only detects other uavs, 
+    need to add logic for static_objects,
+    might need to break down the logic inside get_state into two parts, 
+    One for static object detection 
+    One for dynamic object detection. 
+
+    Then finally, the get state method should pull all the information and return a combined state information.
+
+
+    Once get_state works for one intruder it has to work for n intruders.
+
+
+    Looking ahead into the future static objects like buildings are clustered together, 
+    there will be problem on how that observation will need to be dealt with. 
+    '''
+
+
+    def get_state(self, uav_list, radius_str = 'detection'):
         '''
-        This method will be for debugging the uav. 
-        All state information regarding uav will be gathered here and saved to a csv file.
+        Get state of UAV based on radius string argument.
+        This method will return UAVs that have been detected. 
+        If no UAV is detected then we get a string back. - might need to change this 
         '''
-        uav_id = self.id
-        current_position = self.current_position
-        start_v = self.start_point
-        end_v = self.end_point
-        dist_to_end_vertiport = abs(self.current_position - self.end_point)
-        speed = self.current_speed
-        num_intruder = self.calculate_intruder(uav_list)
-        intruder_distance = self.calculate_intruder_distance()
-        intruder_speed = self.calculate_intruder_speed()
-        intruder_heading = self.calculate_intruder_heading()
-        
-        global_state = {uav_id,
-                             current_position,
-                             start_v,
-                             end_v,
-                             dist_to_end_vertiport,
-                             speed,
-                             num_intruder,
-                             intruder_distance,
-                             intruder_speed,
-                             intruder_heading}
 
-        return global_state
-        
+        intruder_uav_list = self.get_intruder_uav_list(uav_list,radius_str)
+
+        if len(intruder_uav_list) == 0:
+            return None
+        #! Needs to be changed properly 
+        #! track the complete chain and find where problems will appear 
+        else:
+            '''
+            If there are more than one intruder, set first in the list as current intruder,
+            and iterate through the list to find the intruder that is nearest. 
+            State information, will be built using the nearest intruder. 
+            '''
+            current_intruder = intruder_uav_list[0] #set first uav in intruder_list as current intruder 
+            #sort based on distance
+            for ith_intruder in intruder_uav_list:
+                if self.get_intruder_distance(ith_intruder) < self.get_intruder_distance(current_intruder):
+                    current_intruder = ith_intruder #nearest intruder is current intruder
             
+            intruder_state_info = {'own_id':self.id,
+                                'own_pos': self.current_position,
+                                'own_current_heading':self.current_heading_deg,
+                                'intruder_id': current_intruder.id,
+                                'intruder_pos': current_intruder.current_position,
+                                'intruder_current_heading': current_intruder.current_heading_deg,
+                                }
+            
+            return intruder_state_info
+        
+         
 
     # the action argument should be a named_tuple acceleration and theta_dd
     # for simplicity only using acceleration now 
-    def step(self,acceleration):
+    def step(self,action):
         '''Updates the position of the UAV.'''
+        if action is None:
+            acceleration = None
+        elif isinstance(action, tuple):
+            acceleration = action[0]
+            heading_correction = action[1]
 
         self._update_position(d_t=1, ) 
-        self._update_speed(d_t=1, acceleration=acceleration)
+        self._update_speed(d_t=1, acceleration_from_controller=acceleration)
         self._update_ref_final_heading()
-        self._heading_correction()
+        self._update_theta_d()
+
+        obs = self.current_position
+
+        return obs
+    
+
+
+
+    #TODO - might need these later 
+        
+    def undef_state(self,uav_list ):
+        # deviation = self.current_heading_deg - self.current_ref_final_heading_deg
+        # speed = self.current_speed
+        # num_intruder = self.calculate_intruder(uav_list)
+        # intruder_distance = self.calculate_intruder_distance()
+        # intruder_speed = self.calculate_intruder_speed()
+        # intruder_heading = self.calculate_intruder_heading()
+
+        # state = {'deviation':deviation,
+        #               'speed':speed,
+        #               'num_intruder':num_intruder,
+        #               'intruder_distance':intruder_distance,
+        #               'intruder_speed':intruder_speed,
+        #               'intruder_heading':intruder_heading}
+        # return state
+        pass
+    
+    def get_global_state(self, uav_list):
+        pass
     
         
 

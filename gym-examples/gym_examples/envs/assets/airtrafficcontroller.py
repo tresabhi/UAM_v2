@@ -24,7 +24,7 @@ from typing import List, Dict
 from airspace import Airspace
 from vertiport import Vertiport
 from uav import UAV
-from collision_controller import Collision_controller
+from das import Collision_controller
 import copy
 #from autonomous_uav import Autonomous_UAV
 
@@ -132,7 +132,7 @@ class ATC:
         Returns:
             None
         '''
-        print(uav.landing_proximity, type(uav.landing_proximity))
+        
         if (uav.current_position.distance(uav.end_point) <= uav.landing_proximity) and (uav.reaching_end_vertiport == False):
             #uav.reached_end_vertiport = True
             self._landing_procedure(uav)

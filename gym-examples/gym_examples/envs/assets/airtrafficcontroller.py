@@ -216,7 +216,7 @@ class ATC:
         '''
         landing_vertiport = landing_uav.end_vertiport
         landing_vertiport.uav_list.append(landing_uav) 
-        landing_uav.reset_uav()
+        landing_uav.refresh_uav()
         self._reassign_end_vertiport_of_uav(landing_uav)
 
     

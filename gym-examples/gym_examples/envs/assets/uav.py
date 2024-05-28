@@ -112,14 +112,17 @@ class UAV:
         '''
         base_acc = self.speed_controller()
         
-        if acceleration_from_controller is None:
-            final_acc = base_acc
+        # if acceleration_from_controller == 0:
+        #     final_acc = base_acc
+        # else:
+        #     if acceleration_from_controller != 0 :
+        #         final_acc = acceleration_from_controller
+        #     else:
+        #         final_acc = base_acc
+        if acceleration_from_controller != 0:
+            final_acc = acceleration_from_controller
         else:
-            if acceleration_from_controller != 0 :
-                final_acc = acceleration_from_controller
-            else:
-                final_acc = base_acc
-
+            final_acc = base_acc
         
         self.current_speed = self.current_speed + (final_acc * d_t)
 
@@ -132,51 +135,55 @@ class UAV:
         self.current_ref_final_heading_deg = np.rad2deg(self.current_ref_final_heading_rad)
         
         
-    def _update_theta_d(self, theta_dd_controller = None, d_t = None): 
+    def _update_theta_d(self, heading_correction_das_controller = 0): 
         #TODO - update method to include theta_dd and d_t
         '''Internal method. Updates heading of the aircraft, pointed towards ref_final_heading_deg''' 
-        
-        avg_rate_of_turn = 20 #degree/s, collected from google - https://skybrary.aero/articles/rate-turn#:~:text=Description,%C2%B0%20turn%20in%20two%20minutes.
+        if heading_correction_das_controller == 0:
+            avg_rate_of_turn = 20 #degree/s, collected from google - https://skybrary.aero/articles/rate-turn#:~:text=Description,%C2%B0%20turn%20in%20two%20minutes.
 
-        #! need to find how to dynamically slow down the turn rate as we get close to the ref_final_heading
-        if np.abs(self.current_ref_final_heading_deg - self.current_heading_deg) < avg_rate_of_turn:
-            avg_rate_of_turn = 1 #degree Airbus H175
+            #! need to find how to dynamically slow down the turn rate as we get close to the ref_final_heading
+            if np.abs(self.current_ref_final_heading_deg - self.current_heading_deg) < avg_rate_of_turn:
+                avg_rate_of_turn = 1 #degree Airbus H175
 
-        if np.abs(self.current_ref_final_heading_deg - self.current_heading_deg) < 0.5:
-            avg_rate_of_turn = 0.
-        
-        #* logic for heading update 
-        if (np.sign(self.current_ref_final_heading_deg)==np.sign(self.current_heading_deg)==1):
-            # and (ref_final_heading > current_heading_deg)) or ((np.sign(ref_final_heading)==np.sign(current_heading_deg)== -1) and (np.abs(ref_final_heading)<(np.abs(current_heading_deg)))):
-            if self.current_ref_final_heading_deg > self.current_heading_deg:
+            if np.abs(self.current_ref_final_heading_deg - self.current_heading_deg) < 0.5:
+                avg_rate_of_turn = 0.
+            
+            #* logic for heading update 
+            if (np.sign(self.current_ref_final_heading_deg)==np.sign(self.current_heading_deg)==1):
+                # and (ref_final_heading > current_heading_deg)) or ((np.sign(ref_final_heading)==np.sign(current_heading_deg)== -1) and (np.abs(ref_final_heading)<(np.abs(current_heading_deg)))):
+                if self.current_ref_final_heading_deg > self.current_heading_deg:
+                    self.current_heading_deg += avg_rate_of_turn #counter clockwise turn
+                    self.current_heading_radians = np.deg2rad(self.current_heading_deg) 
+                elif self.current_ref_final_heading_deg < self.current_heading_deg:
+                    self.current_heading_deg -= avg_rate_of_turn #clockwise turn
+                    self.current_heading_radians = np.deg2rad(self.current_heading_deg)
+                else:
+                    pass  
+            
+            elif np.sign(self.current_ref_final_heading_deg) == np.sign(self.current_heading_deg) == -1:
+                if np.abs(self.current_ref_final_heading_deg) < np.abs(self.current_heading_deg):
+                    self.current_heading_deg += avg_rate_of_turn #counter clockwise turn
+                    self.current_heading_radians = np.deg2rad(self.current_heading_deg)
+                elif np.abs(self.current_ref_final_heading_deg) > np.abs(self.current_heading_deg):
+                    self.current_heading_deg -= avg_rate_of_turn #clockwise turn
+                    self.current_heading_radians = np.deg2rad(self.current_heading_deg)
+                else:
+                    pass
+                    
+            elif np.sign(self.current_ref_final_heading_deg) == 1 and np.sign(self.current_heading_deg) == -1:
                 self.current_heading_deg += avg_rate_of_turn #counter clockwise turn
-                self.current_heading_radians = np.deg2rad(self.current_heading_deg) 
-            elif self.current_ref_final_heading_deg < self.current_heading_deg:
+                self.current_heading_radians = np.deg2rad(self.current_heading_deg)
+
+            elif np.sign(self.current_ref_final_heading_deg) == -1 and np.sign(self.current_heading_deg) == 1:
                 self.current_heading_deg -= avg_rate_of_turn #clockwise turn
                 self.current_heading_radians = np.deg2rad(self.current_heading_deg)
+
             else:
-                pass  
+                raise Exception('Error in heading correction')
         
-        elif np.sign(self.current_ref_final_heading_deg) == np.sign(self.current_heading_deg) == -1:
-            if np.abs(self.current_ref_final_heading_deg) < np.abs(self.current_heading_deg):
-                self.current_heading_deg += avg_rate_of_turn #counter clockwise turn
-                self.current_heading_radians = np.deg2rad(self.current_heading_deg)
-            elif np.abs(self.current_ref_final_heading_deg) > np.abs(self.current_heading_deg):
-                self.current_heading_deg -= avg_rate_of_turn #clockwise turn
-                self.current_heading_radians = np.deg2rad(self.current_heading_deg)
-            else:
-                pass
-                
-        elif np.sign(self.current_ref_final_heading_deg) == 1 and np.sign(self.current_heading_deg) == -1:
-            self.current_heading_deg += avg_rate_of_turn #counter clockwise turn
-            self.current_heading_radians = np.deg2rad(self.current_heading_deg)
-
-        elif np.sign(self.current_ref_final_heading_deg) == -1 and np.sign(self.current_heading_deg) == 1:
-            self.current_heading_deg -= avg_rate_of_turn #clockwise turn
-            self.current_heading_radians = np.deg2rad(self.current_heading_deg)
-
         else:
-            raise Exception('Error in heading correction')
+            self.current_heading_deg += heading_correction_das_controller
+            self.current_heading_radians = np.deg2rad(self.current_heading_deg)
                      
 
     def get_intruder_distance(self, other_uav):
@@ -280,6 +287,34 @@ class UAV:
                                 }
             
             return intruder_state_info
+    
+    def get_state_static_obj(self, building_gdf, radius_str = 'detection'):
+        
+        if radius_str == 'detection':
+            own_radius = self.detection_radius
+            
+        elif radius_str == 'nmac':
+            own_radius  = self.nmac_radius
+            
+        elif radius_str == 'collision':
+            own_radius = self.collision_radius
+            
+        else:
+            raise RuntimeError('Unknown radius string passed.')
+        
+        
+        building_polygon_count = len(building_gdf)
+        intersection_list = []
+        
+        for i in range(building_polygon_count):
+            intersection_list.append(self.uav_polygon(own_radius).intersection(building_gdf.iloc[i]))
+        
+        intersection_with_building = any(intersection_list)
+        
+        return intersection_with_building
+                
+        
+        
         
          
 
@@ -296,7 +331,7 @@ class UAV:
         self._update_position(d_t=1, ) 
         self._update_speed(d_t=1, acceleration_from_controller=acceleration)
         self._update_ref_final_heading()
-        self._update_theta_d()
+        self._update_theta_d(heading_correction)
 
         obs = self.current_position
 

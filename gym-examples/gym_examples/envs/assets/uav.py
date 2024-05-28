@@ -69,7 +69,7 @@ class UAV:
     def uav_polygon_plot(self, dimension):
         return GeoSeries(self.current_position).buffer(dimension)
     
-    def reset_uav(self, ):
+    def refresh_uav(self, ):
         '''Update the start vertiport of a UAV 
         to a new start vertiport, 
         argument of this method '''

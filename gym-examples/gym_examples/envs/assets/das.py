@@ -4,6 +4,22 @@ from geopandas import GeoSeries
 import numpy as np 
 #from uav import UAV
 
+
+'''
+All controller's method -> get_action(state) : should accept state
+                                      state  : should include all sort of information 
+                                      now 
+                                      1) state information can be empty                                                   if state is empty -> control_acceleration = 0, control_heading = 0
+        this tells me get state 
+        should have a new state observation
+        for static objects as well    2) state information can have static object(buildings)                if state only has static object -> control_acceleration = 0, control_heading = static_object_heading_control
+                                      3) state information can have dynamic object(other uavs)
+                                      4) state information can a both static and dynamic 
+
+
+                                    
+
+'''
 class Collision_controller:
     '''
     Controllers are defined for individualy UAVs, 
@@ -87,5 +103,9 @@ class Zero_controller:
         self.name = 'zero controller'
 
     def get_action(self, state):
-        return 0,0
+        return 0,0 
     
+
+
+
+#! add two new controllers - both should perform static object detection and avoidance, one should have dynamic obj detection and avoidance as well 

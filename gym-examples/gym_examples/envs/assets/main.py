@@ -18,11 +18,11 @@ from das import Collision_controller, Zero_controller
 
 if __name__ == '__main__':
     
-    controller = Zero_controller()
-    #controller = Collision_controller()
+    #controller = Zero_controller()
+    controller = Collision_controller()
     controller_predict = controller.get_action
     
-    sim = Simulator('Austin, Texas, USA', 20, 18,sleep_time=0.005, total_timestep=100)
+    sim = Simulator('Austin, Texas, USA', 20, 18,sleep_time=0, total_timestep=10000)
     
     #fig, ax initialization 
     plt.ion() 

@@ -250,13 +250,8 @@ class UAV:
     there will be problem on how that observation will need to be dealt with. 
     '''
 
-    #TODO - make a new method get_state that is combination of get_static_state() and get_dynamic_state()
 
-
-
-
-    #TODO - rename to get_dynamic_state()
-    def get_state(self, uav_list, radius_str = 'detection'):
+    def get_state_dynamic_obj(self, uav_list, radius_str = 'detection'):
         '''
         Get state of UAV based on radius string argument.
         This method will return UAVs that have been detected. 
@@ -267,8 +262,6 @@ class UAV:
 
         if len(intruder_uav_list) == 0:
             return None
-        #! Needs to be changed properly 
-        #! track the complete chain and find where problems will appear 
         else:
             '''
             If there are more than one intruder, set first in the list as current intruder,
@@ -292,19 +285,14 @@ class UAV:
             return intruder_state_info
     
     def get_state_static_obj(self, building_gdf, radius_str = 'detection'):
-        
         if radius_str == 'detection':
             own_radius = self.detection_radius
-            
         elif radius_str == 'nmac':
             own_radius  = self.nmac_radius
-            
         elif radius_str == 'collision':
             own_radius = self.collision_radius
-            
         else:
             raise RuntimeError('Unknown radius string passed.')
-        
         
         building_polygon_count = len(building_gdf)
         intersection_list = []
@@ -313,11 +301,17 @@ class UAV:
             intersection_list.append(self.uav_polygon(own_radius).intersection(building_gdf.iloc[i]))
         
         intersection_with_building = any(intersection_list)
+        own_state_info = self.current_heading_deg
         
-        return intersection_with_building
+        return intersection_with_building , own_state_info
                 
         
-        
+    def get_state(self, uav_list, building_gdf, radius_str = 'detection'):
+        static_state = self.get_state_static_obj(building_gdf, radius_str)
+        dynamic_state = self.get_state_dynamic_obj(uav_list, radius_str) 
+
+
+        return static_state, dynamic_state
         
          
 

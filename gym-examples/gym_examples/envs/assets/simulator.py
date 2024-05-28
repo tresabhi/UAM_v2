@@ -78,19 +78,20 @@ class Simulator:
         time.sleep(self.sleep_time)
 
     
-    def _get_obs(self,uav_obj:UAV):#! will need to pass hospital gdf to this method
-        state_info = uav_obj.get_state(self.uav_list)
-        static_state_info = uav_obj.get_state_static_obj(self.airspace.location_utm_hospital_buffer)
-        return state_info, static_state_info
+    def _get_obs(self,uav_obj:UAV):
+        state_info = uav_obj.get_state(self.uav_list, self.airspace.location_utm_hospital_buffer)
+        
+        return state_info
     
     #! arg -> action_list needs to be unpacked, action_list should contain (action, uav_id) tuple, 
     #! which will be unpacked and assigned to each uav based on uav_id 
     def get_action_list(self,controller_predict):
         action_list = []
         for uav in self.uav_list:
-            dyn_obs, static_obs = self._get_obs(uav)
-            action = controller_predict(dyn_obs) #! what to do if action is None
-#            static_action = 
+            #                    state -> ((bool,                float                  ), dict            | None)
+            #                               static_obj_detected, uav.current_heading_deg , dynamic_obj_info| None
+            obs = self._get_obs(uav)
+            action = controller_predict(obs) 
             action_list.append((uav.id, action))
         return action_list
 

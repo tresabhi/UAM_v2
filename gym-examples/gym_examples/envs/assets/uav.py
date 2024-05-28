@@ -132,7 +132,7 @@ class UAV:
                                                         self.end_point.x - self.current_position.x)
         self.current_ref_final_heading_deg = np.rad2deg(self.current_ref_final_heading_rad)
         
-        
+    #TODO - update_theta needs to be reworked NOW  
     def _update_theta_d(self, heading_correction_das_controller = 0): 
         #TODO - update method to include theta_dd and d_t
         '''Internal method. Updates heading of the aircraft, pointed towards ref_final_heading_deg''' 

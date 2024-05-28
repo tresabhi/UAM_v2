@@ -22,7 +22,7 @@ if __name__ == '__main__':
     controller = Collision_controller()
     controller_predict = controller.get_action
     
-    sim = Simulator('Austin, Texas, USA', 20, 18,sleep_time=0.005, total_timestep=1000)
+    sim = Simulator('Austin, Texas, USA', 20, 18,sleep_time=0, total_timestep=1000)
     
     #fig, ax initialization 
     plt.ion() 

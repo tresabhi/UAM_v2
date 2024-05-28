@@ -85,6 +85,7 @@ class UAV:
         self.start_point = self.start_vertiport.location
 
     def speed_controller(self,):
+
         if self.current_speed == 0:
             acc = self.max_acceleration
         elif self.current_position.distance(self.end_point) <= 500:
@@ -111,14 +112,11 @@ class UAV:
         Arg: acceleration_from_controller is an input from controller/das_system
         '''
         base_acc = self.speed_controller()
+        '''
+        if acceleration from controller, meaning controller is sending some acceleration value,
+        then acceleration from controller will over-ride acceleration from speed controller
         
-        # if acceleration_from_controller == 0:
-        #     final_acc = base_acc
-        # else:
-        #     if acceleration_from_controller != 0 :
-        #         final_acc = acceleration_from_controller
-        #     else:
-        #         final_acc = base_acc
+        '''
         if acceleration_from_controller != 0:
             final_acc = acceleration_from_controller
         else:

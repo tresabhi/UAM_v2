@@ -250,7 +250,12 @@ class UAV:
     there will be problem on how that observation will need to be dealt with. 
     '''
 
+    #TODO - make a new method get_state that is combination of get_static_state() and get_dynamic_state()
 
+
+
+
+    #TODO - rename to get_dynamic_state()
     def get_state(self, uav_list, radius_str = 'detection'):
         '''
         Get state of UAV based on radius string argument.

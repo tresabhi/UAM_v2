@@ -25,12 +25,12 @@ class Collision_controller:
         elif (theta >= -180) and (theta < -90):
             return 4
         else:
-            raise Exception
+            raise RuntimeError('DAS Error: Invalid heading')
         
 
     def get_action(self, state):
         if state == None:
-            return None
+            return 0,0
         else:
             own_pos = state['own_pos']
             int_pos = state['intruder_pos']
@@ -39,31 +39,31 @@ class Collision_controller:
 
             del_x = int_pos.x - own_pos.x
             del_y = int_pos.y - own_pos.y
-            own_q = self.get_quadrant(own_heading)
-            int_q = self.get_quadrant(int_heading)
+            own_quadrant = self.get_quadrant(own_heading)
+            intruder_quadrant = self.get_quadrant(int_heading)
             if (del_x > 0) and (del_y > 0):
-                if (own_q == 1) and (int_q == 4) :
+                if (own_quadrant == 1) and (intruder_quadrant == 4) :
                     heading_correction = 25
                     acceleration = -1
                 else:
                     heading_correction = 0
                     acceleration = 0
             elif (del_x < 0) and (del_y > 0):
-                if (own_q == 2) and (int_q == 3) :
+                if (own_quadrant == 2) and (intruder_quadrant == 3) :
                     heading_correction = -25
                     acceleration = -1
                 else:
                     heading_correction = 0
                     acceleration = 0
             elif (del_x < 0) and (del_y < 0):
-                if (own_q == 4) and (int_q == 1):
+                if (own_quadrant == 4) and (intruder_quadrant == 1):
                     heading_correction = 25
                     acceleration = -1
                 else:
                     heading_correction = 0
                     acceleration = 0
             elif (del_x > 0) and (del_y < 0):
-                if (own_q == 3) and (int_q == 2):
+                if (own_quadrant == 3) and (intruder_quadrant == 2):
                     heading_correction = -25
                     acceleration = -1
                 else:
@@ -87,5 +87,5 @@ class Zero_controller:
         self.name = 'zero controller'
 
     def get_action(self, state):
-        return None, None
+        return 0,0
     

@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import gymnasium as gym
 from gymnasium import spaces
 
-from wrappers import airspace, airtrafficcontroller
+from assets import airspace, airtrafficcontroller
 
 uam_airspace = airspace.Airspace('Austin, Texas, USA')
 uam_atc = airtrafficcontroller.ATC(airspace=uam_airspace)
@@ -25,16 +25,31 @@ class Uam_Uav_Env(gym.Env):
         pass 
 
     def _get_obs(self,):
+        '''
+        This method will collect observations for auto_uav only. 
+        '''
         pass 
 
     def _get_info(self,):
         pass 
 
     def reset(self,):
+        '''
+        This method will reset the environment. NOT sure how this will be done, but it will be done.
+        '''
         pass 
 
     def step(self,action):
-        pass
+        '''
+        This method is used to step the environment, it will step the environment by one timestep.
+        
+        The action argument - will be passed to auto_uav's step method
+        
+        Regular UAVs will step without action. so I will need to modify regular uav in such a way that they will step without action. 
+        This tells me that regular uav will need to have collision avoidance built into the UAV module, such that they can step without action. 
+         
+        '''
+        return obs, reward, done, info
 
     def render(self,):
         pass

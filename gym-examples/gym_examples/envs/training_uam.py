@@ -1,4 +1,4 @@
-from wrappers import airspace, airtrafficcontroller
+from assets import airspace, airtrafficcontroller
 import uam_uav
 
 import gymnasium as gym

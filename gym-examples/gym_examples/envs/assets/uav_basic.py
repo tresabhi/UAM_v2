@@ -327,7 +327,7 @@ class UAV_Basic:
     
     
     '''
-    
+    def collision_controller(self, )
     
     
 

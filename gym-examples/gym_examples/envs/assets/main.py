@@ -30,9 +30,14 @@ if __name__ == '__main__':
     fig, ax = plt.subplots()
 
     #* remember this is a convinience function
-    sim.RUN_SIMULATOR(fig, ax, static_plot,sim, gpd,)
+    #sim.RUN_SIMULATOR(fig, ax, static_plot,sim, gpd,)
+    
+    for vertiports in sim.atc.vertiports_in_airspace:
+        print('Vertiport id: ',vertiports.id)
+        print('Vertiport uav list: ',vertiports.uav_list)
+        
 
-
+            
 
 
 

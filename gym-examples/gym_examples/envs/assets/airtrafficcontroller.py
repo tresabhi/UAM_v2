@@ -25,6 +25,7 @@ from airspace import Airspace
 from vertiport import Vertiport
 from uav import UAV
 from uav_basic import UAV_Basic
+from autonomous_uav import Autonomous_UAV
 from das import Collision_controller
 import copy
 #from autonomous_uav import Autonomous_UAV
@@ -222,7 +223,7 @@ class ATC:
 
     
 
-    def _clearing_procedure(self, outgoing_uav:UAV_Basic):
+    def _clearing_procedure(self, outgoing_uav:UAV_Basic): #! rename to _takeoff_procedure()
         '''
         Performs the clearing procedure for a given UAV.
         Args:
@@ -243,8 +244,9 @@ class ATC:
         pass
 
 
-    def create_n_auto_uav(self,) -> List:
-        return []
+    def create_auto_uav(self,) -> Autonomous_UAV:
+        #! need to provide the start and end vertiport
+        self.auto_uav = Autonomous_UAV()
 
     def create_n_uavs(self, percent_auto):
         '''This method will create a mix of smart and regular uavs.

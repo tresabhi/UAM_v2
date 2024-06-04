@@ -1,6 +1,7 @@
 import os
 import matplotlib.pyplot as plt
 from simulator import Simulator
+from simulator_basic import Simulator_basic
 from matplotlib.animation import FuncAnimation
 import geopandas as gpd
 from utils import static_plot
@@ -22,14 +23,14 @@ if __name__ == '__main__':
     controller = Collision_controller()
     controller_predict = controller.get_action
     
-    sim = Simulator('Austin, Texas, USA', 20, 18,sleep_time=0, total_timestep=10000)
+    sim = Simulator_basic('Austin, Texas, USA', 20, 18,sleep_time=0, total_timestep=10000)
     
     #fig, ax initialization 
     plt.ion() 
     fig, ax = plt.subplots()
 
     #* remember this is a convinience function
-    sim.RUN_SIMULATOR(fig, ax, static_plot,sim, gpd, controller_predict=controller_predict)
+    sim.RUN_SIMULATOR(fig, ax, static_plot,sim, gpd,)
 
 
 

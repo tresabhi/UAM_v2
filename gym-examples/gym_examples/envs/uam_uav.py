@@ -88,13 +88,14 @@ class Uam_Uav_Env(gym.Env):
         
         '''
         Since reset is called after creating the env, in reset we will perform the following 
-        1) find which vertiport doesnt have a uav assigned to it, name it - empty_vertiport
-        2) create the auto_uav with start_vertiport -> empty_vertiport, end_vertiport -> choose a random vertiport from vertiport list
+        
+        1) create the auto_uav with start_vertiport -> empty_vertiport, end_vertiport -> choose a random vertiport from vertiport list this function will be performed by the ATC
         '''
         #! check the following things - 1) how and where is a uav_basic created, 
         #! how are its attributes assigned, 
         #! once this is clear -> create a script for auto_uav, and use that to create the auto_uav above in reset and assign all the necessary attributes to it
 
+        self.auto_uav = self.atc.create_auto_uav() 
 
         pass 
     
@@ -222,21 +223,21 @@ class Uam_Uav_Env(gym.Env):
          
         '''
         #decomposing action tuple 
+        #! these two need to be passed to auto_uav
         acceleration = action[0]
         heading_correction = action[1]
         
         #for uav in uav_basic_list step all uav_basic
+        #! if i have auto_uav, then i can use the same structure from ATC and perform the following funtions without any problem
         for uav in self.uav_basic_list:
             self.atc.has_left_start_vertiport(uav)
             self.atc.has_reached_end_vertiport(uav)
             uav.step()
         
-        #update auto_uav using action
-        self._update_speed(d_t=1, acceleration_from_controller=acceleration)
-        self._update_position(d_t=1, ) 
-        self._update_theta_d(heading_correction)
-        self._update_ref_final_heading()
-
+        self.auto_uav.step(acceleration, heading_correction) #! this will be created inside the reset method
+        
+        
+        #! then lets call get_obs on auto_uav and connect that to env._get_obs()
         obs = self._get_obs()
         reward = self.get_reward(obs)
         done = None #! HOW should we check for truncation, and termination
@@ -257,6 +258,8 @@ class Uam_Uav_Env(gym.Env):
 
             uav_detection_poly = uav_obj.uav_polygon_plot(uav_obj.detection_radius)
             uav_detection_poly.plot(ax=ax, color=uav_obj.uav_detection_radius_color,alpha=0.3)
+
+        #TODO - render auto_uav here
 
         fig.canvas.draw()
         fig.canvas.flush_events()

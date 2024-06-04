@@ -24,6 +24,7 @@ from typing import List, Dict
 from airspace import Airspace
 from vertiport import Vertiport
 from uav import UAV
+from uav_basic import UAV_Basic
 from das import Collision_controller
 import copy
 #from autonomous_uav import Autonomous_UAV
@@ -44,7 +45,7 @@ class ATC:
         '''
 
         self.airspace = airspace
-        self.reg_uav_list:List[UAV] = [] #:List[UAV]
+        self.reg_uav_list:List[UAV_Basic] = [] #:List[UAV]
         self.vertiports_in_airspace:List[Vertiport] = [] #:List[Vertiport]
         #self.controller = controller
         
@@ -95,7 +96,7 @@ class ATC:
             uav_end_vertiport = random.choice(end_vertiport_list)
             while uav_start_vertiport.location == uav_end_vertiport.location:
                 uav_end_vertiport = random.choice(end_vertiport_list)
-            uav = UAV(uav_start_vertiport, uav_end_vertiport)
+            uav = UAV_Basic(uav_start_vertiport, uav_end_vertiport)
             start_vertiport_list.pop(start_vertiport_list.index(uav_start_vertiport))
             end_vertiport_list.pop(end_vertiport_list.index(uav_end_vertiport))
             self.reg_uav_list.append(uav)
@@ -120,7 +121,7 @@ class ATC:
         return filtered_vertiport
     
 
-    def has_reached_end_vertiport(self, uav:UAV):
+    def has_reached_end_vertiport(self, uav:UAV_Basic):
         '''Checks if a UAV has reached its end_vertiport.
         
         This method checks if a UAV has reached its end_vertiport. If it did reach,
@@ -138,7 +139,7 @@ class ATC:
             self._landing_procedure(uav)
     
     
-    def has_left_start_vertiport(self, uav: UAV):
+    def has_left_start_vertiport(self, uav: UAV_Basic):
         '''Checks if a UAV has left its start_vertiport.
 
         This method checks if a UAV has left its start_vertiport. If it did leave,
@@ -169,7 +170,7 @@ class ATC:
         return sample_vertiport
     
     
-    def _reassign_end_vertiport_of_uav(self, uav:UAV):
+    def _reassign_end_vertiport_of_uav(self, uav:UAV_Basic):
         '''Reassigns the end vertiport of a UAV.
         
         This method samples a vertiport from the ATC vertiport list. 
@@ -187,7 +188,7 @@ class ATC:
         uav.update_end_point()
     
 
-    def _update_start_vertiport_of_uav(self, vertiport:Vertiport, uav:UAV):
+    def _update_start_vertiport_of_uav(self, vertiport:Vertiport, uav:UAV_Basic):
         '''This method accepts a vertiport (end-vertiport of uav)
         and updates the start_vertiport attribute of UAV
         to the provided vertiport. This method works in conjunction with landing_procedure.
@@ -204,7 +205,7 @@ class ATC:
         uav.update_start_point()
     
 
-    def _landing_procedure(self, landing_uav:UAV):
+    def _landing_procedure(self, landing_uav:UAV_Basic):
         '''
         Performs the landing procedure for a given UAV.
         Args:
@@ -221,7 +222,7 @@ class ATC:
 
     
 
-    def _clearing_procedure(self, outgoing_uav:UAV):
+    def _clearing_procedure(self, outgoing_uav:UAV_Basic):
         '''
         Performs the clearing procedure for a given UAV.
         Args:

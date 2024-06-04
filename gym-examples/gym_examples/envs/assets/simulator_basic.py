@@ -2,27 +2,12 @@
 from airspace import Airspace
 from airtrafficcontroller import ATC
 from uav import UAV
+from uav_basic import UAV_Basic
 import matplotlib.pyplot as plt
 import geopandas as gpd
 from shapely import Point
 import time
 from typing import List
-
-'''
-    When we create the UAM env(subclass of gymEnv) it will build an instance that is similar to simulator.
-    The initializer arguments of UAM_Env will be passed to the simulator, that is location_name, reg_uav_no, vertiport_no, and Auto_uav(only one for now)
-    [** emphasizing, the above arguments are arguments of UAV_Env passed to simulator_env**]
-    
-    Inside the simulator there will be one instance of Auto_UAV, this Auto_UAV's argument is a tuple of actions defined in UAV_Env.
-    The Auto_UAV navigates the airspace using these actions. 
-
-    *** The "step" method of UAV_Env, is used to step every uav(meaning reg_uav and Auto_uav)
-
-    ***Refer to uam_single_agent_env's TRAINING section for questions that need to be answered, for further documentation and clarification
-
-     
-'''
-
 
 
 
@@ -51,7 +36,7 @@ class Simulator_basic:
         vertiports_point_array = [vertiport.location for vertiport in self.atc.vertiports_in_airspace]
         # sim data
         self.sim_vertiports_point_array = vertiports_point_array
-        self.uav_list:List[UAV] = self.atc.reg_uav_list
+        self.uav_list:List[UAV_Basic] = self.atc.reg_uav_list
         #* 
         # sim sleep time
         self.sleep_time = sleep_time
@@ -78,11 +63,10 @@ class Simulator_basic:
         time.sleep(self.sleep_time)
 
     
-    def _get_obs(self,uav_obj:UAV):
+    def _get_obs(self,uav_obj:UAV_Basic):
         state_info = uav_obj.get_state(self.uav_list, self.airspace.location_utm_hospital_buffer)
         
         return state_info
-    
 
 
     def get_uav(self, uav_id):
@@ -94,22 +78,24 @@ class Simulator_basic:
         raise RuntimeError('UAV not it list')
 
 
-    #TODO - remove action_list from the method signature
-    def sim_step(self, action_list):
-        obs_list = []
-        for uav_id, action in action_list:
-            # print(uav_id, action)
-            uav = self.get_uav(uav_id)
+    def set_uav_intruder_list(self):
+        for uav in self.uav_list:
+            uav.get_intruder_uav_list(self.uav_list)
+    
+    def set_building_gdf(self):
+        for uav in self.uav_list:
+            uav.get_airspace_building_list(self.airspace.location_utm_hospital_buffer)
+    
+    
+    def sim_step(self, ):
+        for uav in self.uav_list:
             self.atc.has_left_start_vertiport(uav)
             self.atc.has_reached_end_vertiport(uav)
-            #! remove action from step method
-            obs = uav.step(action)
-            assert uav.id == uav_id
-            obs_list.append((uav_id, obs))
-        return obs_list
+            uav.step()
+        
         
 
-    def RUN_SIMULATOR(self, fig, ax, static_plot, sim, gpd, controller_predict): #! das-controller needs to be changed to controller_predict implement uniform name all across code base 
+    def RUN_SIMULATOR(self, fig, ax, static_plot, sim, gpd,): 
         """
         Runs the simulator. 
         This method packs rendering, and stepping into one method. 
@@ -123,15 +109,13 @@ class Simulator_basic:
         Returns:
             None
         """
+        
+        self.set_uav_intruder_list()
+        self.set_building_gdf()
+        
         for _ in range(self.total_timestep):
             self.render(fig, ax, static_plot, sim, gpd)
-            #! need an initial state
-            # - initial state is created by create_n_reg_uavs
-            #! feed the initial state to the controller if controller 
-            
-            #! remove action_list 
-            action_list = self.get_action_list(controller_predict) #! check for zero_controller 
-            self.sim_step(action_list) #! how would step behave to action_list 
+            self.sim_step() #! how would step behave to action_list 
         
         print('Simulation complete.')
 
@@ -149,32 +133,3 @@ class Simulator_basic:
     # def close(self,):
     #     pass
 
-    
-
-    
-
-    # def sim_step(self, action_list):
-    #     obs_list = []
-        
-    #     # UAV VERTIPORT REASSIGNMENT LOGIC
-    #     for uav_obj in self.atc.reg_uav_list:
-    #         self.atc.has_left_start_vertiport(uav_obj)
-    #         self.atc.has_reached_end_vertiport(uav_obj)
-        
-    #     # UAV STEP LOGIC
-    #     for uav_obj in self.uav_list: 
-    #         #! get_obs() -> state_info, controller should accept state_info, das_controller(state_info)
-    #         #intruder_state_info = uav_obj.get_state(self.uav_list)
-    #         intruder_state_info = self._get_obs(uav_obj)
-    #         #! step should accept action, step(action)
-    #         if das_controller is None:
-    #             action = None
-    #         else:
-    #             action = das_controller.get_action(intruder_state_info)
-    #     #! sim_step has to return observation
-    #     #! but sim_step, steps all reg_uavs in the airspace, 
-    #     #! so the obs will have to be a list that contains all the obs information about all uavs 
-    #         obs = uav_obj.step(action)
-    #         obs_list.append((uav_obj.id,obs))
-
-    #     return obs_list

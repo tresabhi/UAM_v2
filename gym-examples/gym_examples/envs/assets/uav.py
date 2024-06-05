@@ -84,7 +84,7 @@ class UAV:
     def update_start_point(self,):
         self.start_point = self.start_vertiport.location
 
-    def speed_controller(self,):
+    def acceleration_controller(self,):
 
         if self.current_speed == 0:
             acc = self.max_acceleration
@@ -111,7 +111,7 @@ class UAV:
         '''
         Arg: acceleration_from_controller is an input from controller/das_system
         '''
-        base_acc = self.speed_controller()
+        base_acc = self.acceleration_controller()
         '''
         if acceleration from controller, meaning controller is sending some acceleration value,
         then acceleration from controller will over-ride acceleration from speed controller
@@ -232,22 +232,17 @@ class UAV:
 
 
 
-    #! 
+ 
+
+    
+
+
+    #TODO - develop detection and collision avoidance for N intruders 
+
     '''
-    currently the get_state method only detects other uavs, 
-    need to add logic for static_objects,
-    might need to break down the logic inside get_state into two parts, 
-    One for static object detection 
-    One for dynamic object detection. 
-
-    Then finally, the get state method should pull all the information and return a combined state information.
-
-
-    Once get_state works for one intruder it has to work for n intruders.
-
-
-    Looking ahead into the future static objects like buildings are clustered together, 
-    there will be problem on how that observation will need to be dealt with. 
+    For static object detection and collision avoidance there is an algorithm on zoom-whiteboard.
+    Use that for improved performance.
+    
     '''
 
 

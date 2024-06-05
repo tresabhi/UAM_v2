@@ -178,10 +178,10 @@ class UAV_Basic:
                 raise Exception('Error in heading correction')
         
         else:
-            print('Heading before correction: ', self.current_heading_deg)
             self.current_heading_deg += heading_correction_das_controller
-            print('Heading after correction: ', self.current_heading_deg)
             self.current_heading_radians = np.deg2rad(self.current_heading_deg)
+            
+
                      
 
     def get_intruder_distance(self, other_uav):

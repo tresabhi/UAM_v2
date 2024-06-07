@@ -23,6 +23,9 @@ class Simulator_basic:
             num_reg_uavs (int): The number of regular UAVs to create in the simulation.
         """       
         # sim airspace and ATC
+        self.current_time_step = 0
+        self.num_vertiports = num_vertiports
+        self.num_reg_uavs = num_reg_uavs
         self.airspace = Airspace(location_name=location_name)
         self.atc = ATC(self.airspace, )
         # Initialize sim's vertiports and uavs using ATC 
@@ -44,9 +47,32 @@ class Simulator_basic:
         self.total_timestep = total_timestep
 
 
-    def render(self,fig, ax, static_plot, sim, gpd):
-        plt.cla()
-        static_plot(sim, ax, gpd)
+
+    def get_vertiport_from_atc(self):
+        vertiports_point_array = [vertiport.location for vertiport in self.atc.vertiports_in_airspace]
+        self.sim_vertiports_point_array = vertiports_point_array
+
+    def get_uav_list_from_atc(self):
+        self.uav_list = self.atc.reg_uav_list
+
+    def render_init(self,):
+        fig, ax = plt.subplots()
+        return fig, ax
+    
+    def render_static_assest(self, ax):
+        self.airspace.location_utm_gdf.plot(ax=ax, color='gray', linewidth=0.6)
+        self.airspace.location_utm_hospital_buffer.plot(ax=ax, color='green', alpha=0.3)
+        self.airspace.location_utm_hospital.plot(ax=ax, color='black')
+        #adding vertiports to static plot
+        gpd.GeoSeries(self.sim_vertiports_point_array).plot(ax=ax, color='black')
+
+    def render(self,fig, ax,):
+        #! check this section
+        fig.clf()  # Clear the entire figure
+        ax = fig.add_subplot(111)  # Add a new subplot
+        #!
+
+        self.render_static_assest(ax)
         # UAV PLOT LOGIC
         for uav_obj in self.uav_list:
             uav_footprint_poly = uav_obj.uav_polygon_plot(uav_obj.uav_footprint)
@@ -95,7 +121,7 @@ class Simulator_basic:
         
         
 
-    def RUN_SIMULATOR(self, fig, ax, static_plot, sim, gpd,): 
+    def RUN_SIMULATOR(self, fig, ax,): 
         """
         Runs the simulator. 
         This method packs rendering, and stepping into one method. 
@@ -113,9 +139,10 @@ class Simulator_basic:
         self.set_uav_intruder_list()
         self.set_building_gdf()
         
-        for _ in range(self.total_timestep):
-            self.render(fig, ax, static_plot, sim, gpd)
+        while self.current_time_step < self.total_timestep:
+            self.render(fig, ax,)
             self.sim_step() #! how would step behave to action_list 
+            self.current_time_step += 1
         
         print('Simulation complete.')
 
@@ -123,9 +150,18 @@ class Simulator_basic:
 
 
 
-    # #TODO - this is necessary 
-    # def reset(self,):
-    #     pass 
+    def reset(self,):
+        self.current_time_step = 0
+        self.atc.reg_uav_list = []
+        self.atc.vertiports_in_airspace = []
+        self.uav_list = []
+        self.sim_vertiports_point_array = []
+        
+        #needs to reset the step_count
+        self.atc.create_n_random_vertiports(self.num_vertiports)
+        self.atc.create_n_reg_uavs(self.num_reg_uavs)
+        self.get_vertiport_from_atc()
+        self.get_uav_list_from_atc()
 
 
 

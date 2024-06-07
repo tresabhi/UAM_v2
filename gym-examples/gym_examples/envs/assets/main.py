@@ -19,23 +19,22 @@ from das import Collision_controller, Zero_controller
 
 if __name__ == '__main__':
     
-    #controller = Zero_controller()
-    controller = Collision_controller()
-    controller_predict = controller.get_action
+    # #controller = Zero_controller()
+    # controller = Collision_controller()
+    # controller_predict = controller.get_action
     
-    sim = Simulator_basic('Austin, Texas, USA', 20, 18,sleep_time=0, total_timestep=10000)
+    sim = Simulator_basic('Austin, Texas, USA', 3, 2,sleep_time=0.02, total_timestep=100)
     
     #fig, ax initialization 
     plt.ion() 
-    fig, ax = plt.subplots()
+    fig, ax = sim.render_init()
 
     #* remember this is a convinience function
-    #sim.RUN_SIMULATOR(fig, ax, static_plot,sim, gpd,)
+    sim.RUN_SIMULATOR(fig, ax)
+    sim.reset()
+    #! Need to clear the current axes and plot only the vertiports and uavs 
     
-    for vertiports in sim.atc.vertiports_in_airspace:
-        print('Vertiport id: ',vertiports.id)
-        print('Vertiport uav list: ',vertiports.uav_list)
-        
+    sim.RUN_SIMULATOR(fig,ax)
 
             
 

@@ -296,7 +296,7 @@ class Uam_Uav_Env(gym.Env):
         print(f'punishment existing: {punishment_existing}, punishment closeness: {punishment_closeness}, reward to destination: {reward_to_destination}, punishment deviation: {punishment_deviation}')
         reward_sum = punishment_existing + punishment_closeness + punishment_deviation + reward_to_destination
         print(f'reward sum before timestep: {reward_sum}')
-        reward_sum *= self.current_time_step
+        reward_sum *= self.current_time_step #! this is a BUG - current time step does not change from 0 to new values
         print(f'reward sum: {reward_sum}')
         
         return reward_sum

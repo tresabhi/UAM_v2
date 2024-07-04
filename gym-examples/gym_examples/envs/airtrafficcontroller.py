@@ -92,14 +92,22 @@ class ATC:
         start_vertiport_list = copy.deepcopy(self.vertiports_in_airspace)
         end_vertiport_list = copy.deepcopy(self.vertiports_in_airspace)
 
+        # to choose unique start and end vertiport pair 
         for _ in range(num_uavs):
             uav_start_vertiport = random.choice(start_vertiport_list)
             uav_end_vertiport = random.choice(end_vertiport_list)
             while uav_start_vertiport.location == uav_end_vertiport.location:
                 uav_end_vertiport = random.choice(end_vertiport_list)
+            
+            # create instance of UAV_basic
             uav = UAV_Basic(uav_start_vertiport, uav_end_vertiport)
+            # add UAV to vertiport's uav_list
+            uav_start_vertiport.uav_list.append(uav)
+            # remove vertiport from start list
             start_vertiport_list.pop(start_vertiport_list.index(uav_start_vertiport))
+            # remove vertiport from end list 
             end_vertiport_list.pop(end_vertiport_list.index(uav_end_vertiport))
+            # add uav to atc uav_list
             self.reg_uav_list.append(uav)
 
             
@@ -122,7 +130,7 @@ class ATC:
         return filtered_vertiport
     
 
-    def has_reached_end_vertiport(self, uav:UAV_Basic):
+    def has_reached_end_vertiport(self, uav:UAV_Basic|Autonomous_UAV):
         '''Checks if a UAV has reached its end_vertiport.
         
         This method checks if a UAV has reached its end_vertiport. If it did reach,
@@ -138,9 +146,10 @@ class ATC:
         if (uav.current_position.distance(uav.end_point) <= uav.landing_proximity) and (uav.reaching_end_vertiport == False):
             #uav.reached_end_vertiport = True
             self._landing_procedure(uav)
+
     
     
-    def has_left_start_vertiport(self, uav: UAV_Basic):
+    def has_left_start_vertiport(self, uav: UAV_Basic|Autonomous_UAV):
         '''Checks if a UAV has left its start_vertiport.
 
         This method checks if a UAV has left its start_vertiport. If it did leave,
@@ -206,7 +215,7 @@ class ATC:
         uav.update_start_point()
     
 
-    def _landing_procedure(self, landing_uav:UAV_Basic):
+    def _landing_procedure(self, landing_uav:UAV_Basic | Autonomous_UAV):
         '''
         Performs the landing procedure for a given UAV.
         Args:
@@ -223,7 +232,7 @@ class ATC:
 
     
 
-    def _clearing_procedure(self, outgoing_uav:UAV_Basic): #! rename to _takeoff_procedure()
+    def _clearing_procedure(self, outgoing_uav:UAV_Basic| Autonomous_UAV): #! rename to _takeoff_procedure()
         '''
         Performs the clearing procedure for a given UAV.
         Args:

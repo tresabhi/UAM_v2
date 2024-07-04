@@ -67,12 +67,10 @@ class Simulator_basic:
         gpd.GeoSeries(self.sim_vertiports_point_array).plot(ax=ax, color='black')
 
     def render(self,fig, ax,):
-        #! check this section
-        fig.clf()  # Clear the entire figure
-        ax = fig.add_subplot(111)  # Add a new subplot
-        #!
-
+        
+        plt.cla()
         self.render_static_assest(ax)
+        
         # UAV PLOT LOGIC
         for uav_obj in self.uav_list:
             uav_footprint_poly = uav_obj.uav_polygon_plot(uav_obj.uav_footprint)
@@ -118,6 +116,7 @@ class Simulator_basic:
             self.atc.has_left_start_vertiport(uav)
             self.atc.has_reached_end_vertiport(uav)
             uav.step()
+            #self.collision = uav.has_uav_collision()
         
         
 

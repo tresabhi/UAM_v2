@@ -31,3 +31,12 @@ class Airspace:
     
 
     #TODO - Look at system design principles to choose one of the ways to populate the area with 1) hospitals 2) airport and airspace 3) school etc.
+
+
+
+
+
+# austin = Airspace('Austin, Texas, USA')
+# print(type(austin.location_utm_hospital.geometry))
+# print(type(austin.location_utm_hospital_buffer))
+# print(austin.location_utm_hospital.geometry)

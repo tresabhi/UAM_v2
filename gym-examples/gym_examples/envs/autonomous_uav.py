@@ -1,6 +1,6 @@
 #Smart uav, will accept action from RL algorithm 
 from uav import UAV
-
+from geopandas import GeoSeries
 class Autonomous_UAV(UAV):
     '''Sub class of UAV, a smart UAV .
     It will accept acceleration and heading from RL algorithm'''
@@ -24,10 +24,25 @@ class Autonomous_UAV(UAV):
         self.uav_detection_radius_color = 'red'
         self.uav_collision_controller = None
 
-
+    
 
     def step(self, acceleration, heading_correction):
-        self._update_speed(acceleration, d_t=1)
-        self._update_position(d_t=1, ) 
+        self._update_speed(acceleration,d_t=1)
+        self._update_position(d_t=1)
+        
         self._update_theta_d(heading_correction)
         self._update_ref_final_heading()
+        pass
+    
+    
+
+
+
+# from vertiport import Vertiport
+# from shapely import Point
+# import numpy as np 
+# start = Vertiport(Point(0,0))
+# end = Vertiport(Point(10,20))
+# auto = Autonomous_UAV(start,end)
+
+# print(np.array([auto.current_heading_deg - auto.current_ref_final_heading_deg]).shape)

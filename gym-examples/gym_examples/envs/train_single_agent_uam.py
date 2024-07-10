@@ -22,14 +22,31 @@ obs, info = env.reset()
 plt.ion()
 fig, ax = env.render_init()
 
-for _ in range(1500):
+for i in range(1500):
     action = env.action_space.sample()
     env.render(fig, ax)
     obs, reward, terminated, truncated, info = env.step(action)
+    env.current_time_step = i
+
+    # For debugging intruder uav detection 
+    # if obs['intruder_detected']:
+    #     print(f"Intruder ID: {obs['intruder_id']}")
+    #     print(f"Distance to intruder: {obs['distance_to_intruder']}")
+    #     print(f"Relative heading with intruder: {obs['relative_heading_intruder']}")
+    #     print(f"Intruder heading: {obs['intruder_current_heading']}")
+
     
-    print(f'Action: {action}')
+    
+    
+    # For debugging - speed
+    # auto_uav_speed = env.auto_uav.current_speed
+    
+    # print(f'Action: {action}')
+    # print(f'Current speed: {auto_uav_speed}')
     print(f'Reward: {reward}')
-    print(obs)
+    distance_to_end_vp = info['distance_to_end_vertiport']
+    print(f'Distance to target: {distance_to_end_vp}')
+    # print(obs)
 
     if terminated or truncated :
         obs, info = env.reset()

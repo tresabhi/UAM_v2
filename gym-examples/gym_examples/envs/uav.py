@@ -62,16 +62,26 @@ class UAV:
                                                                     self.end_point.x - self.current_position.x)
         self.current_ref_final_heading_deg = self.angle_correction(np.rad2deg(self.current_ref_final_heading_rad))
 
+    
+    
+    
+    
     def angle_correction(self, deg:float)->float:
         normalized_deg = (deg + 180) % 360 - 180
         return normalized_deg
     
     
+    
+    
     def uav_polygon(self, dimension):
         return GeoSeries(self.current_position).buffer(dimension).iloc[0]
     
+    
+    
     def uav_polygon_plot(self, dimension):
         return GeoSeries(self.current_position).buffer(dimension)
+    
+    
     
     def refresh_uav(self, ):
         '''Update the start vertiport of a UAV 
@@ -81,13 +91,19 @@ class UAV:
         self.reaching_end_vertiport = False 
 
 
+    
+    
     def update_end_point(self,):
         '''Updates the UAV end point using its own end_vertiport location'''
         self.end_point = self.end_vertiport.location
 
+    
+    
     def update_start_point(self,):
         self.start_point = self.start_vertiport.location
 
+    
+    
     def acceleration_controller(self,):
 
         if self.current_speed == 0:
@@ -102,6 +118,8 @@ class UAV:
         return acc 
 
     
+    
+    
     def _update_position(self,d_t:float = 1,):
         '''Internal method. Updates current_position of the UAV after d_t seconds.
            This uses a first order Euler's method to update the position.
@@ -111,6 +129,9 @@ class UAV:
         self.current_position = Point(update_x,update_y)
     
 
+    
+    
+    
     def _update_speed(self, acceleration_from_controller, d_t = 1):
         '''
         Arg: acceleration_from_controller is an input from controller/das_system
@@ -130,12 +151,18 @@ class UAV:
 
 
 
+    
+    
     def _update_ref_final_heading(self, ): 
         '''Internal method. Updates the heading of the aircraft, pointed towards end_point'''
         self.current_ref_final_heading_rad = np.arctan2(self.end_point.y - self.current_position.y, 
                                                         self.end_point.x - self.current_position.x)
         self.current_ref_final_heading_deg = np.rad2deg(self.current_ref_final_heading_rad)
-        
+    
+    
+    
+    
+    
     #TODO - update_theta needs to be reworked NOW  
     def _update_theta_d(self, heading_correction_das_controller = 0): 
         #TODO - update method to include theta_dd and d_t
@@ -192,16 +219,27 @@ class UAV:
         self.current_heading_radians = np.deg2rad(self.current_heading_deg)
                      
 
+    
+    
     def get_intruder_distance(self, other_uav):
         return self.current_position.distance(other_uav.current_position)
  
 
+    
+    
     def get_intruder_speed(self,other_uav):
         rel_heading = self.calculate_intruder_heading(other_uav)
         return self.current_speed - (np.cos(np.deg2rad(rel_heading)) * other_uav.current_speed)
     
+    
+    
+    
     def get_intruder_heading(self,other_uav):
         return self.current_heading_deg - other_uav.current_heading_deg
+    
+    
+    
+    
     
     def get_other_uav_list(self, uav_list):
         other_uav_list = []
@@ -210,6 +248,10 @@ class UAV:
                 other_uav_list.append(uav)
         return other_uav_list
 
+    
+    
+    
+    
     def get_intruder_uav_list(self,uav_list, radius_str):
         '''
         Here the self.intruder_uav_list is created everytime as an empty list, 
@@ -238,8 +280,13 @@ class UAV:
         
         return self.intruder_uav_list
 
-
+    
+    
+    
+    #TODO #14 - rename to get_collision()
     def has_uav_collision(self,uav_list):
+        '''Return True if collision has been detected.'''
+
         intruder_uav_list = self.get_intruder_uav_list(uav_list,'collision')
 
         if len(intruder_uav_list) != 0:
@@ -249,11 +296,12 @@ class UAV:
 
 
 
+    
     def get_state_dynamic_obj(self, uav_list, radius_str = 'detection'):
         '''
         Get state of UAV based on radius string argument.
-        This method will return UAVs that have been detected. 
-        If no UAV is detected then we get a string back. - might need to change this 
+        Return intruder UAVs info that have been detected. 
+        Return None if no UAV is detected.
         '''
 
         intruder_uav_list = self.get_intruder_uav_list(uav_list,radius_str)
@@ -282,7 +330,14 @@ class UAV:
             
             return intruder_state_info
     
+    
+    
+    
+    
     def get_state_static_obj(self, building_gdf, radius_str = 'detection'):
+        
+        '''Return (true/false, current_heading) based on intersection with any building '''
+        
         if radius_str == 'detection':
             own_radius = self.detection_radius
         elif radius_str == 'nmac':
@@ -296,6 +351,8 @@ class UAV:
         intersection_list = []
         
         for i in range(building_polygon_count):
+            '''Loop through all buildings in the 
+            "building_gdf" that has been passed in as method's argument '''
             intersection_list.append(self.uav_polygon(own_radius).intersection(building_gdf.iloc[i]))
         
         intersection_with_building = any(intersection_list)
@@ -304,6 +361,9 @@ class UAV:
         return intersection_with_building , own_state_info
                 
         
+    
+    
+    
     def get_state(self, uav_list, building_gdf, radius_str = 'detection'):
         static_state = self.get_state_static_obj(building_gdf, radius_str)
         dynamic_state = self.get_state_dynamic_obj(uav_list, radius_str) 
@@ -312,6 +372,8 @@ class UAV:
         return static_state, dynamic_state
         
 
+    
+    
     def step(self,action):
         '''Updates the position of the UAV.'''
         if action is None:

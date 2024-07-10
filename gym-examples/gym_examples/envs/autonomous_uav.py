@@ -26,6 +26,9 @@ class Autonomous_UAV(UAV):
 
     
 
+    def _update_speed(self, acceleration_from_controller, d_t=1):
+        self.current_speed += acceleration_from_controller * d_t
+
     def step(self, acceleration, heading_correction):
         self._update_speed(acceleration,d_t=1)
         self._update_position(d_t=1)

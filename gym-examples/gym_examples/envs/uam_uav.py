@@ -419,6 +419,8 @@ class Uam_Uav_Env(gym.Env):
             truncated = True
         else:
             truncated = False
+        
+        self.current_time_step += 1
 
         return obs, reward, terminated, truncated, info
 
@@ -477,7 +479,7 @@ class Uam_Uav_Env(gym.Env):
     
     def render_static_assest(self, ax): #! spelling error - fix everywhere this is used 
         self.airspace.location_utm_gdf.plot(ax=ax, color="gray", linewidth=0.6)
-        self.airspace.location_utm_hospital_buffer.plot(ax=ax, color="green", alpha=0.3)
+        self.airspace.location_utm_hospital_buffer.plot(ax=ax, color="red", alpha=0.3)
         self.airspace.location_utm_hospital.plot(ax=ax, color="black")
         # adding vertiports to static plot
         gpd.GeoSeries(self.sim_vertiports_point_array).plot(ax=ax, color="black")

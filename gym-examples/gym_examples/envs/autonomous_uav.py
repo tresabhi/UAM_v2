@@ -21,7 +21,7 @@ class Autonomous_UAV(UAV):
         #UAV rendering-representation properties 
         self.uav_footprint_color = 'black' # this color represents the UAV object 
         self.uav_nmac_radius_color = 'purple'
-        self.uav_detection_radius_color = 'red'
+        self.uav_detection_radius_color = 'blue'
         self.uav_collision_controller = None
 
     

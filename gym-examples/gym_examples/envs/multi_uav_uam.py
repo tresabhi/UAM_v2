@@ -1,4 +1,5 @@
 
+import functools
 import numpy as np
 import matplotlib.pyplot as plt
 from typing import List
@@ -52,9 +53,65 @@ class Uam_Uav_Env_PZ(ParallelEnv):
 
     def render(self):
         pass
+    
+    
+    @functools.lru_cache(maxsize=None)
+    def observation_space(self, auto_uav:Autonomous_UAV):
+        return spaces.Dict(
+        {
+            # Agent ID as integer, using smaller space for IDs
+            "agent_id": spaces.Box(
+                low=0, high=np.iinfo(np.int32).max, shape=(1,), dtype=np.int32
+            ),
 
-    def observation_space(self, agent):
-        return self.observation_spaces[agent]
+            # Agent speed
+            "agent_speed": spaces.Box( 
+                low=0,  # speed should be non-negative
+                high=auto_uav.max_speed,
+                shape=(1,),
+                dtype=np.float64,
+            ),
 
+            # Agent deviation, corrected to -180 to 180
+            "agent_deviation": spaces.Box(
+                low=-180, high=180, shape=(1,), dtype=np.float64
+            ),
+
+            # Intruder detection
+            "intruder_detected": spaces.Discrete(2),  # 0 for no intruder, 1 for intruder detected
+
+            # Intruder ID, using smaller space for IDs
+            "intruder_id": spaces.Box(
+                low=0, high=np.iinfo(np.int32).max, shape=(1,), dtype=np.int32
+            ),
+
+            # Distance to intruder
+            "distance_to_intruder": spaces.Box(
+                low=0,
+                high=auto_uav.detection_radius,
+                shape=(1,),
+                dtype=np.float64,
+            ),
+
+            # Relative heading of intruder, corrected to -180 to 180
+            "relative_heading_intruder": spaces.Box(
+                low=-180, high=180, shape=(1,), dtype=np.float64
+            ),
+
+            # Intruder's heading
+            "intruder_current_heading": spaces.Box(
+                low=-180, high=180, shape=(1,), dtype=np.float64
+            ),
+        }
+    )
+    
+    
+    @functools.lru_cache(maxsize=None)
     def action_space(self, agent):
-        return self.action_spaces[agent]
+        return spaces.Box(
+                        low=-1, 
+                        high=1, 
+                        shape=(2,), 
+                        dtype=np.float64
+    )
+    

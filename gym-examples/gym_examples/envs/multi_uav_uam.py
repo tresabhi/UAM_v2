@@ -35,18 +35,35 @@ class Uam_Uav_Env_PZ(ParallelEnv):
         self.atc.create_n_random_vertiports(self.num_vertiports)
 
         #Auto UAV initialization 
-        #make a list of start_vertiport 
-        #make a list of end vertiport 
+        self.atc.create_n_auto_uavs(self.num_auto_uav)
+ 
         #make a list of AutoUAV
-        #make an attribute -> self.auto_uavs = {auto_uav.id:auto_uav for auto_uav in list_AUTO_UAV}
+        self.auto_uavs_list = self.atc.auto_uavs_list
 
+        #make an attribute -> self.auto_uavs_dict = {auto_uav.id:auto_uav for auto_uav in list_AUTO_UAV}
+        self.auto_uavs_dict = {auto_uav.id:auto_uav for auto_uav in self.auto_uavs_list}
+        
         #Petting Zoo API attributes 
-        self.possible_agents = list(self.auto_uavs.keys()) #.keys() because auto_uavs will need to be a dictionary 
-        self.observation_spaces = {}
-        self.action_spaces = {}
+        self.possible_agents = list(self.auto_uavs_dict.keys()) #.keys() because auto_uavs_dict will need to be a dictionary 
+        
+        #self.observation_spaces = {}
+        #self.action_spaces = {}
 
     def reset(self, seed=None, options=None):
-        pass
+        self.current_time_step = 0
+        self.atc.auto_uavs_list = []
+
+        self.atc.create_n_random_vertiports(self.num_vertiports)
+        self.atc.create_n_auto_uavs(self.num_auto_uav)
+        
+        self.auto_uavs_list = self.atc.auto_uavs_list
+        self.auto_uavs_dict = {auto_uav.id:auto_uav for auto_uav in self.auto_uavs_list}
+        self.possible_agents = list(self.auto_uavs_dict.keys())
+
+        observations = None
+        informations = None
+
+        return observations, infos
 
     def step(self, actions):
         pass
@@ -114,4 +131,3 @@ class Uam_Uav_Env_PZ(ParallelEnv):
                         shape=(2,), 
                         dtype=np.float64
     )
-    

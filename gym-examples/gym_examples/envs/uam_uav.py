@@ -308,7 +308,7 @@ class Uam_Uav_Env(gym.Env):
     
     
     #!rename method for clarity -> this method is for uav_basic in environment 
-    def set_uav_intruder_list(self):
+    def set_uav_basic_intruder_list(self):
         '''Each UAV needs access to UAV list in the environment 
         to perform dynamic detection and collision operation, this method
         assigns the uav_list to all uavs'''
@@ -319,7 +319,7 @@ class Uam_Uav_Env(gym.Env):
     
     
     #!rename method for clarity -> this method is for uav_basic in environment 
-    def set_building_gdf(self):
+    def set_uav_basic_building_gdf(self):
         '''Each UAV needs to have information about restriced airspace,
           to perform static detection and collision operation. This setter method
             assigns environment information to all uavs'''
@@ -353,8 +353,8 @@ class Uam_Uav_Env(gym.Env):
         acceleration = action[0]
         heading_correction = action[1]
 
-        self.set_uav_intruder_list()
-        self.set_building_gdf()
+        self.set_uav_basic_intruder_list()
+        self.set_uav_basic_building_gdf()
 
         # for uav_basic in uav_basic_list step all uav_basic
         for uav_basic in self.uav_basic_list:

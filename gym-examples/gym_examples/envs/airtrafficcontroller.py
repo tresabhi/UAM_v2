@@ -44,10 +44,10 @@ class ATC:
             reg_uav_list (List[UAV]): The list of registered UAVs.
             vertiports_in_airspace (List[Vertiport]): The list of vertiports in the airspace.
         '''
-
         self.airspace = airspace
         self.reg_uav_list:List[UAV_Basic] = [] #:List[UAV]
         self.vertiports_in_airspace:List[Vertiport] = [] #:List[Vertiport]
+        self.auto_uavs_list:List[Autonomous_UAV] = []
         #self.controller = controller
         
     
@@ -110,6 +110,31 @@ class ATC:
             # add uav to atc uav_list
             self.reg_uav_list.append(uav)
 
+
+    def create_n_auto_uavs(self, num_auto_uavs):
+        start_vertiport_list = copy.deepcopy(self.vertiports_in_airspace)
+        end_vertiport_list = copy.deepcopy(self.vertiports_in_airspace)
+
+        # to choose unique start and end vertiport pair 
+        for _ in range(num_auto_uavs):
+            uav_start_vertiport = random.choice(start_vertiport_list)
+            uav_end_vertiport = random.choice(end_vertiport_list)
+            while uav_start_vertiport.location == uav_end_vertiport.location:
+                uav_end_vertiport = random.choice(end_vertiport_list)
+            
+            # create instance of UAV_basic
+            auto_uav = Autonomous_UAV(uav_start_vertiport, uav_end_vertiport)
+            # add UAV to vertiport's uav_list
+            uav_start_vertiport.uav_list.append(auto_uav)
+            # remove vertiport from start list
+            start_vertiport_list.pop(start_vertiport_list.index(uav_start_vertiport))
+            # remove vertiport from end list 
+            end_vertiport_list.pop(end_vertiport_list.index(uav_end_vertiport))
+            # add uav to atc uav_list
+            self.auto_uavs_list.append(auto_uav)
+
+            
+            
             
     
     def _vertiport_filtering(self, some_vertiport):
@@ -252,7 +277,8 @@ class ATC:
         '''Assign start-end point to all uavs in airspace'''
         pass
 
-
+    
+    #TODO #16 
     def create_auto_uav(self,) -> Autonomous_UAV:
         #! need to provide the start and end vertiport
         self.auto_uav = Autonomous_UAV()

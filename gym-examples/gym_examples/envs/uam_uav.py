@@ -173,14 +173,7 @@ class Uam_Uav_Env(gym.Env):
         """
         This method resets the environment.
         """
-        # this will first remove the existing vertiports
-        #                 remove the existing reg uavs
-        #                 remove the auto_uav
-        # then it will create new vertiport
-        #              create new reg_uavs
-        # then this method will use one of the empty vertiports and assign it to the auto_uav
 
-        # calling reset() from gym.Env is a requirement 
         #TODO #6 - When environment is reset, it should use a seed to reset from. Currently, reset does not use a seed 
         super().reset(seed=seed)
         self.np_random, seed = gym.utils.seeding.np_random(seed)

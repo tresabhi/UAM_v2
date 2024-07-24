@@ -26,7 +26,7 @@ for i in range(1500):
     action = env.action_space.sample()
     env.render(fig, ax)
     obs, reward, terminated, truncated, info = env.step(action)
-    #env.current_time_step = i
+
 
     # For debugging intruder uav detection 
     if obs['intruder_detected']:

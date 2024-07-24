@@ -269,7 +269,19 @@ class Uam_Uav_Env(gym.Env):
         #what if there are more than one restricted airspace near auto_uav
         #how do I hypothesize the auto_uav will resolve multiple airspace 
 
-        # restricted airspace detected - should this be detection/nmac
+        #! restricted airspace detected - should this be detection/nmac
+        # if the detection area of uav intersects with a building's detection area, 
+        # we should do the following - 
+        # 1) if intersection is detected for 'detection' argument -> 
+        #                   there should be a small penalty 
+        #                   based on distance between the uav_footprint and the actual building 
+        # 2) if there is no building detected the penalty should be zero 
+        # 3) just like intruder_detected in obs 
+        #    there will be restricted_airspace detected in obs 
+        # 4) restricted_airspace will have 0 for not detected 1 for detected, 
+        #    and if detected - distance will be added to the obs, if not detected distance is leave at 0, 
+        #    this will be handled by the reward function collect obs and based on restricted_airspace (y/n) 
+        #    penatly is something or 0.
         if restricted_airspace:
             # what information am i interested in collecting 
             distance_to_static_obj_polygon = None
@@ -374,6 +386,7 @@ class Uam_Uav_Env(gym.Env):
         reward = self.get_reward(obs)
         info = self._get_info()
 
+        #TODO - develop methods for termination and truncation 
         # Logic for termination and truncation
         auto_uav_current_position = self.auto_uav.current_position
         auto_uav_end_position = self.auto_uav.end_point

@@ -94,7 +94,7 @@ class ATC:
         Creates a specified number of basic UAVs and assigns them random start and end vertiports.
 
         Args:
-            num_uavs (int): The number of UAVs to create.
+            num_uavs (int): The number of basic UAVs to create.
 
         Returns:
             None
@@ -122,6 +122,16 @@ class ATC:
             self.basic_uav_list.append(uav)
 
     def create_n_auto_uavs(self, num_auto_uavs):
+        """
+        Creates a specified number of autonomus UAVs and assigns them random start and end vertiports.
+
+        Args:
+            num_auto_uavs (int): The number of autonomus UAVs to create.
+
+        Returns:
+            None
+        """
+
         start_vertiport_list = copy.deepcopy(self.vertiports_in_airspace)
         end_vertiport_list = copy.deepcopy(self.vertiports_in_airspace)
 

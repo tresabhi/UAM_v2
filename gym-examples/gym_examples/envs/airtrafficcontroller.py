@@ -57,7 +57,7 @@ class ATC:
         # self.controller = controller
 
     # * This method needs to be run once to initialize the sim
-    def create_n_random_vertiports(self, num_vertiports):
+    def create_n_random_vertiports(self, num_vertiports: int):
         """
         Creates a specified number of random vertiports within the airspace.
 
@@ -88,7 +88,7 @@ class ATC:
     # * This method needs to be run once to initialize the sim
     def create_n_basic_uavs(
         self,
-        num_uavs,
+        num_uavs: int,
     ):
         """
         Creates a specified number of basic UAVs and assigns them random start and end vertiports.
@@ -121,7 +121,7 @@ class ATC:
             # add uav to atc uav_list
             self.basic_uav_list.append(uav)
 
-    def create_n_auto_uavs(self, num_auto_uavs):
+    def create_n_auto_uavs(self, num_auto_uavs: int):
         start_vertiport_list = copy.deepcopy(self.vertiports_in_airspace)
         end_vertiport_list = copy.deepcopy(self.vertiports_in_airspace)
 
@@ -143,7 +143,7 @@ class ATC:
             # add uav to atc uav_list
             self.auto_uavs_list.append(auto_uav)
 
-    def _vertiport_filtering(self, some_vertiport):
+    def _vertiport_filtering(self, some_vertiport: Vertiport) -> List:
         """Internal method. Used for selecting end vertiports for UAVs,
            such that at the beginning of the simulation,
            all UAVs have different vertiports.
@@ -160,7 +160,7 @@ class ATC:
                 filtered_vertiport.append(vertiport)
         return filtered_vertiport
 
-    def has_reached_end_vertiport(self, uav: UAVBasic | AutonomousUAV):
+    def has_reached_end_vertiport(self, uav: UAVBasic | AutonomousUAV) -> List:
         """Checks if a UAV has reached its end_vertiport.
 
         This method checks if a UAV has reached its end_vertiport. If it did reach,
@@ -179,7 +179,7 @@ class ATC:
             # uav.reached_end_vertiport = True
             self._landing_procedure(uav)
 
-    def has_left_start_vertiport(self, uav: UAVBasic | AutonomousUAV):
+    def has_left_start_vertiport(self, uav: UAVBasic | AutonomousUAV) -> None:
         """Checks if a UAV has left its start_vertiport.
 
         This method checks if a UAV has left its start_vertiport. If it did leave,

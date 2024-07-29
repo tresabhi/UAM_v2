@@ -5,7 +5,7 @@ from osmnx import projection as ox_projection
 
 
 class Airspace:
-    def __init__(self, location_name: str, buffer_radius=500):
+    def __init__(self, location_name: str, buffer_radius: float = 500) -> None:
 
         self.location_name = location_name  #'Austin, Texas, USA'
         self.buffer_radius = buffer_radius

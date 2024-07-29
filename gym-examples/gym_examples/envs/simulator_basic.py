@@ -114,7 +114,7 @@ class SimulatorBasic:
                 return uav
             else:
                 continue
-        raise RuntimeError("UAV not it list")
+        raise RuntimeError("UAV not in list")
 
     def set_uav_intruder_list(self):
         for uav in self.uav_list:
@@ -146,7 +146,6 @@ class SimulatorBasic:
         Args:
             fig (matplotlib.figure.Figure): The figure object for plotting.
             ax (matplotlib.axes.Axes): The axes object for plotting.
-            static_plot (function): A function that plots the static elements of the simulation.
 
         Returns:
             None

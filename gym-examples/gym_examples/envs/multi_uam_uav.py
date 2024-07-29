@@ -1,6 +1,8 @@
 import functools
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
+from matplotlib.axes._axes import Axes
 from typing import List, Dict
 import time
 from geopandas import GeoSeries
@@ -22,12 +24,12 @@ class UamUavEnvPZ(ParallelEnv):
 
     def __init__(
         self,
-        location_name,
-        num_vertiports,
-        num_auto_uav,
-        sleep_time=0.05,
-        render_mode=None,
-    ):
+        location_name: str,
+        num_vertiports: int,
+        num_auto_uav: int,
+        sleep_time: float = 0.05,
+        render_mode: str = None,
+    ) -> None:
         # Environment attributes
         self.current_time_step = 0
         self.num_vertiports = num_vertiports
@@ -71,7 +73,7 @@ class UamUavEnvPZ(ParallelEnv):
         # self.num_agents = num_auto_uav
         # self.max_num_agents = max_agents
 
-    def has_terminated(self, agent_id):
+    def has_terminated(self, agent_id: str) -> bool:
         agent = self.auto_uavs_dict[agent_id]
         dist_to_end_point = agent.current_position.distance(agent.end_point)
 
@@ -82,7 +84,7 @@ class UamUavEnvPZ(ParallelEnv):
 
         return terminated
 
-    def has_truncated(self, agent_id):
+    def has_truncated(self, agent_id: str) -> bool:
         agent = self.auto_uavs_dict[agent_id]
         collision_with_stat_obj, _ = agent.get_state_static_obj(
             self.airspace.location_utm_hospital.geometry, "collision"
@@ -98,7 +100,7 @@ class UamUavEnvPZ(ParallelEnv):
 
         return truncated
 
-    def get_reward(self, obs) -> float:
+    def get_reward(self, obs: dict) -> float:
 
         punishment_existing = -0.1
         if obs["intruder_detected"] == 0:
@@ -128,7 +130,7 @@ class UamUavEnvPZ(ParallelEnv):
 
         return reward_sum
 
-    def get_vertiport_from_atc(self):
+    def get_vertiport_from_atc(self) -> None:
         """This is a convinience method, for reset()"""
 
         vertiports_point_array = [
@@ -136,7 +138,7 @@ class UamUavEnvPZ(ParallelEnv):
         ]
         self.sim_vertiports_point_array = vertiports_point_array
 
-    def reset(self, seed=None, options=None):
+    def reset(self, seed: int = None, options: dict = None) -> tuple[dict, dict]:
         self.current_time_step = 0
         self.auto_uavs_list = []
         self.atc.auto_uavs_list = []
@@ -167,7 +169,7 @@ class UamUavEnvPZ(ParallelEnv):
 
         return self.observations, self.infos
 
-    def step(self, actions: Dict):
+    def step(self, actions: dict) -> tuple[dict, dict, dict, dict, dict]:
 
         for agent_id in actions:
             action = actions[agent_id]
@@ -199,18 +201,20 @@ class UamUavEnvPZ(ParallelEnv):
 
     def render_init(
         self,
-    ):
+    ) -> None:
         fig, ax = plt.subplots()
         return fig, ax
 
-    def render_static_assest(self, ax):  #! spelling error - fix everywhere this is used
+    def render_static_assest(
+        self, ax: plt.Axes
+    ):  #! spelling error - fix everywhere this is used
         self.airspace.location_utm_gdf.plot(ax=ax, color="gray", linewidth=0.6)
         self.airspace.location_utm_hospital_buffer.plot(ax=ax, color="red", alpha=0.3)
         self.airspace.location_utm_hospital.plot(ax=ax, color="black")
         # adding vertiports to static plot
         gpd.GeoSeries(self.sim_vertiports_point_array).plot(ax=ax, color="black")
 
-    def render(self, fig, ax):
+    def render(self, fig: Figure, ax: Axes):
         plt.cla()
         self.render_static_assest(ax)
 
@@ -238,16 +242,18 @@ class UamUavEnvPZ(ParallelEnv):
         fig.canvas.flush_events()
         time.sleep(self.sleep_time)
 
-    def get_agent_velocity(self, auto_uav):  # TODO #8 - rename to get_agent_speed()
+    def get_agent_velocity(
+        self, auto_uav: AutonomousUAV
+    ) -> np.ndarray:  # TODO #8 - rename to get_agent_speed()
         return np.array([auto_uav.current_speed])
 
-    def get_agent_deviation(self, auto_uav):
+    def get_agent_deviation(self, auto_uav: AutonomousUAV) -> np.ndarray:
         #! should this be converted between -180 to 180
         return np.array(
             [auto_uav.current_heading_deg - auto_uav.current_ref_final_heading_deg]
         )
 
-    def _get_obs(self, agent_id):
+    def _get_obs(self, agent_id: str) -> dict:
         agent = self.auto_uavs_dict[agent_id]
 
         # need a new method for this
@@ -322,7 +328,7 @@ class UamUavEnvPZ(ParallelEnv):
 
         return observation
 
-    def _get_info(self, agent_id):
+    def _get_info(self, agent_id: str) -> dict:
 
         auto_uav = self.auto_uavs_dict[agent_id]
 
@@ -333,7 +339,7 @@ class UamUavEnvPZ(ParallelEnv):
         }
 
     @functools.lru_cache(maxsize=None)
-    def observation_space(self, agent_id):
+    def observation_space(self, agent_id: str) -> spaces.Dict:
         return spaces.Dict(
             {
                 "agent_id": spaces.Box(
@@ -368,5 +374,5 @@ class UamUavEnvPZ(ParallelEnv):
         )
 
     @functools.lru_cache(maxsize=None)
-    def action_space(self, agent_id):
+    def action_space(self, agent_id: str) -> spaces.Box:
         return spaces.Box(low=-1, high=1, shape=(2,), dtype=np.float64)

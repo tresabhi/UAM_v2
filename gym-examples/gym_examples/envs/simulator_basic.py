@@ -4,6 +4,8 @@ from airtrafficcontroller import ATC
 from uav import UAV
 from uav_basic import UAVBasic
 import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
+from matplotlib.axes._axes import Axes
 import geopandas as gpd
 from shapely import Point
 import time
@@ -13,8 +15,13 @@ from typing import List
 class SimulatorBasic:
 
     def __init__(
-        self, location_name, num_vertiports, num_basic_uavs, sleep_time, total_timestep
-    ):
+        self,
+        location_name: str,
+        num_vertiports: int,
+        num_basic_uavs: int,
+        sleep_time: float,
+        total_timestep: int,
+    ) -> None:
         """
         Initializes a Simulator object.
 
@@ -55,13 +62,13 @@ class SimulatorBasic:
         # sim run time
         self.total_timestep = total_timestep
 
-    def get_vertiport_from_atc(self):
+    def get_vertiport_from_atc(self) -> None:
         vertiports_point_array = [
             vertiport.location for vertiport in self.atc.vertiports_in_airspace
         ]
         self.sim_vertiports_point_array = vertiports_point_array
 
-    def get_uav_list_from_atc(self):
+    def get_uav_list_from_atc(self) -> None:
         self.uav_list = self.atc.basic_uav_list
 
     def render_init(
@@ -70,7 +77,7 @@ class SimulatorBasic:
         fig, ax = plt.subplots()
         return fig, ax
 
-    def render_static_assest(self, ax):
+    def render_static_assets(self, ax: Axes) -> None:
         self.airspace.location_utm_gdf.plot(ax=ax, color="gray", linewidth=0.6)
         self.airspace.location_utm_hospital_buffer.plot(ax=ax, color="green", alpha=0.3)
         self.airspace.location_utm_hospital.plot(ax=ax, color="black")
@@ -79,12 +86,12 @@ class SimulatorBasic:
 
     def render(
         self,
-        fig,
-        ax,
-    ):
+        fig: Figure,
+        ax: Axes,
+    ) -> None:
 
         plt.cla()
-        self.render_static_assest(ax)
+        self.render_static_assets(ax)
 
         # UAV PLOT LOGIC
         for uav_obj in self.uav_list:
@@ -103,14 +110,14 @@ class SimulatorBasic:
         fig.canvas.flush_events()
         time.sleep(self.sleep_time)
 
-    def _get_obs(self, uav_obj: UAVBasic):
+    def _get_obs(self, uav_obj: UAVBasic) -> dict:
         state_info = uav_obj.get_state(
             self.uav_list, self.airspace.location_utm_hospital_buffer
         )
 
         return state_info
 
-    def get_uav(self, uav_id):
+    def get_uav(self, uav_id: str) -> UAV:
         for uav in self.uav_list:
             if uav.id == int(uav_id):
                 return uav
@@ -118,17 +125,17 @@ class SimulatorBasic:
                 continue
         raise RuntimeError("UAV not in list")
 
-    def set_uav_intruder_list(self):
+    def set_uav_intruder_list(self) -> None:
         for uav in self.uav_list:
             uav.get_intruder_uav_list(self.uav_list)
 
-    def set_building_gdf(self):
+    def set_building_gdf(self) -> None:
         for uav in self.uav_list:
             uav.get_airspace_building_list(self.airspace.location_utm_hospital_buffer)
 
     def sim_step(
         self,
-    ):
+    ) -> None:
         for uav in self.uav_list:
             self.atc.has_left_start_vertiport(uav)
             self.atc.has_reached_end_vertiport(uav)
@@ -137,9 +144,9 @@ class SimulatorBasic:
 
     def run_simulator(
         self,
-        fig,
-        ax,
-    ):
+        fig: Figure,
+        ax: Axes,
+    ) -> None:
         """
         Runs the simulator.
         This method packs rendering, and stepping into one method.
@@ -168,7 +175,7 @@ class SimulatorBasic:
 
     def reset(
         self,
-    ):
+    ) -> None:
         self.current_time_step = 0
         self.atc.basic_uav_list = []
         self.atc.vertiports_in_airspace = []

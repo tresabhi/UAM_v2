@@ -38,7 +38,7 @@ class ATC:
     def __init__(
         self,
         airspace: Airspace,
-    ):
+    ) -> None:
         """ATC (Air Traffic Controller) - maintains information on UAVs and Vertiports.
 
         Args:
@@ -57,7 +57,7 @@ class ATC:
         # self.controller = controller
 
     # * This method needs to be run once to initialize the sim
-    def create_n_random_vertiports(self, num_vertiports: int):
+    def create_n_random_vertiports(self, num_vertiports: int) -> None:
         """
         Creates a specified number of random vertiports within the airspace.
 
@@ -89,7 +89,7 @@ class ATC:
     def create_n_basic_uavs(
         self,
         num_uavs: int,
-    ):
+    ) -> None:
         """
         Creates a specified number of basic UAVs and assigns them random start and end vertiports.
 
@@ -121,7 +121,7 @@ class ATC:
             # add uav to atc uav_list
             self.basic_uav_list.append(uav)
 
-    def create_n_auto_uavs(self, num_auto_uavs: int):
+    def create_n_auto_uavs(self, num_auto_uavs: int) -> None:
         """
         Creates a specified number of autonomus UAVs and assigns them random start and end vertiports.
 
@@ -153,7 +153,7 @@ class ATC:
             # add uav to atc uav_list
             self.auto_uavs_list.append(auto_uav)
 
-    def _vertiport_filtering(self, some_vertiport: Vertiport) -> List:
+    def _vertiport_filtering(self, some_vertiport: Vertiport) -> list:
         """Internal method. Used for selecting end vertiports for UAVs,
            such that at the beginning of the simulation,
            all UAVs have different vertiports.
@@ -170,7 +170,7 @@ class ATC:
                 filtered_vertiport.append(vertiport)
         return filtered_vertiport
 
-    def has_reached_end_vertiport(self, uav: UAVBasic | AutonomousUAV) -> List:
+    def has_reached_end_vertiport(self, uav: UAVBasic | AutonomousUAV) -> None:
         """Checks if a UAV has reached its end_vertiport.
 
         This method checks if a UAV has reached its end_vertiport. If it did reach,
@@ -221,7 +221,7 @@ class ATC:
         sample_vertiport = random.choice(self.vertiports_in_airspace)
         return sample_vertiport
 
-    def _reassign_end_vertiport_of_uav(self, uav: UAVBasic):
+    def _reassign_end_vertiport_of_uav(self, uav: UAVBasic) -> None:
         """Reassigns the end vertiport of a UAV.
 
         This method samples a vertiport from the ATC vertiport list.
@@ -238,7 +238,9 @@ class ATC:
         uav.end_vertiport = sample_end_vertiport
         uav.update_end_point()
 
-    def _update_start_vertiport_of_uav(self, vertiport: Vertiport, uav: UAVBasic):
+    def _update_start_vertiport_of_uav(
+        self, vertiport: Vertiport, uav: UAVBasic
+    ) -> None:
         """This method accepts a vertiport (end-vertiport of uav)
         and updates the start_vertiport attribute of UAV
         to the provided vertiport. This method works in conjunction with landing_procedure.
@@ -254,7 +256,7 @@ class ATC:
         uav.start_vertiport = vertiport
         uav.update_start_point()
 
-    def _landing_procedure(self, landing_uav: UAVBasic | AutonomousUAV):
+    def _landing_procedure(self, landing_uav: UAVBasic | AutonomousUAV) -> None:
         """
         Performs the landing procedure for a given UAV.
         Args:
@@ -271,7 +273,7 @@ class ATC:
 
     def _clearing_procedure(
         self, outgoing_uav: UAVBasic | AutonomousUAV
-    ):  #! rename to _takeoff_procedure()
+    ) -> None:  #! rename to _takeoff_procedure()
         """
         Performs the clearing procedure for a given UAV.
         Args:
@@ -286,7 +288,7 @@ class ATC:
             if uav.id == outgoing_uav_id:
                 outgoing_uav.start_vertiport.uav_list.remove(uav)
 
-    def set_start_end_uav(self, list_uav_airspace):
+    def set_start_end_uav(self, list_uav_airspace: list):
         """Assign start-end point to all uavs in airspace"""
         pass
 

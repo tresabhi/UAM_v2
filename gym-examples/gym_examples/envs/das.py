@@ -34,7 +34,7 @@ class CollisionController:
     def __init__(self) -> None:
         self.name = "Baseline Collision Controller"
 
-    def get_quadrant(self, theta):
+    def get_quadrant(self, theta: float) -> int:
         if (theta >= 0) and (theta < 90):
             return 1
         elif (theta >= 90) and (theta <= 180):
@@ -53,7 +53,7 @@ class CollisionController:
 
     #                    state -> ((bool,                float                  ), dict            | None)
     #                               static_obj_detected, uav.current_heading_deg , dynamic_obj_info| None
-    def get_action(self, state):
+    def get_action(self, state: list) -> tuple[float, float]:
         if state[0][0] is False and state[1] is None:
             acceleration = 0
             heading_correction = 0
@@ -140,7 +140,7 @@ class ZeroController:
     def __init__(self) -> None:
         self.name = "zero controller"
 
-    def get_action(self, state):
+    def get_action(self, state: list) -> tuple[float, float]:
         return 0, 0
 
 

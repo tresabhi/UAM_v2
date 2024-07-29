@@ -3,6 +3,8 @@ from airspace import Airspace
 from airtrafficcontroller import ATC
 from uav import UAV
 import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
+from matplotlib.axes._axes import Axes
 import geopandas as gpd
 from shapely import Point
 import time
@@ -69,7 +71,7 @@ class Simulator:
         # sim run time
         self.total_timestep = total_timestep
 
-    def render(self, fig, ax, static_plot, sim, gpd):
+    def render(self, fig: Figure, ax: Axes, static_plot, sim, gpd):
         plt.cla()
         static_plot(sim, ax, gpd)
         # UAV PLOT LOGIC

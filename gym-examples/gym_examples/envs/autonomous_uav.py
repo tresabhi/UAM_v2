@@ -1,6 +1,7 @@
 # Smart uav, will accept action from RL algorithm
 from uav import UAV
 from geopandas import GeoSeries
+from vertiport import Vertiport
 
 
 class AutonomousUAV(UAV):
@@ -8,8 +9,12 @@ class AutonomousUAV(UAV):
     It will accept acceleration and heading from RL algorithm"""
 
     def __init__(
-        self, start_vertiport, end_vertiport, landing_proximity=50, max_speed=40
-    ):
+        self,
+        start_vertiport: Vertiport,
+        end_vertiport: Vertiport,
+        landing_proximity: float = 50,
+        max_speed: float = 40,
+    ) -> None:
         """Representation of UAV in airspace. UAV motion represented in 2D plane.
         Object is to move from start vertiport to end vertiport.
         A UAV instance requires a start and end vertiport.
@@ -24,16 +29,17 @@ class AutonomousUAV(UAV):
         self.uav_detection_radius_color = "blue"
         self.uav_collision_controller = None
 
-    def _update_speed(self, acceleration_from_controller, d_t=1):
+    def _update_speed(
+        self, acceleration_from_controller: float, d_t: float = 1
+    ) -> None:
         self.current_speed += acceleration_from_controller * d_t
 
-    def step(self, acceleration, heading_correction):
+    def step(self, acceleration: float, heading_correction: float) -> None:
         self._update_speed(acceleration, d_t=1)
         self._update_position(d_t=1)
 
         self._update_theta_d(heading_correction)
         self._update_ref_final_heading()
-        pass
 
 
 # from vertiport import Vertiport

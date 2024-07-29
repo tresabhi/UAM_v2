@@ -25,9 +25,9 @@ from typing import List, Dict
 from airspace import Airspace
 from vertiport import Vertiport
 from uav import UAV
-from uav_basic import UAV_Basic
-from autonomous_uav import Autonomous_UAV
-from das import Collision_controller
+from uav_basic import UAVBasic
+from autonomous_uav import AutonomousUAV
+from das import CollisionController
 import copy
 
 # from autonomous_uav import Autonomous_UAV
@@ -50,9 +50,9 @@ class ATC:
             vertiports_in_airspace (List[Vertiport]): The list of vertiports in the airspace.
         """
         self.airspace = airspace
-        self.basic_uav_list: List[UAV_Basic] = []  #:List[UAV]
+        self.reg_uav_list: List[UAVBasic] = []  #:List[UAV]
         self.vertiports_in_airspace: List[Vertiport] = []  #:List[Vertiport]
-        self.auto_uavs_list: List[Autonomous_UAV] = []
+        self.auto_uavs_list: List[AutonomousUAV] = []
         # self.controller = controller
 
     # * This method needs to be run once to initialize the sim
@@ -85,8 +85,7 @@ class ATC:
 
     # TODO - break the task of creating UAVs and assigning start end vertiport
     # * This method needs to be run once to initialize the sim
-    #!Nameing convention reg or basic
-    def create_n_basic_uavs(
+    def create_n_reg_uavs(
         self,
         num_uavs,
     ):
@@ -110,8 +109,8 @@ class ATC:
             while uav_start_vertiport.location == uav_end_vertiport.location:
                 uav_end_vertiport = random.choice(end_vertiport_list)
 
-            # create instance of UAV_basic
-            uav = UAV_Basic(uav_start_vertiport, uav_end_vertiport)
+            # create instance of UAVBasic
+            uav = UAVBasic(uav_start_vertiport, uav_end_vertiport)
             # add UAV to vertiport's uav_list
             uav_start_vertiport.uav_list.append(uav)
             # remove vertiport from start list
@@ -119,7 +118,7 @@ class ATC:
             # remove vertiport from end list
             end_vertiport_list.pop(end_vertiport_list.index(uav_end_vertiport))
             # add uav to atc uav_list
-            self.basic_uav_list.append(uav)
+            self.reg_uav_list.append(uav)
 
     def create_n_auto_uavs(self, num_auto_uavs):
         start_vertiport_list = copy.deepcopy(self.vertiports_in_airspace)
@@ -132,8 +131,8 @@ class ATC:
             while uav_start_vertiport.location == uav_end_vertiport.location:
                 uav_end_vertiport = random.choice(end_vertiport_list)
 
-            # create instance of UAV_basic
-            auto_uav = Autonomous_UAV(uav_start_vertiport, uav_end_vertiport)
+            # create instance of UAVBasic
+            auto_uav = AutonomousUAV(uav_start_vertiport, uav_end_vertiport)
             # add UAV to vertiport's uav_list
             uav_start_vertiport.uav_list.append(auto_uav)
             # remove vertiport from start list
@@ -143,7 +142,6 @@ class ATC:
             # add uav to atc uav_list
             self.auto_uavs_list.append(auto_uav)
 
-    #! _ before method is for internal use only
     def _vertiport_filtering(self, some_vertiport):
         """Internal method. Used for selecting end vertiports for UAVs,
            such that at the beginning of the simulation,
@@ -161,7 +159,7 @@ class ATC:
                 filtered_vertiport.append(vertiport)
         return filtered_vertiport
 
-    def has_reached_end_vertiport(self, uav: UAV_Basic | Autonomous_UAV):
+    def has_reached_end_vertiport(self, uav: UAVBasic | AutonomousUAV):
         """Checks if a UAV has reached its end_vertiport.
 
         This method checks if a UAV has reached its end_vertiport. If it did reach,
@@ -180,7 +178,7 @@ class ATC:
             # uav.reached_end_vertiport = True
             self._landing_procedure(uav)
 
-    def has_left_start_vertiport(self, uav: UAV_Basic | Autonomous_UAV):
+    def has_left_start_vertiport(self, uav: UAVBasic | AutonomousUAV):
         """Checks if a UAV has left its start_vertiport.
 
         This method checks if a UAV has left its start_vertiport. If it did leave,
@@ -212,7 +210,7 @@ class ATC:
         sample_vertiport = random.choice(self.vertiports_in_airspace)
         return sample_vertiport
 
-    def _reassign_end_vertiport_of_uav(self, uav: UAV_Basic):
+    def _reassign_end_vertiport_of_uav(self, uav: UAVBasic):
         """Reassigns the end vertiport of a UAV.
 
         This method samples a vertiport from the ATC vertiport list.
@@ -229,7 +227,7 @@ class ATC:
         uav.end_vertiport = sample_end_vertiport
         uav.update_end_point()
 
-    def _update_start_vertiport_of_uav(self, vertiport: Vertiport, uav: UAV_Basic):
+    def _update_start_vertiport_of_uav(self, vertiport: Vertiport, uav: UAVBasic):
         """This method accepts a vertiport (end-vertiport of uav)
         and updates the start_vertiport attribute of UAV
         to the provided vertiport. This method works in conjunction with landing_procedure.
@@ -245,7 +243,7 @@ class ATC:
         uav.start_vertiport = vertiport
         uav.update_start_point()
 
-    def _landing_procedure(self, landing_uav: UAV_Basic | Autonomous_UAV):
+    def _landing_procedure(self, landing_uav: UAVBasic | AutonomousUAV):
         """
         Performs the landing procedure for a given UAV.
         Args:
@@ -261,7 +259,7 @@ class ATC:
         self._reassign_end_vertiport_of_uav(landing_uav)
 
     def _clearing_procedure(
-        self, outgoing_uav: UAV_Basic | Autonomous_UAV
+        self, outgoing_uav: UAVBasic | AutonomousUAV
     ):  #! rename to _takeoff_procedure()
         """
         Performs the clearing procedure for a given UAV.
@@ -284,12 +282,12 @@ class ATC:
     # TODO #16
     def create_auto_uav(
         self,
-    ) -> Autonomous_UAV:
+    ) -> AutonomousUAV:
         #! need to provide the start and end vertiport
-        self.auto_uav = Autonomous_UAV()
+        self.auto_uav = AutonomousUAV()
 
     def create_n_uavs(self, percent_auto):
-        """This method will create a mix of smart and basic uavs.
+        """This method will create a mix of smart and regular uavs.
         The mix is controlled by percentage argument."""
         pass
 

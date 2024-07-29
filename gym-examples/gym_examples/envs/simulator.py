@@ -27,7 +27,12 @@ from typing import List
 class Simulator:
 
     def __init__(
-        self, location_name, num_vertiports, num_basic_uavs, sleep_time, total_timestep
+        self,
+        location_name: str,
+        num_vertiports: int,
+        num_reg_uavs: int,
+        sleep_time: float,
+        total_timestep: int,
     ):
         """
         Initializes a Simulator object.
@@ -35,7 +40,7 @@ class Simulator:
         Args:
             location_name (str): The name of the location for the simulation.
             num_vertiports (int): The number of vertiports to create in the simulation.
-            num_basic_uavs (int): The number of basic UAVs to create in the simulation.
+            num_reg_uavs (int): The number of regular UAVs to create in the simulation.
         """
         # sim airspace and ATC
         self.airspace = Airspace(location_name=location_name)
@@ -47,8 +52,8 @@ class Simulator:
         #! These two statements will most probably be in reset()
         #! Think how a seed value can be added to the system, so that the system is reproduceable - the vertiports and the uav assignment fixed to some seed value.
         self.atc.create_n_random_vertiports(num_vertiports)
-        self.atc.create_n_basic_uavs(
-            num_basic_uavs,
+        self.atc.create_n_reg_uavs(
+            num_reg_uavs,
         )
 
         # unpacking atc.vertiports in airspace
@@ -57,7 +62,7 @@ class Simulator:
         ]
         # sim data
         self.sim_vertiports_point_array = vertiports_point_array
-        self.uav_list: List[UAV] = self.atc.basic_uav_list
+        self.uav_list: List[UAV] = self.atc.reg_uav_list
         # *
         # sim sleep time
         self.sleep_time = sleep_time
@@ -123,7 +128,7 @@ class Simulator:
             obs_list.append((uav_id, obs))
         return obs_list
 
-    def RUN_SIMULATOR(
+    def run_simulator(
         self, fig, ax, static_plot, sim, gpd, controller_predict
     ):  #! das-controller needs to be changed to controller_predict implement uniform name all across code base
         """
@@ -142,7 +147,7 @@ class Simulator:
         for _ in range(self.total_timestep):
             self.render(fig, ax, static_plot, sim, gpd)
             #! need an initial state
-            # - initial state is created by create_n_basic_uavs
+            # - initial state is created by create_n_reg_uavs
             #! feed the initial state to the controller if controller
             action_list = self.get_action_list(
                 controller_predict
@@ -178,7 +183,7 @@ class Simulator:
     #         else:
     #             action = das_controller.get_action(intruder_state_info)
     #     #! sim_step has to return observation
-    #     #! but sim_step, steps all basic_uavs in the airspace,
+    #     #! but sim_step, steps all reg_uavs in the airspace,
     #     #! so the obs will have to be a list that contains all the obs information about all uavs
     #         obs = uav_obj.step(action)
     #         obs_list.append((uav_obj.id,obs))

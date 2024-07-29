@@ -2,7 +2,7 @@
 from airspace import Airspace
 from airtrafficcontroller import ATC
 from uav import UAV
-from uav_basic import UAV_Basic
+from uav_basic import UAVBasic
 import matplotlib.pyplot as plt
 import geopandas as gpd
 from shapely import Point
@@ -10,10 +10,10 @@ import time
 from typing import List
 
 
-class Simulator_basic:
+class SimulatorBasic:
 
     def __init__(
-        self, location_name, num_vertiports, num_basic_uavs, sleep_time, total_timestep
+        self, location_name, num_vertiports, num_reg_uavs, sleep_time, total_timestep
     ):
         """
         Initializes a Simulator object.
@@ -21,7 +21,7 @@ class Simulator_basic:
         Args:
             location_name (str): The name of the location for the simulation.
             num_vertiports (int): The number of vertiports to create in the simulation.
-            num_basic_uavs (int): The number of basic UAVs to create in the simulation.
+            num_reg_uavs (int): The number of regular UAVs to create in the simulation.
         """
         # sim airspace and ATC
         self.current_time_step = 0
@@ -36,8 +36,8 @@ class Simulator_basic:
         #! These two statements will most probably be in reset()
         #! Think how a seed value can be added to the system, so that the system is reproduceable - the vertiports and the uav assignment fixed to some seed value.
         self.atc.create_n_random_vertiports(num_vertiports)
-        self.atc.create_n_basic_uavs(
-            num_basic_uavs,
+        self.atc.create_n_reg_uavs(
+            num_reg_uavs,
         )
 
         # unpacking atc.vertiports in airspace
@@ -46,7 +46,7 @@ class Simulator_basic:
         ]
         # sim data
         self.sim_vertiports_point_array = vertiports_point_array
-        self.uav_list: List[UAV_Basic] = self.atc.basic_uav_list
+        self.uav_list: List[UAVBasic] = self.atc.reg_uav_list
         # *
         # sim sleep time
         self.sleep_time = sleep_time
@@ -101,7 +101,7 @@ class Simulator_basic:
         fig.canvas.flush_events()
         time.sleep(self.sleep_time)
 
-    def _get_obs(self, uav_obj: UAV_Basic):
+    def _get_obs(self, uav_obj: UAVBasic):
         state_info = uav_obj.get_state(
             self.uav_list, self.airspace.location_utm_hospital_buffer
         )
@@ -133,7 +133,7 @@ class Simulator_basic:
             uav.step()
             # self.collision = uav.has_uav_collision()
 
-    def RUN_SIMULATOR(
+    def run_simulator(
         self,
         fig,
         ax,

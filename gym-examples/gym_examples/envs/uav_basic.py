@@ -4,9 +4,9 @@ import numpy as np
 from shapely.geometry import Point
 from geopandas import GeoSeries
 from vertiport import Vertiport
-from das import Collision_controller
+from das import CollisionController
 
-class UAV_Basic:
+class UAVBasic:
     '''Representation of UAV in airspace. UAV motion represented in 2D plane. 
      Object is to move from start vertiport to end vertiport.
      A UAV instance requires a start and end vertiport.

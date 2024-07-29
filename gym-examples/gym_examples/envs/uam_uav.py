@@ -46,20 +46,20 @@ from gymnasium import spaces
 
 from airspace import Airspace
 from airtrafficcontroller import ATC
-from uav_basic import UAV_Basic
-from autonomous_uav import Autonomous_UAV
+from uav_basic import UAVBasic
+from autonomous_uav import AutonomousUAV
 from vertiport import Vertiport
 
 
 # TODO #10 - Add function signature and description
-class Uam_Uav_Env(gym.Env):
+class UamUavEnv(gym.Env):
     metadata = {"render_mode": ["human", "rgb_array"], "render_fps": 4}
 
     def __init__(
         self,
         location_name,
         num_vertiport,
-        num_basic_uav,
+        num_reg_uav,
         sleep_time=0.005,  # sleep time between render frames
         render_mode=None,  #! check where this argument is used
     ):
@@ -82,14 +82,14 @@ class Uam_Uav_Env(gym.Env):
             vertiport.location for vertiport in self.atc.vertiports_in_airspace
         ]
         self.sim_vertiports_point_array = vertiports_point_array
-        self.uav_basic_list: List[UAV_Basic] = self.atc.basic_uav_list
+        self.uav_basic_list: List[UAVBasic] = self.atc.reg_uav_list
 
         # Auto UAV initialization
         start_vertiport_auto_uav = self.get_start_vertiport_auto_uav()
         end_vertiport_auto_uav = self.get_end_vertiport_auto_uav(
             start_vertiport_auto_uav
         )
-        self.auto_uav = Autonomous_UAV(start_vertiport_auto_uav, end_vertiport_auto_uav)
+        self.auto_uav = AutonomousUAV(start_vertiport_auto_uav, end_vertiport_auto_uav)
 
         # Environment spaces
         self.observation_space = spaces.Dict(
@@ -162,7 +162,7 @@ class Uam_Uav_Env(gym.Env):
     def get_uav_list_from_atc(self):
         """This is a convinience method, for reset()"""
 
-        self.uav_basic_list = self.atc.basic_uav_list
+        self.uav_basic_list = self.atc.reg_uav_list
 
     def reset(self, seed=None, options=None):
         """
@@ -182,7 +182,7 @@ class Uam_Uav_Env(gym.Env):
         self.atc.create_n_random_vertiports(
             self.num_vertiports
         )  # TODO #7 - all these six methods below needs an argument seed
-        self.atc.create_n_basic_uavs(self.num_basic_uavs)
+        self.atc.create_n_reg_uavs(self.num_reg_uavs)
         self.get_vertiport_from_atc()
         self.get_uav_list_from_atc()
 
@@ -197,7 +197,7 @@ class Uam_Uav_Env(gym.Env):
             start_vertiport_auto_uav
         )
 
-        self.auto_uav = Autonomous_UAV(start_vertiport_auto_uav, end_vertiport_auto_uav)
+        self.auto_uav = AutonomousUAV(start_vertiport_auto_uav, end_vertiport_auto_uav)
 
         observation = self._get_obs()
         info = self._get_info()

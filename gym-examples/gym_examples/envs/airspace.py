@@ -6,7 +6,19 @@ from osmnx import projection as ox_projection
 
 class Airspace:
     def __init__(self, location_name: str, buffer_radius: float = 500) -> None:
+        """Airspace - Defines the location of the map. Imports key information on hopitals(no fly zone)
 
+        Args:
+            location_name (string): Location of the Airspace ie. "Austin, Texas, USA"
+            buffer_radius (int): distance around hospitals
+
+        Attributes:
+            location_name(string): Location of the Airspace ie. "Austin, Texas, USA"
+            buffer_radius (int): distance around hospitals
+            location_utm_gdf (gdp.GeoDataFrame): Location in UTM(Universal Transverse Mercator)
+            location_utm_hospital ( ox_projection): location of hospital converted to UTM
+            location_utm_hospital_buffer (UTM): buffer around the hospital
+        """
         self.location_name = location_name  #'Austin, Texas, USA'
         self.buffer_radius = buffer_radius
 

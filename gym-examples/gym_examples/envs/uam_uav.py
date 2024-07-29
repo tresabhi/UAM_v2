@@ -24,7 +24,7 @@ Side Note:
     Any improvement/change should be tested using instance of simultor before implementing in custom gym env.
 
     When we create the UAM env(subclass of gymEnv) it will build an instance that is similar to simulator.
-    The initializer arguments of UAM_Env are similar to the simulator, that is location_name, reg_uav_no, vertiport_no, and Auto_uav(only one for single agent env)
+    The initializer arguments of UAM_Env are similar to the simulator, that is location_name, basic_uav_no, vertiport_no, and Auto_uav(only one for single agent env)
     
     Reason for similarity 
     ---------------------
@@ -51,7 +51,7 @@ from autonomous_uav import Autonomous_UAV
 from vertiport import Vertiport
 
 
-#TODO #10 - Add function signature and description 
+# TODO #10 - Add function signature and description
 class Uam_Uav_Env(gym.Env):
     metadata = {"render_mode": ["human", "rgb_array"], "render_fps": 4}
 
@@ -59,14 +59,14 @@ class Uam_Uav_Env(gym.Env):
         self,
         location_name,
         num_vertiport,
-        num_reg_uav,
-        sleep_time=0.005, # sleep time between render frames
-        render_mode=None, #! check where this argument is used
+        num_basic_uav,
+        sleep_time=0.005,  # sleep time between render frames
+        render_mode=None,  #! check where this argument is used
     ):
         # Environment attributes
-        self.current_time_step = 0 #! not being used during step
+        self.current_time_step = 0  #! not being used during step
         self.num_vertiports = num_vertiport
-        self.num_reg_uavs = num_reg_uav
+        self.num_basic_uavs = num_basic_uav
         self.sleep_time = sleep_time
         self.airspace = Airspace(location_name)
         self.atc = ATC(airspace=self.airspace)
@@ -75,14 +75,14 @@ class Uam_Uav_Env(gym.Env):
         self.atc.create_n_random_vertiports(num_vertiport)
 
         # UAV initialization
-        self.atc.create_n_reg_uavs(num_reg_uav)
+        self.atc.create_n_basic_uavs(num_basic_uav)
 
         # Environment data
         vertiports_point_array = [
             vertiport.location for vertiport in self.atc.vertiports_in_airspace
         ]
         self.sim_vertiports_point_array = vertiports_point_array
-        self.uav_basic_list: List[UAV_Basic] = self.atc.reg_uav_list
+        self.uav_basic_list: List[UAV_Basic] = self.atc.basic_uav_list
 
         # Auto UAV initialization
         start_vertiport_auto_uav = self.get_start_vertiport_auto_uav()
@@ -96,129 +96,119 @@ class Uam_Uav_Env(gym.Env):
             {
                 # agent ID as integer
                 "agent_id": spaces.Box(
-                    low=0, high=np.iinfo(np.int64).max, shape=(1,), dtype=np.int64 #! find if it is possible to create ids that take less space 
+                    low=0,
+                    high=np.iinfo(np.int64).max,
+                    shape=(1,),
+                    dtype=np.int64,  #! find if it is possible to create ids that take less space
                 ),
-                
-                # agent speed 
-                "agent_velocity": spaces.Box( #!need to rename velocity -> speed
-                    low=-self.auto_uav.max_speed, # agent's speed #! need to check why this is negative
+                # agent speed
+                "agent_velocity": spaces.Box(  #!need to rename velocity -> speed
+                    low=-self.auto_uav.max_speed,  # agent's speed #! need to check why this is negative
                     high=self.auto_uav.max_speed,
                     shape=(1,),
                     dtype=np.float64,
                 ),
-                
-                # agent deviation  
+                # agent deviation
                 "agent_deviation": spaces.Box(
-                    low=-360, high=360, shape=(1,), dtype=np.float64 # agent's heading deviation #!should this be -180 to 180, if yes then this needs to be corrected to -180 to 180
-                ),  
-                
+                    low=-360,
+                    high=360,
+                    shape=(1,),
+                    dtype=np.float64,  # agent's heading deviation #!should this be -180 to 180, if yes then this needs to be corrected to -180 to 180
+                ),
                 # intruder detection
                 "intruder_detected": spaces.Discrete(
-                    2 # 0 for no intruder, 1 for intruder detected
-                ),  
-                
+                    2  # 0 for no intruder, 1 for intruder detected
+                ),
                 # intruder id
                 "intruder_id": spaces.Box(
-                    low=0, high=np.iinfo(np.int64).max, shape=(1,), dtype=np.int64 #! find if it is possible to create ids that take less space 
-                ),  
-                
+                    low=0,
+                    high=np.iinfo(np.int64).max,
+                    shape=(1,),
+                    dtype=np.int64,  #! find if it is possible to create ids that take less space
+                ),
                 # distance to intruder
                 "distance_to_intruder": spaces.Box(
                     low=0,
                     high=self.auto_uav.detection_radius,
                     shape=(1,),
                     dtype=np.float64,
-                ), 
-                
+                ),
                 # Relative heading of intruder #!should this be corrected to -180 to 180,
                 "relative_heading_intruder": spaces.Box(
                     low=-360, high=360, shape=(1,), dtype=np.float64
-                ),  
-
-
+                ),
                 "intruder_current_heading": spaces.Box(
                     low=-180, high=180, shape=(1,), dtype=np.float64
                 ),  # Intruder's heading
             }
         )
-        
-        # Normalized action space
-        self.action_space = spaces.Box(    
-            low=-1, high=1, shape=(2,), dtype=np.float64 #! should action choosen form action space be converted back when applied in step()
-        )  
 
-    
-    
-    
+        # Normalized action space
+        self.action_space = spaces.Box(
+            low=-1,
+            high=1,
+            shape=(2,),
+            dtype=np.float64,  #! should action choosen form action space be converted back when applied in step()
+        )
+
     def get_vertiport_from_atc(self):
         """This is a convinience method, for reset()"""
-        
+
         vertiports_point_array = [
             vertiport.location for vertiport in self.atc.vertiports_in_airspace
         ]
         self.sim_vertiports_point_array = vertiports_point_array
 
-    
-    
-    
     def get_uav_list_from_atc(self):
         """This is a convinience method, for reset()"""
-        
-        self.uav_basic_list = self.atc.reg_uav_list
 
-    
-    
-    
+        self.uav_basic_list = self.atc.basic_uav_list
+
     def reset(self, seed=None, options=None):
         """
         This method resets the environment.
         """
 
-        #TODO #6 - When environment is reset, it should use a seed to reset from. Currently, reset does not use a seed 
+        # TODO #6 - When environment is reset, it should use a seed to reset from. Currently, reset does not use a seed
         super().reset(seed=seed)
         self.np_random, seed = gym.utils.seeding.np_random(seed)
 
         self.current_time_step = 0
-        self.atc.reg_uav_list = []
+        self.atc.basic_uav_list = []
         self.atc.vertiports_in_airspace = []
         self.uav_basic_list = []
         self.sim_vertiports_point_array = []
 
-        self.atc.create_n_random_vertiports(self.num_vertiports) #TODO #7 - all these six methods below needs an argument seed 
-        self.atc.create_n_reg_uavs(self.num_reg_uavs)
+        self.atc.create_n_random_vertiports(
+            self.num_vertiports
+        )  # TODO #7 - all these six methods below needs an argument seed
+        self.atc.create_n_basic_uavs(self.num_basic_uavs)
         self.get_vertiport_from_atc()
-        self.get_uav_list_from_atc() 
-        
+        self.get_uav_list_from_atc()
+
         # reset procedure for auto_uav
         self.auto_uav = None
-        
+
         start_vertiport_auto_uav = (
-            self.get_start_vertiport_auto_uav() # go through all the vertiports
-        )  
-        
-        end_vertiport_auto_uav = self.get_end_vertiport_auto_uav( 
+            self.get_start_vertiport_auto_uav()  # go through all the vertiports
+        )
+
+        end_vertiport_auto_uav = self.get_end_vertiport_auto_uav(
             start_vertiport_auto_uav
         )
-        
+
         self.auto_uav = Autonomous_UAV(start_vertiport_auto_uav, end_vertiport_auto_uav)
 
-        
         observation = self._get_obs()
         info = self._get_info()
 
         return observation, info
 
-    
-    
-    
-    def get_agent_velocity( #TODO #8 - rename to get_agent_speed()
+    def get_agent_velocity(  # TODO #8 - rename to get_agent_speed()
         self,
     ):
         return np.array([self.auto_uav.current_speed])
 
-    
-    
-    
     def get_agent_deviation(
         self,
     ):
@@ -230,17 +220,15 @@ class Uam_Uav_Env(gym.Env):
             ]
         )
 
-    
-    
-    
     def _get_obs(self):
         agent_id = np.array([self.auto_uav.id])
         agent_velocity = self.get_agent_velocity()
         agent_deviation = self.get_agent_deviation()
-        intruder_info = self.auto_uav.get_state_dynamic_obj(self.uav_basic_list,'nmac') #self.nmac_with_dynamic_obj()
-        
-        
-        #TODO #9 - create simple logging to check all observations are in correct format and range- use print()
+        intruder_info = self.auto_uav.get_state_dynamic_obj(
+            self.uav_basic_list, "nmac"
+        )  # self.nmac_with_dynamic_obj()
+
+        # TODO #9 - create simple logging to check all observations are in correct format and range- use print()
         if intruder_info:
             intruder_detected = 1
             intruder_id = np.array([intruder_info["intruder_id"]])
@@ -258,37 +246,35 @@ class Uam_Uav_Env(gym.Env):
             distance_to_intruder = np.array([0])
             relative_heading_intruder = np.array([0])
             intruder_heading = np.array([0])
-  
-        
+
         #!restricted airspace
-        #!implementatation will require updating observation space in __init__ 
+        #!implementatation will require updating observation space in __init__
         restricted_airspace, _ = self.auto_uav.get_state_static_obj(
-            self.airspace.location_utm_hospital.geometry, "detection" # the collision string represents that we are using detection as indicator
-            )
-        #what is the output of this method 
-        #what if there are more than one restricted airspace near auto_uav
-        #how do I hypothesize the auto_uav will resolve multiple airspace 
+            self.airspace.location_utm_hospital.geometry,
+            "detection",  # the collision string represents that we are using detection as indicator
+        )
+        # what is the output of this method
+        # what if there are more than one restricted airspace near auto_uav
+        # how do I hypothesize the auto_uav will resolve multiple airspace
 
         #! restricted airspace detected - should this be detection/nmac
-        # if the detection area of uav intersects with a building's detection area, 
-        # we should do the following - 
-        # 1) if intersection is detected for 'detection' argument -> 
-        #                   there should be a small penalty 
-        #                   based on distance between the uav_footprint and the actual building 
-        # 2) if there is no building detected the penalty should be zero 
-        # 3) just like intruder_detected in obs 
-        #    there will be restricted_airspace detected in obs 
-        # 4) restricted_airspace will have 0 for not detected 1 for detected, 
-        #    and if detected - distance will be added to the obs, if not detected distance is leave at 0, 
-        #    this will be handled by the reward function collect obs and based on restricted_airspace (y/n) 
+        # if the detection area of uav intersects with a building's detection area,
+        # we should do the following -
+        # 1) if intersection is detected for 'detection' argument ->
+        #                   there should be a small penalty
+        #                   based on distance between the uav_footprint and the actual building
+        # 2) if there is no building detected the penalty should be zero
+        # 3) just like intruder_detected in obs
+        #    there will be restricted_airspace detected in obs
+        # 4) restricted_airspace will have 0 for not detected 1 for detected,
+        #    and if detected - distance will be added to the obs, if not detected distance is leave at 0,
+        #    this will be handled by the reward function collect obs and based on restricted_airspace (y/n)
         #    penatly is something or 0.
         if restricted_airspace:
-            # what information am i interested in collecting 
+            # what information am i interested in collecting
             distance_to_static_obj_polygon = None
         else:
             distance_to_static_obj_polygon = 0
-
-
 
         observation = {
             "agent_id": agent_id,
@@ -303,9 +289,6 @@ class Uam_Uav_Env(gym.Env):
 
         return observation
 
-    
-    
-    
     def _get_info(
         self,
     ):
@@ -316,52 +299,42 @@ class Uam_Uav_Env(gym.Env):
             )
         }
 
-    
-    
-    
-    #!rename method for clarity -> this method is for uav_basic in environment 
+    #!rename method for clarity -> this method is for uav_basic in environment
     def set_uav_basic_intruder_list(self):
-        '''Each UAV needs access to UAV list in the environment 
+        """Each UAV needs access to UAV list in the environment
         to perform dynamic detection and collision operation, this method
-        assigns the uav_list to all uavs'''
+        assigns the uav_list to all uavs"""
 
         for uav in self.uav_basic_list:
             uav.get_intruder_uav_list(self.uav_basic_list)
 
-    
-    
-    #!rename method for clarity -> this method is for uav_basic in environment 
+    #!rename method for clarity -> this method is for uav_basic in environment
     def set_uav_basic_building_gdf(self):
-        '''Each UAV needs to have information about restriced airspace,
-          to perform static detection and collision operation. This setter method
-            assigns environment information to all uavs'''
-        
+        """Each UAV needs to have information about restriced airspace,
+        to perform static detection and collision operation. This setter method
+          assigns environment information to all uavs"""
+
         for uav in self.uav_basic_list:
             uav.get_airspace_building_list(self.airspace.location_utm_hospital_buffer)
 
-    
-    
-    #! WHAT IS THIS 
+    #! WHAT IS THIS
     # def set_auto_uav_building_gdf(self):
     #     #! might need to set building property for auto_uav
     #     # self.auto_uav.get_airspace_building_list(self.airspace.location_utm_hospital_buffer)
     #     self.auto_uav.get
 
-    
-    
-    
     def step(self, action):
         """
         This method is used to step the environment, it will step the environment by one timestep.
 
         The action argument - will be passed to auto_uav's step method
 
-        Regular UAVs will step without action. so I will need to modify regular uav_basic in such a way that they will step without action.
-        This tells me that regular uav_basic will need to have collision avoidance built into the uav_basic module, such that they can step without action.
+        basic UAVs will step without action. so I will need to modify basic uav_basic in such a way that they will step without action.
+        This tells me that basic uav_basic will need to have collision avoidance built into the uav_basic module, such that they can step without action.
 
         """
         # decomposing action tuple
-        #TODO #11 - should acceleration and heading_correction be transformed from normalized value to absolute value
+        # TODO #11 - should acceleration and heading_correction be transformed from normalized value to absolute value
         acceleration = action[0]
         heading_correction = action[1]
 
@@ -375,18 +348,16 @@ class Uam_Uav_Env(gym.Env):
             uav_basic.step()
 
         # Auto_uav step
-        self.auto_uav.step(
-            acceleration, heading_correction
-        ) 
+        self.auto_uav.step(acceleration, heading_correction)
 
         #! WE DO NOT NEED TO PERFORM HAS_LEFT_START_VERTIPORT and HAS_REACHED_END_VERTIPORT
         #! because once the auto uav reaches its end_vertiport the training stops and we reset the environment
-        #TODO #12 - check if environment should be reset after completing only one journey
+        # TODO #12 - check if environment should be reset after completing only one journey
         obs = self._get_obs()
         reward = self.get_reward(obs)
         info = self._get_info()
 
-        #TODO - develop methods for termination and truncation 
+        # TODO - develop methods for termination and truncation
         # Logic for termination and truncation
         auto_uav_current_position = self.auto_uav.current_position
         auto_uav_end_position = self.auto_uav.end_point
@@ -394,30 +365,29 @@ class Uam_Uav_Env(gym.Env):
         distance_to_end_point = auto_uav_current_position.distance(
             auto_uav_end_position
         )
-        
-        
-        '''if distance to endpoint is less than landing proximity of auto_uav
-                we have reached our end vertiport, thus we can terminate our episode'''
-        if (
-            distance_to_end_point < self.auto_uav.landing_proximity
-        ): 
-            reached_end_vertiport = True 
+
+        """if distance to endpoint is less than landing proximity of auto_uav
+                we have reached our end vertiport, thus we can terminate our episode"""
+        if distance_to_end_point < self.auto_uav.landing_proximity:
+            reached_end_vertiport = True
         else:
             reached_end_vertiport = False
 
-        
         if reached_end_vertiport:
             terminated = True
         else:
             terminated = False
 
         # check collision with static object
-        collision_static_obj, _ =  self.auto_uav.get_state_static_obj(
-            self.airspace.location_utm_hospital.geometry, "collision" #self.collision_with_static_obj()
+        collision_static_obj, _ = self.auto_uav.get_state_static_obj(
+            self.airspace.location_utm_hospital.geometry,
+            "collision",  # self.collision_with_static_obj()
         )
-        
+
         # check collision with dynamic object
-        collision_dynamic_obj = self.auto_uav.has_uav_collision(self.uav_basic_list) #self.collision_with_dynamic_obj()
+        collision_dynamic_obj = self.auto_uav.has_uav_collision(
+            self.uav_basic_list
+        )  # self.collision_with_dynamic_obj()
 
         collision_detected = collision_static_obj or collision_dynamic_obj
 
@@ -425,18 +395,14 @@ class Uam_Uav_Env(gym.Env):
             truncated = True
         else:
             truncated = False
-        
+
         self.current_time_step += 1
 
         return obs, reward, terminated, truncated, info
 
-    
-    
-    
-    
     def get_reward(self, obs) -> float:
 
-        punishment_existing = -0.1  
+        punishment_existing = -0.1
         if obs["intruder_detected"] == 0:
             punishment_closeness: float = 0.0
         else:
@@ -451,9 +417,7 @@ class Uam_Uav_Env(gym.Env):
             np.cos(obs["agent_deviation"])
         )
 
-        punishment_deviation = float(
-            -2 * (obs["agent_deviation"] / np.pi) ** 2 
-        )  
+        punishment_deviation = float(-2 * (obs["agent_deviation"] / np.pi) ** 2)
 
         reward_sum = (
             punishment_existing
@@ -461,39 +425,24 @@ class Uam_Uav_Env(gym.Env):
             + punishment_deviation
             + reward_to_destination
         )
-        
-        reward_sum *= (
-            self.current_time_step
-        )  
 
+        reward_sum *= self.current_time_step
 
         return reward_sum
 
-    
-    
-    
-    
     def render_init(
         self,
     ):
         fig, ax = plt.subplots()
         return fig, ax
 
-    
-    
-    
-    
-    def render_static_assest(self, ax): #! spelling error - fix everywhere this is used 
+    def render_static_assest(self, ax):  #! spelling error - fix everywhere this is used
         self.airspace.location_utm_gdf.plot(ax=ax, color="gray", linewidth=0.6)
         self.airspace.location_utm_hospital_buffer.plot(ax=ax, color="red", alpha=0.3)
         self.airspace.location_utm_hospital.plot(ax=ax, color="black")
         # adding vertiports to static plot
         gpd.GeoSeries(self.sim_vertiports_point_array).plot(ax=ax, color="black")
 
-    
-    
-    
-    
     def render(self, fig, ax):
         plt.cla()
         self.render_static_assest(ax)
@@ -535,11 +484,6 @@ class Uam_Uav_Env(gym.Env):
         fig.canvas.flush_events()
         time.sleep(self.sleep_time)
 
-    
-    
-    
-    
-
     def get_start_vertiport_auto_uav(
         self,
     ):
@@ -548,19 +492,12 @@ class Uam_Uav_Env(gym.Env):
                 start_vertiport_auto_uav = vertiport
         return start_vertiport_auto_uav
 
-    
-    
-    
-    
     def get_end_vertiport_auto_uav(self, start_vertiport: Vertiport):
         some_vertiport = self.atc.provide_vertiport()
         while some_vertiport.location == start_vertiport.location:
             some_vertiport = self.atc.provide_vertiport()
         return some_vertiport
 
-    
-    
-    
     #! there are UAV methods that accomplish this task - remove this method and use UAV native methods
     def collision_with_static_obj(
         self,
@@ -570,20 +507,14 @@ class Uam_Uav_Env(gym.Env):
         )
         return collision_with_static_obj
 
-   
-   
-   
-   #! there are UAV methods that accomplish this task - remove this method and use UAV native methods
+    #! there are UAV methods that accomplish this task - remove this method and use UAV native methods
     def collision_with_dynamic_obj(
         self,
     ) -> bool:
         collision = self.auto_uav.has_uav_collision(self.uav_basic_list)
         return collision
 
-    
-    
-    
-   #! there are UAV methods that accomplish this task - remove this method and use UAV native methods 
+    #! there are UAV methods that accomplish this task - remove this method and use UAV native methods
     def nmac_with_dynamic_obj(
         self,
     ):
@@ -597,10 +528,6 @@ class Uam_Uav_Env(gym.Env):
         # self.atc.has_left_start_vertiport(uav_basic) -> will need these two depending on how an experiment ends
         # self.atc.has_reached_end_vertiport(uav_basic)
 
-    
-    
-    
-    
     def _render_frame(
         self,
     ):

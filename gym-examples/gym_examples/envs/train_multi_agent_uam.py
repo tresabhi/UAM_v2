@@ -1,4 +1,4 @@
-from multi_uav_uam import UamUavEnvPZ
+from multi_uam_uav import UamUavEnvPZ
 import matplotlib.pyplot as plt
 
 parallel_env = UamUavEnvPZ("Austin, Texas, USA", 8, 5, sleep_time=0.01)

@@ -1,4 +1,4 @@
-from multi_uav_uam import UamUavEnvPZ
+from multi_uam_uav import UamUavEnvPZ
 
 from pettingzoo.test import parallel_api_test
 

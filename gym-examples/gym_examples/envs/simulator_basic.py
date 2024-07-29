@@ -22,6 +22,8 @@ class SimulatorBasic:
             location_name (str): The name of the location for the simulation.
             num_vertiports (int): The number of vertiports to create in the simulation.
             num_basic_uavs (int): The number of basic UAVs to create in the simulation.
+            sleep_time (float): The sleep time between each step.
+            total_timestep (int): The total number of time steps.
         """
         # sim airspace and ATC
         self.current_time_step = 0

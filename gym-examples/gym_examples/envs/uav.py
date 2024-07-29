@@ -4,7 +4,7 @@ import numpy as np
 from shapely.geometry import Point
 from geopandas import GeoSeries
 from vertiport import Vertiport
-from das import Collision_controller
+from das import CollisionController
 #TODO - abstract controller, basic collision controller 
 #from collision_avoidance_controller_basic import uav_collision_detection, uav_nmac_detection, static_collision_detection, static_nmac_detection
 

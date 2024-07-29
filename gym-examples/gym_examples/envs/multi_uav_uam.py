@@ -1,4 +1,3 @@
-
 import functools
 import numpy as np
 import matplotlib.pyplot as plt
@@ -12,18 +11,24 @@ from pettingzoo import ParallelEnv
 
 from airspace import Airspace
 from airtrafficcontroller import ATC
-from autonomous_uav import Autonomous_UAV
+from autonomous_uav import AutonomousUAV
 from vertiport import Vertiport
 
 
-
-class Uam_Uav_Env_PZ(ParallelEnv):
+class UamUavEnvPZ(ParallelEnv):
     metadata = {
         "name": "multi_uav_uam_v0",
     }
 
-    def __init__(self, location_name, num_vertiports, num_auto_uav, sleep_time = 0.05,render_mode=None):
-        #Environment attributes 
+    def __init__(
+        self,
+        location_name,
+        num_vertiports,
+        num_auto_uav,
+        sleep_time=0.05,
+        render_mode=None,
+    ):
+        # Environment attributes
         self.current_time_step = 0
         self.num_vertiports = num_vertiports
         self.num_auto_uav = num_auto_uav
@@ -31,39 +36,40 @@ class Uam_Uav_Env_PZ(ParallelEnv):
         self.airspace = Airspace(location_name)
         self.atc = ATC(airspace=self.airspace)
 
-        #AUTO UAV detail
-        #TODO #17 
-        self.auto_uav_max_speed = 43 #self.auto_uavs_list[0].max_speed
-        self.auto_uav_detection_radius = 550 #self.auto_uavs_list[0].detection_radius
-        
+        # AUTO UAV detail
+        # TODO #17
+        self.auto_uav_max_speed = 43  # self.auto_uavs_list[0].max_speed
+        self.auto_uav_detection_radius = 550  # self.auto_uavs_list[0].detection_radius
 
-        #Vertiport Initialization 
+        # Vertiport Initialization
         self.atc.create_n_random_vertiports(self.num_vertiports)
 
-        #Auto UAV initialization 
+        # Auto UAV initialization
         self.atc.create_n_auto_uavs(self.num_auto_uav)
- 
+
         # Environment data
         vertiports_point_array = [
             vertiport.location for vertiport in self.atc.vertiports_in_airspace
         ]
         self.sim_vertiports_point_array = vertiports_point_array
-        
-        #make a list of AutoUAV
+
+        # make a list of AutoUAV
         self.auto_uavs_list = self.atc.auto_uavs_list
 
+        # make an attribute -> self.auto_uavs_dict = {auto_uav.id:auto_uav for auto_uav in list_AUTO_UAV}
+        self.auto_uavs_dict = {
+            auto_uav.id: auto_uav for auto_uav in self.auto_uavs_list
+        }
 
-        #make an attribute -> self.auto_uavs_dict = {auto_uav.id:auto_uav for auto_uav in list_AUTO_UAV}
-        self.auto_uavs_dict = {auto_uav.id:auto_uav for auto_uav in self.auto_uavs_list}
-        
-        #Petting Zoo API attributes 
-        self.possible_agents = list(self.auto_uavs_dict.keys()) #.keys() because auto_uavs_dict will need to be a dictionary 
-        self.agents = self.possible_agents #agents is a list of keys of each auto_uav id
-        #self.num_agents = num_auto_uav
-        #self.max_num_agents = max_agents
-
-
-
+        # Petting Zoo API attributes
+        self.possible_agents = list(
+            self.auto_uavs_dict.keys()
+        )  # .keys() because auto_uavs_dict will need to be a dictionary
+        self.agents = (
+            self.possible_agents
+        )  # agents is a list of keys of each auto_uav id
+        # self.num_agents = num_auto_uav
+        # self.max_num_agents = max_agents
 
     def has_terminated(self, agent_id):
         agent = self.auto_uavs_dict[agent_id]
@@ -75,10 +81,12 @@ class Uam_Uav_Env_PZ(ParallelEnv):
             terminated = False
 
         return terminated
-    
+
     def has_truncated(self, agent_id):
         agent = self.auto_uavs_dict[agent_id]
-        collision_with_stat_obj, _ = agent.get_state_static_obj(self.airspace.location_utm_hospital.geometry, "collision")
+        collision_with_stat_obj, _ = agent.get_state_static_obj(
+            self.airspace.location_utm_hospital.geometry, "collision"
+        )
         other_agent_list = agent.get_other_uav_list(self.auto_uavs_list)
         collision_with_dyn_obj = agent.has_uav_collision(other_agent_list)
 
@@ -87,12 +95,12 @@ class Uam_Uav_Env_PZ(ParallelEnv):
             truncated = True
         else:
             truncated = False
-        
+
         return truncated
 
     def get_reward(self, obs) -> float:
 
-        punishment_existing = -0.1  
+        punishment_existing = -0.1
         if obs["intruder_detected"] == 0:
             punishment_closeness: float = 0.0
         else:
@@ -107,9 +115,7 @@ class Uam_Uav_Env_PZ(ParallelEnv):
             np.cos(obs["agent_deviation"])
         )
 
-        punishment_deviation = float(
-            -2 * (obs["agent_deviation"] / np.pi) ** 2 
-        )  
+        punishment_deviation = float(-2 * (obs["agent_deviation"] / np.pi) ** 2)
 
         reward_sum = (
             punishment_existing
@@ -117,24 +123,18 @@ class Uam_Uav_Env_PZ(ParallelEnv):
             + punishment_deviation
             + reward_to_destination
         )
-        
-        reward_sum *= (
-            self.current_time_step
-        )  
 
+        reward_sum *= self.current_time_step
 
         return reward_sum
 
-
     def get_vertiport_from_atc(self):
         """This is a convinience method, for reset()"""
-        
+
         vertiports_point_array = [
             vertiport.location for vertiport in self.atc.vertiports_in_airspace
         ]
         self.sim_vertiports_point_array = vertiports_point_array
-
-
 
     def reset(self, seed=None, options=None):
         self.current_time_step = 0
@@ -148,60 +148,67 @@ class Uam_Uav_Env_PZ(ParallelEnv):
         self.get_vertiport_from_atc()
 
         self.auto_uavs_list = self.atc.auto_uavs_list
-        self.auto_uavs_dict = {auto_uav.id:auto_uav for auto_uav in self.auto_uavs_list}
+        self.auto_uavs_dict = {
+            auto_uav.id: auto_uav for auto_uav in self.auto_uavs_list
+        }
         self.possible_agents = list(self.auto_uavs_dict.keys())
-        
-        #agents should be a list of agent_id = auto_uav.id
+
+        # agents should be a list of agent_id = auto_uav.id
         self.agents = self.possible_agents
-        #self.num_agents = len(self.agents)
+        # self.num_agents = len(self.agents)
 
         self.rewards = {agent: 0 for agent in self.agents}
-        #self._cumulative_rewards = {agent: 0 for agent in self.agents}
+        # self._cumulative_rewards = {agent: 0 for agent in self.agents}
         self.terminations = {agent: False for agent in self.agents}
         self.truncations = {agent: False for agent in self.agents}
         self.infos = {agent: {} for agent in self.agents}
-        #self.state = {agent: NONE for agent in self.agents}
+        # self.state = {agent: NONE for agent in self.agents}
         self.observations = {agent: None for agent in self.agents}
 
         return self.observations, self.infos
 
-    def step(self, actions:Dict):
+    def step(self, actions: Dict):
 
         for agent_id in actions:
             action = actions[agent_id]
-            self.auto_uavs_dict[agent_id].step(action[0],action[1])
-            
+            self.auto_uavs_dict[agent_id].step(action[0], action[1])
+
             obs = self._get_obs(agent_id)
-            reward = self.get_reward(obs) 
-            termination = self.has_terminated(agent_id) 
+            reward = self.get_reward(obs)
+            termination = self.has_terminated(agent_id)
             truncation = self.has_truncated(agent_id)
             info = self._get_info(agent_id)
 
-            
             #       dict[key]     = value -------  value type
-            self.observations[agent_id] = obs          #
+            self.observations[agent_id] = obs  #
             self.rewards[agent_id] = reward
             self.terminations[agent_id] = termination
             self.truncations[agent_id] = truncation
             self.infos[agent_id] = info
-        
+
         # Every time step is called the current time step increments by one second
         self.current_time_step += 1
-        
-        return self.observations, self.rewards, self.terminations, self.truncations, self.infos
 
+        return (
+            self.observations,
+            self.rewards,
+            self.terminations,
+            self.truncations,
+            self.infos,
+        )
 
-    def render_init(self,):
+    def render_init(
+        self,
+    ):
         fig, ax = plt.subplots()
         return fig, ax
-    
-    def render_static_assest(self, ax): #! spelling error - fix everywhere this is used 
+
+    def render_static_assest(self, ax):  #! spelling error - fix everywhere this is used
         self.airspace.location_utm_gdf.plot(ax=ax, color="gray", linewidth=0.6)
         self.airspace.location_utm_hospital_buffer.plot(ax=ax, color="red", alpha=0.3)
         self.airspace.location_utm_hospital.plot(ax=ax, color="black")
         # adding vertiports to static plot
         gpd.GeoSeries(self.sim_vertiports_point_array).plot(ax=ax, color="black")
-
 
     def render(self, fig, ax):
         plt.cla()
@@ -231,46 +238,30 @@ class Uam_Uav_Env_PZ(ParallelEnv):
         fig.canvas.flush_events()
         time.sleep(self.sleep_time)
 
-    
-    
-    def get_agent_velocity( #TODO #8 - rename to get_agent_speed()
-        self, auto_uav
-        ):
+    def get_agent_velocity(self, auto_uav):  # TODO #8 - rename to get_agent_speed()
         return np.array([auto_uav.current_speed])
 
-    
-    
-    
-    def get_agent_deviation(
-        self, auto_uav
-        ):
+    def get_agent_deviation(self, auto_uav):
         #! should this be converted between -180 to 180
         return np.array(
-            [
-                auto_uav.current_heading_deg
-                - auto_uav.current_ref_final_heading_deg
-            ]
+            [auto_uav.current_heading_deg - auto_uav.current_ref_final_heading_deg]
         )
 
-
-
-
-
-    
     def _get_obs(self, agent_id):
         agent = self.auto_uavs_dict[agent_id]
 
-        #need a new method for this
+        # need a new method for this
         agent_velocity = self.get_agent_velocity(agent)
-        #need a new method for this
+        # need a new method for this
         agent_deviation = self.get_agent_deviation(agent)
-        
+
         other_auto_uav = agent.get_other_uav_list(self.auto_uavs_list)
-        #change this list -------------------------------->needs to be the auto_uav_list                                         
-        intruder_info = agent.get_state_dynamic_obj(other_auto_uav,'nmac') #self.nmac_with_dynamic_obj()
-        
-        
-        #TODO - need to change uav to auto_uav 
+        # change this list -------------------------------->needs to be the auto_uav_list
+        intruder_info = agent.get_state_dynamic_obj(
+            other_auto_uav, "nmac"
+        )  # self.nmac_with_dynamic_obj()
+
+        # TODO - need to change uav to auto_uav
         if intruder_info:
             intruder_detected = 1
             intruder_id = np.array([intruder_info["intruder_id"]])
@@ -288,37 +279,35 @@ class Uam_Uav_Env_PZ(ParallelEnv):
             distance_to_intruder = np.array([0])
             relative_heading_intruder = np.array([0])
             intruder_heading = np.array([0])
-  
-        
+
         #!restricted airspace
-        #!implementatation will require updating observation space in __init__ 
+        #!implementatation will require updating observation space in __init__
         restricted_airspace, _ = agent.get_state_static_obj(
-            self.atc.airspace.location_utm_hospital.geometry, "detection" # the collision string represents that we are using detection as indicator
-            )
-        #what is the output of this method 
-        #what if there are more than one restricted airspace near auto_uav
-        #how do I hypothesize the auto_uav will resolve multiple airspace 
+            self.atc.airspace.location_utm_hospital.geometry,
+            "detection",  # the collision string represents that we are using detection as indicator
+        )
+        # what is the output of this method
+        # what if there are more than one restricted airspace near auto_uav
+        # how do I hypothesize the auto_uav will resolve multiple airspace
 
         #! restricted airspace detected - should this be detection/nmac
-        # if the detection area of uav intersects with a building's detection area, 
-        # we should do the following - 
-        # 1) if intersection is detected for 'detection' argument -> 
-        #                   there should be a small penalty 
-        #                   based on distance between the uav_footprint and the actual building 
-        # 2) if there is no building detected the penalty should be zero 
-        # 3) just like intruder_detected in obs 
-        #    there will be restricted_airspace detected in obs 
-        # 4) restricted_airspace will have 0 for not detected 1 for detected, 
-        #    and if detected - distance will be added to the obs, if not detected distance is leave at 0, 
-        #    this will be handled by the reward function collect obs and based on restricted_airspace (y/n) 
+        # if the detection area of uav intersects with a building's detection area,
+        # we should do the following -
+        # 1) if intersection is detected for 'detection' argument ->
+        #                   there should be a small penalty
+        #                   based on distance between the uav_footprint and the actual building
+        # 2) if there is no building detected the penalty should be zero
+        # 3) just like intruder_detected in obs
+        #    there will be restricted_airspace detected in obs
+        # 4) restricted_airspace will have 0 for not detected 1 for detected,
+        #    and if detected - distance will be added to the obs, if not detected distance is leave at 0,
+        #    this will be handled by the reward function collect obs and based on restricted_airspace (y/n)
         #    penatly is something or 0.
         if restricted_airspace:
-            # what information am i interested in collecting 
+            # what information am i interested in collecting
             distance_to_static_obj_polygon = None
         else:
             distance_to_static_obj_polygon = 0
-
-
 
         observation = {
             "agent_id": agent_id,
@@ -333,18 +322,15 @@ class Uam_Uav_Env_PZ(ParallelEnv):
 
         return observation
 
-
-
-    def _get_info(
-        self,
-        agent_id
-    ):
+    def _get_info(self, agent_id):
 
         auto_uav = self.auto_uavs_dict[agent_id]
 
-        return {"distance_to_end_vertiport": auto_uav.current_position.distance(auto_uav.end_point) }
-
-
+        return {
+            "distance_to_end_vertiport": auto_uav.current_position.distance(
+                auto_uav.end_point
+            )
+        }
 
     @functools.lru_cache(maxsize=None)
     def observation_space(self, agent_id):
@@ -380,12 +366,7 @@ class Uam_Uav_Env_PZ(ParallelEnv):
                 ),
             }
         )
-        
-        
-    
-    
+
     @functools.lru_cache(maxsize=None)
     def action_space(self, agent_id):
-        return spaces.Box(
-            low=-1, high=1, shape=(2,), dtype=np.float64
-        )
+        return spaces.Box(low=-1, high=1, shape=(2,), dtype=np.float64)

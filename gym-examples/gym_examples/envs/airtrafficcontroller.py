@@ -48,6 +48,7 @@ class ATC:
             airspace (Airspace): The airspace object associated with the ATC.
             basic_uav_list (List[UAV]): The list of registered UAVs.
             vertiports_in_airspace (List[Vertiport]): The list of vertiports in the airspace.
+            auto_uavs_list (List[AutonomousUAV]): The list of auto uavs in the airspace
         """
         self.airspace = airspace
         self.basic_uav_list: List[UAVBasic] = []  #:List[UAV]

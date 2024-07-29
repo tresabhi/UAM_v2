@@ -59,7 +59,7 @@ class UamUavEnv(gym.Env):
         self,
         location_name,
         num_vertiport,
-        num_reg_uav,
+        num_basic_uav,
         sleep_time=0.005,  # sleep time between render frames
         render_mode=None,  #! check where this argument is used
     ):
@@ -82,7 +82,7 @@ class UamUavEnv(gym.Env):
             vertiport.location for vertiport in self.atc.vertiports_in_airspace
         ]
         self.sim_vertiports_point_array = vertiports_point_array
-        self.uav_basic_list: List[UAVBasic] = self.atc.reg_uav_list
+        self.uav_basic_list: List[UAVBasic] = self.atc.basic_uav_list
 
         # Auto UAV initialization
         start_vertiport_auto_uav = self.get_start_vertiport_auto_uav()
@@ -162,7 +162,7 @@ class UamUavEnv(gym.Env):
     def get_uav_list_from_atc(self):
         """This is a convinience method, for reset()"""
 
-        self.uav_basic_list = self.atc.reg_uav_list
+        self.uav_basic_list = self.atc.basic_uav_list
 
     def reset(self, seed=None, options=None):
         """
@@ -182,7 +182,7 @@ class UamUavEnv(gym.Env):
         self.atc.create_n_random_vertiports(
             self.num_vertiports
         )  # TODO #7 - all these six methods below needs an argument seed
-        self.atc.create_n_reg_uavs(self.num_reg_uavs)
+        self.atc.create_n_basic_uavs(self.num_basic_uavs)
         self.get_vertiport_from_atc()
         self.get_uav_list_from_atc()
 

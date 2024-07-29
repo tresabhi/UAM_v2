@@ -50,7 +50,7 @@ class ATC:
             vertiports_in_airspace (List[Vertiport]): The list of vertiports in the airspace.
         """
         self.airspace = airspace
-        self.reg_uav_list: List[UAVBasic] = []  #:List[UAV]
+        self.basic_uav_list: List[UAVBasic] = []  #:List[UAV]
         self.vertiports_in_airspace: List[Vertiport] = []  #:List[Vertiport]
         self.auto_uavs_list: List[AutonomousUAV] = []
         # self.controller = controller
@@ -85,7 +85,7 @@ class ATC:
 
     # TODO - break the task of creating UAVs and assigning start end vertiport
     # * This method needs to be run once to initialize the sim
-    def create_n_reg_uavs(
+    def create_n_basic_uavs(
         self,
         num_uavs,
     ):
@@ -118,7 +118,7 @@ class ATC:
             # remove vertiport from end list
             end_vertiport_list.pop(end_vertiport_list.index(uav_end_vertiport))
             # add uav to atc uav_list
-            self.reg_uav_list.append(uav)
+            self.basic_uav_list.append(uav)
 
     def create_n_auto_uavs(self, num_auto_uavs):
         start_vertiport_list = copy.deepcopy(self.vertiports_in_airspace)
@@ -287,7 +287,7 @@ class ATC:
         self.auto_uav = AutonomousUAV()
 
     def create_n_uavs(self, percent_auto):
-        """This method will create a mix of smart and regular uavs.
+        """This method will create a mix of smart and basic uavs.
         The mix is controlled by percentage argument."""
         pass
 

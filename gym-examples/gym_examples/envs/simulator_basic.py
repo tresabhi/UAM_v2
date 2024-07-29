@@ -13,7 +13,7 @@ from typing import List
 class SimulatorBasic:
 
     def __init__(
-        self, location_name, num_vertiports, num_reg_uavs, sleep_time, total_timestep
+        self, location_name, num_vertiports, num_basic_uavs, sleep_time, total_timestep
     ):
         """
         Initializes a Simulator object.
@@ -21,7 +21,7 @@ class SimulatorBasic:
         Args:
             location_name (str): The name of the location for the simulation.
             num_vertiports (int): The number of vertiports to create in the simulation.
-            num_reg_uavs (int): The number of regular UAVs to create in the simulation.
+            num_basic_uavs (int): The number of basic UAVs to create in the simulation.
         """
         # sim airspace and ATC
         self.current_time_step = 0
@@ -36,8 +36,8 @@ class SimulatorBasic:
         #! These two statements will most probably be in reset()
         #! Think how a seed value can be added to the system, so that the system is reproduceable - the vertiports and the uav assignment fixed to some seed value.
         self.atc.create_n_random_vertiports(num_vertiports)
-        self.atc.create_n_reg_uavs(
-            num_reg_uavs,
+        self.atc.create_n_basic_uavs(
+            num_basic_uavs,
         )
 
         # unpacking atc.vertiports in airspace
@@ -46,7 +46,7 @@ class SimulatorBasic:
         ]
         # sim data
         self.sim_vertiports_point_array = vertiports_point_array
-        self.uav_list: List[UAVBasic] = self.atc.reg_uav_list
+        self.uav_list: List[UAVBasic] = self.atc.basic_uav_list
         # *
         # sim sleep time
         self.sleep_time = sleep_time

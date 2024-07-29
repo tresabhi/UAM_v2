@@ -1,9 +1,7 @@
 import sys
 import os
 
-# Add the parent directory of 'gym_examples' to the Python path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
 
 from envs.airspace import Airspace
 

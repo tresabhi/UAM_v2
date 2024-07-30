@@ -197,7 +197,7 @@ class UAVBasic:
  
 
     def get_intruder_speed(self, other_uav: "UAVBasic") -> float:
-        rel_heading = self.calculate_intruder_heading(other_uav)
+        rel_heading = self.get_intruder_heading(other_uav)
         return self.current_speed - (np.cos(np.deg2rad(rel_heading)) * other_uav.current_speed)
     
     def get_intruder_heading(self, other_uav: "UAVBasic") -> float:

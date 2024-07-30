@@ -226,7 +226,7 @@ class UAV:
  
 
     
-    
+    # TODO: Does self.calculate_intruder_heading need to be implemented or removed?
     def get_intruder_speed(self, other_uav: "UAV") -> float:
         rel_heading = self.calculate_intruder_heading(other_uav)
         return self.current_speed - (np.cos(np.deg2rad(rel_heading)) * other_uav.current_speed)

@@ -81,6 +81,20 @@ class UAV:
     def uav_polygon_plot(self, dimension) -> GeoSeries:
         return GeoSeries(self.current_position).buffer(dimension)
     
+
+    def get_uav_current_heading_arrow(self):
+        x,y = self.current_position.x, self.current_position.y
+        r = self.detection_radius
+        dx = r*np.cos(self.current_heading_radians)
+        dy = r*np.sin(self.current_heading_radians)
+        return x,y,dx,dy
+
+    def get_uav_final_heading_arrow(self):
+        x,y = self.current_position.x, self.current_position.y
+        r = self.detection_radius
+        dx = r*np.cos(self.current_ref_final_heading_rad)
+        dy = r*np.sin(self.current_ref_final_heading_rad)
+        return x,y,dx,dy
     
     
     def refresh_uav(self, ) -> None:
@@ -226,7 +240,7 @@ class UAV:
  
 
     
-    # TODO: Does self.calculate_intruder_heading need to be implemented or removed?
+
     def get_intruder_speed(self, other_uav: "UAV") -> float:
         rel_heading = self.get_intruder_heading(other_uav)
         return self.current_speed - (np.cos(np.deg2rad(rel_heading)) * other_uav.current_speed)

@@ -237,6 +237,10 @@ class UamUavEnvPZ(ParallelEnv):
             auto_uav_detection_poly.plot(
                 ax=ax, color=auto_uav.uav_detection_radius_color, alpha=0.3
             )
+            auto_x_current, auto_y_current, auto_dx_current, auto_dy_current = auto_uav.get_uav_current_heading_arrow()
+            ax.arrow(auto_x_current, auto_y_current, auto_dx_current, auto_dy_current, alpha=1)
+            auto_x_final, auto_y_final, auto_dx_final, auto_dy_final = auto_uav.get_uav_final_heading_arrow()
+            ax.arrow(auto_x_final, auto_y_final, auto_dx_final, auto_dy_final, alpha=0.8)
 
         fig.canvas.draw()
         fig.canvas.flush_events()

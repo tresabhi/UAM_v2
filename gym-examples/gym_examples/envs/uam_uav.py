@@ -463,8 +463,13 @@ class UamUavEnv(gym.Env):
             uav_detection_poly.plot(
                 ax=ax, color=uav_obj.uav_detection_radius_color, alpha=0.3
             )
+            x_current,y_current,dx_current,dy_current = uav_obj.get_uav_current_heading_arrow()
+            ax.arrow(x_current,y_current,dx_current,dy_current,alpha=1 )
+            x_final, y_final, dx_final, dy_final = uav_obj.get_uav_final_heading_arrow()
+            ax.arrow(x_final, y_final, dx_final, dy_final, alpha=0.8)
 
-        # TODO - render AUTO_UAV here
+
+
         auto_uav_footprint_poly = self.auto_uav.uav_polygon_plot(
             self.auto_uav.collision_radius
         )
@@ -483,6 +488,10 @@ class UamUavEnv(gym.Env):
         auto_uav_detection_poly.plot(
             ax=ax, color=self.auto_uav.uav_detection_radius_color, alpha=0.3
         )
+        auto_x_current, auto_y_current, auto_dx_current, auto_dy_current = self.auto_uav.get_uav_current_heading_arrow()
+        ax.arrow(auto_x_current, auto_y_current, auto_dx_current, auto_dy_current, alpha=1)
+        auto_x_final, auto_y_final, auto_dx_final, auto_dy_final = self.auto_uav.get_uav_final_heading_arrow()
+        ax.arrow(auto_x_final, auto_y_final, auto_dx_final, auto_dy_final, alpha=0.8)
 
         fig.canvas.draw()
         fig.canvas.flush_events()

@@ -72,6 +72,21 @@ class UAVBasic:
     def uav_polygon_plot(self, dimension: float) -> GeoSeries:
         return GeoSeries(self.current_position).buffer(dimension)
     
+    def get_uav_current_heading_arrow(self):
+        x,y = self.current_position.x, self.current_position.y
+        r = self.detection_radius
+        dx = r*np.cos(self.current_heading_radians)
+        dy = r*np.sin(self.current_heading_radians)
+        return x,y,dx,dy
+
+    def get_uav_final_heading_arrow(self):
+        x,y = self.current_position.x, self.current_position.y
+        r = self.detection_radius
+        dx = r*np.cos(self.current_ref_final_heading_rad)
+        dy = r*np.sin(self.current_ref_final_heading_rad)
+        return x,y,dx,dy
+
+    
     def refresh_uav(self,) -> None:
         '''Update the start vertiport of a UAV 
         to a new start vertiport, 

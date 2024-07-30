@@ -93,6 +93,10 @@ class Simulator:
             uav_detection_poly.plot(
                 ax=ax, color=uav_obj.uav_detection_radius_color, alpha=0.3
             )
+            x_current,y_current,dx_current,dy_current = uav_obj.get_uav_current_heading_arrow()
+            ax.arrow(x_current,y_current,dx_current,dy_current,alpha=1 )
+            x_final, y_final, dx_final, dy_final = uav_obj.get_uav_final_heading_arrow()
+            ax.arrow(x_final, y_final, dx_final, dy_final, alpha=0.8)
 
         fig.canvas.draw()
         fig.canvas.flush_events()

@@ -30,6 +30,16 @@ class UamUavEnvPZ(ParallelEnv):
         sleep_time: float = 0.05,
         render_mode: str = None,
     ) -> None:
+        """
+        Initalizes multple parallel enviormnets for UamUav
+
+        Args:
+            location_name (str): Location of the simulation ie. Austin, Texas, USA
+            num_vertiports(int): Number of vertiports to generate
+            num_auto_uav (int): Number of UAVs to put in the simulation
+            sleep_time (float): time to sleep in between steps
+            render_mode (str): The render mode of the simulation
+        """
         # Environment attributes
         self.current_time_step = 0
         self.num_vertiports = num_vertiports
@@ -74,6 +84,15 @@ class UamUavEnvPZ(ParallelEnv):
         # self.max_num_agents = max_agents
 
     def has_terminated(self, agent_id: str) -> bool:
+        """
+        Checks to see if the agent has reached the target vertiport
+
+        Args:
+            agent_id (str): The ID of the target UAV
+
+        Returns:
+            terminated (bool): True or false. Has the UAV reached the targeted vertiport
+        """
         agent = self.auto_uavs_dict[agent_id]
         dist_to_end_point = agent.current_position.distance(agent.end_point)
 
@@ -85,6 +104,15 @@ class UamUavEnvPZ(ParallelEnv):
         return terminated
 
     def has_truncated(self, agent_id: str) -> bool:
+        """
+        Checks for collision between UAV and static or dynamic object
+
+        Args:
+            agent_id (str): The ID of the target UAV
+
+        Returns:
+            truncated (bool): returns true for collision
+        """
         agent = self.auto_uavs_dict[agent_id]
         collision_with_stat_obj, _ = agent.get_state_static_obj(
             self.airspace.location_utm_hospital.geometry, "collision"
@@ -101,7 +129,15 @@ class UamUavEnvPZ(ParallelEnv):
         return truncated
 
     def get_reward(self, obs: dict) -> float:
+        """
+        Returns the reward the agent earns at each step
 
+        Args:
+            obs (dict):
+
+        Returns:
+            reward_sum (float):
+        """
         punishment_existing = -0.1
         if obs["intruder_detected"] == 0:
             punishment_closeness: float = 0.0
@@ -170,7 +206,19 @@ class UamUavEnvPZ(ParallelEnv):
         return self.observations, self.infos
 
     def step(self, actions: dict) -> tuple[dict, dict, dict, dict, dict]:
+        """
+        Step function advances the entire simulation
 
+        Args:
+            Actions (dict): The action the UAV takes
+
+        Return:
+            observations (dict): Feeds the state space of the agent
+            rewards (int): The reward earned durring the step
+            terminations (bool): Checks if the agent has reached its destination
+            truncations (bool): Checks for collisions with static and dynamic objects
+            infos (dict): not sure
+        """
         for agent_id in actions:
             action = actions[agent_id]
             self.auto_uavs_dict[agent_id].step(action[0], action[1])
@@ -237,10 +285,22 @@ class UamUavEnvPZ(ParallelEnv):
             auto_uav_detection_poly.plot(
                 ax=ax, color=auto_uav.uav_detection_radius_color, alpha=0.3
             )
-            auto_x_current, auto_y_current, auto_dx_current, auto_dy_current = auto_uav.get_uav_current_heading_arrow()
-            ax.arrow(auto_x_current, auto_y_current, auto_dx_current, auto_dy_current, alpha=1)
-            auto_x_final, auto_y_final, auto_dx_final, auto_dy_final = auto_uav.get_uav_final_heading_arrow()
-            ax.arrow(auto_x_final, auto_y_final, auto_dx_final, auto_dy_final, alpha=0.8)
+            auto_x_current, auto_y_current, auto_dx_current, auto_dy_current = (
+                auto_uav.get_uav_current_heading_arrow()
+            )
+            ax.arrow(
+                auto_x_current,
+                auto_y_current,
+                auto_dx_current,
+                auto_dy_current,
+                alpha=1,
+            )
+            auto_x_final, auto_y_final, auto_dx_final, auto_dy_final = (
+                auto_uav.get_uav_final_heading_arrow()
+            )
+            ax.arrow(
+                auto_x_final, auto_y_final, auto_dx_final, auto_dy_final, alpha=0.8
+            )
 
         fig.canvas.draw()
         fig.canvas.flush_events()

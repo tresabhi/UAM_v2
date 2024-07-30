@@ -283,8 +283,7 @@ class UAV:
     
     
     
-    #TODO #14 - rename to get_collision()
-    def has_uav_collision(self, uav_list: list["UAV"]) -> bool:
+    def get_collision(self, uav_list: list["UAV"]) -> bool:
         '''Return True if collision has been detected.'''
 
         intruder_uav_list = self.get_intruder_uav_list(uav_list,'collision')

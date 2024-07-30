@@ -90,7 +90,7 @@ class UamUavEnvPZ(ParallelEnv):
             self.airspace.location_utm_hospital.geometry, "collision"
         )
         other_agent_list = agent.get_other_uav_list(self.auto_uavs_list)
-        collision_with_dyn_obj = agent.has_uav_collision(other_agent_list)
+        collision_with_dyn_obj = agent.get_collision(other_agent_list)
 
         collision_detected = collision_with_dyn_obj or collision_with_stat_obj
         if collision_detected:

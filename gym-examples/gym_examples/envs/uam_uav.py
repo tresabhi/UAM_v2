@@ -387,7 +387,7 @@ class UamUavEnv(gym.Env):
         )
 
         # check collision with dynamic object
-        collision_dynamic_obj = self.auto_uav.has_uav_collision(
+        collision_dynamic_obj = self.auto_uav.get_collision(
             self.uav_basic_list
         )  # self.collision_with_dynamic_obj()
 
@@ -515,7 +515,7 @@ class UamUavEnv(gym.Env):
     def collision_with_dynamic_obj(
         self,
     ) -> bool:
-        collision = self.auto_uav.has_uav_collision(self.uav_basic_list)
+        collision = self.auto_uav.get_collision(self.uav_basic_list)
         return collision
 
     #! there are UAV methods that accomplish this task - remove this method and use UAV native methods

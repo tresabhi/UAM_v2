@@ -63,12 +63,14 @@ class SimulatorBasic:
         self.total_timestep = total_timestep
 
     def get_vertiport_from_atc(self) -> None:
+        """Get the vertaport location"""
         vertiports_point_array = [
             vertiport.location for vertiport in self.atc.vertiports_in_airspace
         ]
         self.sim_vertiports_point_array = vertiports_point_array
 
     def get_uav_list_from_atc(self) -> None:
+        """Get a list of UAVs"""
         self.uav_list = self.atc.basic_uav_list
 
     def render_init(
@@ -78,6 +80,7 @@ class SimulatorBasic:
         return fig, ax
 
     def render_static_assets(self, ax: Axes) -> None:
+        """Adds hospitals(black), hospital buffers(green), underlying map of city(gray), and vertaports(black) to the map"""
         self.airspace.location_utm_gdf.plot(ax=ax, color="gray", linewidth=0.6)
         self.airspace.location_utm_hospital_buffer.plot(ax=ax, color="green", alpha=0.3)
         self.airspace.location_utm_hospital.plot(ax=ax, color="black")
@@ -89,6 +92,12 @@ class SimulatorBasic:
         fig: Figure,
         ax: Axes,
     ) -> None:
+        """
+        Renders the objects in the simulation
+        Args:
+            fig (matplotlib.figure.Figure): Figure
+            ax ( matplotlib.axes._axes.Axes): Axes or an array of axes
+        """
 
         plt.cla()
         self.render_static_assets(ax)
@@ -111,6 +120,7 @@ class SimulatorBasic:
         time.sleep(self.sleep_time)
 
     def _get_obs(self, uav_obj: UAVBasic) -> dict:
+        """Checks the location of UAVs and Hospital buffer zones"""
         state_info = uav_obj.get_state(
             self.uav_list, self.airspace.location_utm_hospital_buffer
         )
@@ -118,6 +128,7 @@ class SimulatorBasic:
         return state_info
 
     def get_uav(self, uav_id: str) -> UAV:
+        """Returns UAV information of a specific uavID"""
         for uav in self.uav_list:
             if uav.id == int(uav_id):
                 return uav
@@ -136,6 +147,7 @@ class SimulatorBasic:
     def sim_step(
         self,
     ) -> None:
+        """Step function for UAV"""
         for uav in self.uav_list:
             self.atc.has_left_start_vertiport(uav)
             self.atc.has_reached_end_vertiport(uav)

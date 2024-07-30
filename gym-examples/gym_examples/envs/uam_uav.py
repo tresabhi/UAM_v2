@@ -104,7 +104,7 @@ class UamUavEnv(gym.Env):
                     dtype=np.int64,  #! find if it is possible to create ids that take less space
                 ),
                 # agent speed
-                "agent_velocity": spaces.Box(  #!need to rename velocity -> speed
+                "agent_speed": spaces.Box(  #!need to rename velocity -> speed
                     low=-self.auto_uav.max_speed,  # agent's speed #! need to check why this is negative
                     high=self.auto_uav.max_speed,
                     shape=(1,),
@@ -206,7 +206,7 @@ class UamUavEnv(gym.Env):
 
         return observation, info
 
-    def get_agent_velocity(  # TODO #8 - rename to get_agent_speed()
+    def get_agent_speed(
         self,
     ) -> np.ndarray:
         return np.array([self.auto_uav.current_speed])
@@ -224,7 +224,7 @@ class UamUavEnv(gym.Env):
 
     def _get_obs(self) -> dict:
         agent_id = np.array([self.auto_uav.id])
-        agent_velocity = self.get_agent_velocity()
+        agent_speed = self.get_agent_speed()
         agent_deviation = self.get_agent_deviation()
         intruder_info = self.auto_uav.get_state_dynamic_obj(
             self.uav_basic_list, "nmac"
@@ -280,7 +280,7 @@ class UamUavEnv(gym.Env):
 
         observation = {
             "agent_id": agent_id,
-            "agent_velocity": agent_velocity,
+            "agent_speed": agent_speed,
             "agent_deviation": agent_deviation,
             "intruder_detected": intruder_detected,
             "intruder_id": intruder_id,
@@ -415,7 +415,7 @@ class UamUavEnv(gym.Env):
                 (normed_nmac_distance - obs["distance_to_intruder"]) * 10
             )
 
-        reward_to_destination = float(obs["agent_velocity"]) * float(
+        reward_to_destination = float(obs["agent_speed"]) * float(
             np.cos(obs["agent_deviation"])
         )
 

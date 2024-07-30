@@ -37,6 +37,8 @@ Side Note:
 
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
+from matplotlib.axes._axes import Axes
 from typing import List
 import time
 from geopandas import GeoSeries
@@ -57,12 +59,12 @@ class UamUavEnv(gym.Env):
 
     def __init__(
         self,
-        location_name,
-        num_vertiport,
-        num_basic_uav,
-        sleep_time=0.005,  # sleep time between render frames
-        render_mode=None,  #! check where this argument is used
-    ):
+        location_name: str,
+        num_vertiport: int,
+        num_basic_uav: int,
+        sleep_time: float = 0.005,  # sleep time between render frames
+        render_mode: str = None,  #! check where this argument is used
+    ) -> None:
         # Environment attributes
         self.current_time_step = 0  #! not being used during step
         self.num_vertiports = num_vertiport
@@ -151,7 +153,7 @@ class UamUavEnv(gym.Env):
             dtype=np.float64,  #! should action choosen form action space be converted back when applied in step()
         )
 
-    def get_vertiport_from_atc(self):
+    def get_vertiport_from_atc(self) -> None:
         """This is a convinience method, for reset()"""
 
         vertiports_point_array = [
@@ -159,12 +161,12 @@ class UamUavEnv(gym.Env):
         ]
         self.sim_vertiports_point_array = vertiports_point_array
 
-    def get_uav_list_from_atc(self):
+    def get_uav_list_from_atc(self) -> None:
         """This is a convinience method, for reset()"""
 
         self.uav_basic_list = self.atc.basic_uav_list
 
-    def reset(self, seed=None, options=None):
+    def reset(self, seed: int = None, options: dict = None) -> tuple[dict, dict]:
         """
         This method resets the environment.
         """
@@ -206,12 +208,12 @@ class UamUavEnv(gym.Env):
 
     def get_agent_velocity(  # TODO #8 - rename to get_agent_speed()
         self,
-    ):
+    ) -> np.ndarray:
         return np.array([self.auto_uav.current_speed])
 
     def get_agent_deviation(
         self,
-    ):
+    ) -> np.ndarray:
         #! should this be converted between -180 to 180
         return np.array(
             [
@@ -220,7 +222,7 @@ class UamUavEnv(gym.Env):
             ]
         )
 
-    def _get_obs(self):
+    def _get_obs(self) -> dict:
         agent_id = np.array([self.auto_uav.id])
         agent_velocity = self.get_agent_velocity()
         agent_deviation = self.get_agent_deviation()
@@ -291,7 +293,7 @@ class UamUavEnv(gym.Env):
 
     def _get_info(
         self,
-    ):
+    ) -> dict:
 
         return {
             "distance_to_end_vertiport": self.auto_uav.current_position.distance(
@@ -300,7 +302,7 @@ class UamUavEnv(gym.Env):
         }
 
     #!rename method for clarity -> this method is for uav_basic in environment
-    def set_uav_basic_intruder_list(self):
+    def set_uav_basic_intruder_list(self) -> list[UAVBasic]:
         """Each UAV needs access to UAV list in the environment
         to perform dynamic detection and collision operation, this method
         assigns the uav_list to all uavs"""
@@ -309,7 +311,7 @@ class UamUavEnv(gym.Env):
             uav.get_intruder_uav_list(self.uav_basic_list)
 
     #!rename method for clarity -> this method is for uav_basic in environment
-    def set_uav_basic_building_gdf(self):
+    def set_uav_basic_building_gdf(self) -> None:
         """Each UAV needs to have information about restriced airspace,
         to perform static detection and collision operation. This setter method
           assigns environment information to all uavs"""
@@ -323,7 +325,7 @@ class UamUavEnv(gym.Env):
     #     # self.auto_uav.get_airspace_building_list(self.airspace.location_utm_hospital_buffer)
     #     self.auto_uav.get
 
-    def step(self, action):
+    def step(self, action: tuple) -> tuple[dict, dict, bool, bool, dict]:
         """
         This method is used to step the environment, it will step the environment by one timestep.
 
@@ -400,7 +402,7 @@ class UamUavEnv(gym.Env):
 
         return obs, reward, terminated, truncated, info
 
-    def get_reward(self, obs) -> float:
+    def get_reward(self, obs: dict) -> float:
 
         punishment_existing = -0.1
         if obs["intruder_detected"] == 0:
@@ -432,20 +434,22 @@ class UamUavEnv(gym.Env):
 
     def render_init(
         self,
-    ):
+    ) -> tuple[Figure, Axes]:
         fig, ax = plt.subplots()
         return fig, ax
 
-    def render_static_assest(self, ax):  #! spelling error - fix everywhere this is used
+    def render_static_assets(
+        self, ax: Axes
+    ) -> None:  #! spelling error - fix everywhere this is used
         self.airspace.location_utm_gdf.plot(ax=ax, color="gray", linewidth=0.6)
         self.airspace.location_utm_hospital_buffer.plot(ax=ax, color="red", alpha=0.3)
         self.airspace.location_utm_hospital.plot(ax=ax, color="black")
         # adding vertiports to static plot
         gpd.GeoSeries(self.sim_vertiports_point_array).plot(ax=ax, color="black")
 
-    def render(self, fig, ax):
+    def render(self, fig: Figure, ax: Axes) -> None:
         plt.cla()
-        self.render_static_assest(ax)
+        self.render_static_assets(ax)
 
         # uav_basic PLOT LOGIC
         for uav_obj in self.uav_basic_list:
@@ -486,13 +490,13 @@ class UamUavEnv(gym.Env):
 
     def get_start_vertiport_auto_uav(
         self,
-    ):
+    ) -> Vertiport:
         for vertiport in self.atc.vertiports_in_airspace:
             if len(vertiport.uav_list) == 0:
                 start_vertiport_auto_uav = vertiport
         return start_vertiport_auto_uav
 
-    def get_end_vertiport_auto_uav(self, start_vertiport: Vertiport):
+    def get_end_vertiport_auto_uav(self, start_vertiport: Vertiport) -> Vertiport:
         some_vertiport = self.atc.provide_vertiport()
         while some_vertiport.location == start_vertiport.location:
             some_vertiport = self.atc.provide_vertiport()
@@ -517,7 +521,7 @@ class UamUavEnv(gym.Env):
     #! there are UAV methods that accomplish this task - remove this method and use UAV native methods
     def nmac_with_dynamic_obj(
         self,
-    ):
+    ) -> dict:
         nmac_info_dict = self.auto_uav.get_state_dynamic_obj(
             self.uav_basic_list, "nmac"
         )

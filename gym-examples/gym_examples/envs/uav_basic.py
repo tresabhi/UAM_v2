@@ -13,10 +13,10 @@ class UAVBasic:
      '''
     
     def __init__(self,
-                 start_vertiport ,  
-                 end_vertiport,
-                 landing_proximity = 250., 
-                 max_speed = 43,
+                 start_vertiport: Vertiport,  
+                 end_vertiport: Vertiport,
+                 landing_proximity: float = 250., 
+                 max_speed: float = 43,
                  ):
         
         
@@ -62,17 +62,17 @@ class UAVBasic:
         self.current_ref_final_heading_deg = np.rad2deg(self.current_ref_final_heading_rad)
 
 
-    def angle_correction(self, deg:float)->float:
+    def angle_correction(self, deg: float) -> float:
         normalized_deg = (deg + 180) % 360 - 180
         return normalized_deg
 
-    def uav_polygon(self, dimension):
+    def uav_polygon(self, dimension: float) -> GeoSeries:
         return GeoSeries(self.current_position).buffer(dimension).iloc[0]
     
-    def uav_polygon_plot(self, dimension):
+    def uav_polygon_plot(self, dimension: float) -> GeoSeries:
         return GeoSeries(self.current_position).buffer(dimension)
     
-    def refresh_uav(self, ):
+    def refresh_uav(self,) -> None:
         '''Update the start vertiport of a UAV 
         to a new start vertiport, 
         argument of this method '''
@@ -80,14 +80,14 @@ class UAVBasic:
         self.reaching_end_vertiport = False 
 
 
-    def update_end_point(self,):
+    def update_end_point(self,) -> None:
         '''Updates the UAV end point using its own end_vertiport location'''
         self.end_point = self.end_vertiport.location
 
-    def update_start_point(self,):
+    def update_start_point(self,) -> None:
         self.start_point = self.start_vertiport.location
 
-    def acceleration_controller(self,):
+    def acceleration_controller(self,) -> float:
 
         if self.current_speed == 0:
             acc = self.max_acceleration
@@ -101,7 +101,7 @@ class UAVBasic:
         return acc 
 
     
-    def _update_speed(self, d_t, acceleration_from_controller):
+    def _update_speed(self, d_t: float, acceleration_from_controller: float) -> None:
         '''
         Arg: acceleration_from_controller is an input from controller/das_system
         '''
@@ -119,7 +119,7 @@ class UAVBasic:
         self.current_speed = self.current_speed + (final_acc * d_t)
 
 
-    def _update_position(self,d_t:float,):
+    def _update_position(self,d_t:float,) -> None:
         '''Internal method. Updates current_position of the UAV after d_t seconds.
            This uses a first order Euler's method to update the position.
            '''
@@ -128,14 +128,14 @@ class UAVBasic:
         self.current_position = Point(update_x,update_y)
     
 
-    def _update_ref_final_heading(self, ): 
+    def _update_ref_final_heading(self, ) -> None: 
         '''Internal method. Updates the heading of the aircraft, pointed towards end_point'''
         self.current_ref_final_heading_rad = np.arctan2(self.end_point.y - self.current_position.y, 
                                                         self.end_point.x - self.current_position.x)
         self.current_ref_final_heading_deg = np.rad2deg(self.current_ref_final_heading_rad)
         
     #TODO - update_theta needs to be reworked NOW  
-    def _update_theta_d(self, heading_correction_das_controller = 0): 
+    def _update_theta_d(self, heading_correction_das_controller: float = 0) -> None: 
         #TODO - update method to include theta_dd and d_t
         '''Internal method. Updates heading of the aircraft, pointed towards ref_final_heading_deg''' 
         if heading_correction_das_controller == 0:
@@ -192,25 +192,25 @@ class UAVBasic:
 
                      
 
-    def get_intruder_distance(self, other_uav):
+    def get_intruder_distance(self, other_uav: "UAVBasic") -> float:
         return self.current_position.distance(other_uav.current_position)
  
 
-    def get_intruder_speed(self,other_uav):
+    def get_intruder_speed(self, other_uav: "UAVBasic") -> float:
         rel_heading = self.calculate_intruder_heading(other_uav)
         return self.current_speed - (np.cos(np.deg2rad(rel_heading)) * other_uav.current_speed)
     
-    def get_intruder_heading(self,other_uav):
+    def get_intruder_heading(self, other_uav: "UAVBasic") -> float:
         return self.current_heading_deg - other_uav.current_heading_deg
     
-    def get_other_uav_list(self, uav_list):
+    def get_other_uav_list(self, uav_list: list["UAVBasic"]) -> list["UAVBasic"]:
         other_uav_list = []
         for uav in uav_list:
             if uav.id != self.id:
                 other_uav_list.append(uav)
         return other_uav_list
 
-    def get_intruder_uav_list(self,uav_list, radius_str = 'detection'):
+    def get_intruder_uav_list(self,uav_list: list["UAVBasic"], radius_str: str = 'detection') -> None:
         #! This method is called by simulator
         '''
         Here the self.intruder_uav_list is created everytime as an empty list, 
@@ -237,11 +237,11 @@ class UAVBasic:
             if self.uav_polygon(own_radius).intersects(other_uav.uav_polygon(other_radius)):
                 self.intruder_uav_list.append(other_uav)
         
-    def get_airspace_building_list(self, building_gdf):
+    def get_airspace_building_list(self, building_gdf: GeoSeries) -> None:
         self.building_gdf = building_gdf
 
 
-    def get_state_dynamic_obj(self,):
+    def get_state_dynamic_obj(self,) -> None | dict:
         '''
         Get state of UAV based on radius string argument.
         This method will return UAVs that have been detected. 
@@ -274,7 +274,7 @@ class UAVBasic:
             
             return intruder_state_info
     
-    def get_state_static_obj(self, radius_str = 'detection'):
+    def get_state_static_obj(self, radius_str: str = 'detection') -> tuple[bool, float]:
         '''
         Currently, this method only detects a building and returns True/False.
         I have an algorithm, in Zoom whiteboard, 
@@ -302,14 +302,14 @@ class UAVBasic:
         return intersection_with_building , self.current_heading_deg
                 
         
-    def get_state(self, ):
+    def get_state(self, ) -> tuple[tuple[bool, float], None | dict]:
         static_state = self.get_state_static_obj()
         dynamic_state = self.get_state_dynamic_obj() 
 
 
         return static_state, dynamic_state
     
-    def has_uav_collision(self,uav_list):
+    def has_uav_collision(self, uav_list: list["UAVBasic"]) -> bool:
         intruder_uav_list = self.get_intruder_uav_list(uav_list,'collision')
 
         if len(intruder_uav_list) != 0:
@@ -318,7 +318,7 @@ class UAVBasic:
             return False
         
     @staticmethod
-    def get_quadrant(theta):
+    def get_quadrant(theta: float) -> int:
         if (theta >= 0) and (theta < 90):
             return 1
         elif (theta >= 90) and (theta <= 180):
@@ -330,7 +330,7 @@ class UAVBasic:
         else:
             raise RuntimeError('DAS Error: Invalid heading')
     
-    def get_action(self, state): 
+    def get_action(self, state: list) -> tuple[float, float]: 
         if state[0][0] is False and state[1] is None:
             acceleration = 0
             heading_correction = 0
@@ -405,7 +405,7 @@ class UAVBasic:
 
     #TODO -  the action argument should be a named_tuple acceleration and theta_dd
     
-    def step(self,):
+    def step(self,) -> Point:
         '''Updates the position of the UAV.'''
         
         state = self.get_state()

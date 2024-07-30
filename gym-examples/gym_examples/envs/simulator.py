@@ -8,7 +8,7 @@ from matplotlib.axes._axes import Axes
 import geopandas as gpd
 from shapely import Point
 import time
-from typing import List
+from typing import List, Callable
 
 """
     When we create the UAM env(subclass of gymEnv) it will build an instance that is similar to simulator.
@@ -35,7 +35,7 @@ class Simulator:
         num_basic_uavs: int,
         sleep_time: float,
         total_timestep: int,
-    ):
+    ) -> None:
         """
         Initializes a Simulator object.
 
@@ -71,7 +71,14 @@ class Simulator:
         # sim run time
         self.total_timestep = total_timestep
 
-    def render(self, fig: Figure, ax: Axes, static_plot, sim, gpd):
+    def render(
+        self,
+        fig: Figure,
+        ax: Axes,
+        static_plot: Callable,
+        sim: "Simulator",
+        gpd: gpd.GeoDataFrame,
+    ) -> None:
         plt.cla()
         static_plot(sim, ax, gpd)
         # UAV PLOT LOGIC
@@ -91,7 +98,7 @@ class Simulator:
         fig.canvas.flush_events()
         time.sleep(self.sleep_time)
 
-    def _get_obs(self, uav_obj: UAV):
+    def _get_obs(self, uav_obj: UAV) -> tuple[tuple[bool, float], None | dict]:
         state_info = uav_obj.get_state(
             self.uav_list, self.airspace.location_utm_hospital_buffer
         )
@@ -100,7 +107,7 @@ class Simulator:
 
     #! arg -> action_list needs to be unpacked, action_list should contain (action, uav_id) tuple,
     #! which will be unpacked and assigned to each uav based on uav_id
-    def get_action_list(self, controller_predict):
+    def get_action_list(self, controller_predict: Callable) -> list[tuple[str, float]]:
         action_list = []
         for uav in self.uav_list:
             #                    state -> ((bool,                float                  ), dict            | None)
@@ -110,7 +117,7 @@ class Simulator:
             action_list.append((uav.id, action))
         return action_list
 
-    def get_uav(self, uav_id):
+    def get_uav(self, uav_id: str) -> UAV:
         for uav in self.uav_list:
             if uav.id == int(uav_id):
                 return uav
@@ -118,7 +125,7 @@ class Simulator:
                 continue
         raise RuntimeError("UAV not it list")
 
-    def sim_step(self, action_list):
+    def sim_step(self, action_list: list) -> list[tuple[str, Point]]:
         obs_list = []
         for uav_id, action in action_list:
             # print(uav_id, action)
@@ -131,7 +138,15 @@ class Simulator:
         return obs_list
 
     def run_simulator(
-        self, fig, ax, static_plot, sim, gpd, controller_predict
+        self,
+        fig: Figure,
+        ax: Axes,
+        static_plot: Callable,
+        sim: "Simulator",
+        gpd: gpd.GeoDataFrame,
+        controller_predict: Callable,
+    ) -> (
+        None
     ):  #! das-controller needs to be changed to controller_predict implement uniform name all across code base
         """
         Runs the simulator.

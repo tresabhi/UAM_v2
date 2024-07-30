@@ -40,7 +40,9 @@ class Airspace:
         location_hospital = ox_features.features_from_polygon(
             location_gdf["geometry"][0], tags={"building": "hospital"}
         )
-        self.location_utm_hospital = ox_projection.project_gdf(location_hospital)
+        self.location_utm_hospital: gpd.GeoDataFrame = ox_projection.project_gdf(
+            location_hospital
+        )
         self.location_utm_hospital_buffer = self.location_utm_hospital.buffer(
             self.buffer_radius
         )  # 500 meter buffer area

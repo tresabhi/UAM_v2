@@ -93,10 +93,10 @@ class SimulatorBasic:
         ax: Axes,
     ) -> None:
         """
-        Renders the objects in the simulation
+        Renders the objects in the simulation. Draws on the axes of the graph
         Args:
-            fig (matplotlib.figure.Figure): Figure
-            ax ( matplotlib.axes._axes.Axes): Axes or an array of axes
+            fig(plt.Figure): The outside of the graph that is rendered
+            ax(plt.Axes): The backdrop of the graph
         """
 
         plt.cla()
@@ -114,8 +114,10 @@ class SimulatorBasic:
             uav_detection_poly.plot(
                 ax=ax, color=uav_obj.uav_detection_radius_color, alpha=0.3
             )
-            x_current,y_current,dx_current,dy_current = uav_obj.get_uav_current_heading_arrow()
-            ax.arrow(x_current,y_current,dx_current,dy_current,alpha=1 )
+            x_current, y_current, dx_current, dy_current = (
+                uav_obj.get_uav_current_heading_arrow()
+            )
+            ax.arrow(x_current, y_current, dx_current, dy_current, alpha=1)
             x_final, y_final, dx_final, dy_final = uav_obj.get_uav_final_heading_arrow()
             ax.arrow(x_final, y_final, dx_final, dy_final, alpha=0.8)
 
@@ -169,11 +171,8 @@ class SimulatorBasic:
         Generally, for RL the loop is written explictly. This method was written for convinience.
 
         Args:
-            fig (matplotlib.figure.Figure): The figure object for plotting.
-            ax (matplotlib.axes.Axes): The axes object for plotting.
-
-        Returns:
-            None
+            fig(plt.Figure): The outside of the graph that is rendered. The figure object for plotting.
+            ax(plt.Axes): The backdrop of the graph. The axes object for plotting.
         """
 
         self.set_uav_intruder_list()

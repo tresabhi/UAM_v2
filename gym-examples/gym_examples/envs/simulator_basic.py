@@ -26,10 +26,10 @@ class SimulatorBasic:
         Initializes a Simulator object.
 
         Args:
-            location_name (str): The name of the location for the simulation.
+            location_name (str): The name of the location for the simulation ie. Austin, Texas, USA
             num_vertiports (int): The number of vertiports to create in the simulation.
             num_basic_uavs (int): The number of basic UAVs to create in the simulation.
-            sleep_time (float): The sleep time between each step.
+            sleep_time (float): The sleep time between rendered frames
             total_timestep (int): The total number of time steps.
         """
         # sim airspace and ATC
@@ -64,6 +64,7 @@ class SimulatorBasic:
 
     def get_vertiport_from_atc(self) -> None:
         """Get the vertaport location"""
+        """This is a convinience method, for reset()"""
         vertiports_point_array = [
             vertiport.location for vertiport in self.atc.vertiports_in_airspace
         ]
@@ -71,6 +72,7 @@ class SimulatorBasic:
 
     def get_uav_list_from_atc(self) -> None:
         """Get a list of UAVs"""
+        """This is a convinience method, for reset()"""
         self.uav_list = self.atc.basic_uav_list
 
     def render_init(

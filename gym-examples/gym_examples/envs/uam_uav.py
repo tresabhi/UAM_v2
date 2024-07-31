@@ -19,7 +19,7 @@ After, we create UAVs which fly using hardcoded policy. An instance of autonomou
 """
 Side Note:
 ----------
-    If anyone wishes to improve/change the environment I suggest once the assests have been created/updated test them with main.py.
+    If anyone wishes to improve/change the environment I suggest once the assets have been created/updated test them with main.py.
     There are simulator/simulator_basic.py scripts which define an environment with all necessary assets.
     Any improvement/change should be tested using instance of simultor before implementing in custom gym env.
 
@@ -28,9 +28,9 @@ Side Note:
     
     Reason for similarity 
     ---------------------
-    The simulator scripts create environments where we test functionality of assests. 
-    All assests are pulled in to create an environment similar to this one, only auto_uav is not part of simulator.
-    Any form of changes to assests should first be tested by using instance of simulator, then added accordingly to this environment. 
+    The simulator scripts create environments where we test functionality of assets. 
+    All assets are pulled in to create an environment similar to this one, only auto_uav is not part of simulator.
+    Any form of changes to assets should first be tested by using instance of simulator, then added accordingly to this environment. 
     This process will make debugging easier.     
 """
 
@@ -65,6 +65,16 @@ class UamUavEnv(gym.Env):
         sleep_time: float = 0.005,  # sleep time between render frames
         render_mode: str = None,  #! check where this argument is used
     ) -> None:
+        """
+        Initalizes the UAMUAV environment
+
+        Args:
+            location_name (str): Location of the simulation ie. Austin, Texas, USA
+            num_vertiports(int): Number of vertiports to generate
+            num_basic_uav (int): Number of UAVs to put in the simulation
+            sleep_time (float): Time to sleep in between render frames
+            render_mode (str): The render mode of the simulation
+        """
         # Environment attributes
         self.current_time_step = 0  #! not being used during step
         self.num_vertiports = num_vertiport
@@ -168,7 +178,15 @@ class UamUavEnv(gym.Env):
 
     def reset(self, seed: int = None, options: dict = None) -> tuple[dict, dict]:
         """
-        This method resets the environment.
+        resets the environment
+
+        Args:
+            seed (int): A number coorelated to the sequnce of randomy generated numbers. (Not in use)
+            options (dict): (Not in use)
+
+        Returns:
+            observations(dict): Stores all of the agents
+            infos(dict): Stores all of the agents
         """
 
         # TODO #6 - When environment is reset, it should use a seed to reset from. Currently, reset does not use a seed
@@ -229,6 +247,23 @@ class UamUavEnv(gym.Env):
         intruder_info = self.auto_uav.get_state_dynamic_obj(
             self.uav_basic_list, "nmac"
         )  # self.nmac_with_dynamic_obj()
+        """
+        Gets the observation space of the agent
+
+        Args:
+            agent_id (str): The ID of the target UAV
+
+        Returns:
+            obs (dict): The observation space of the agent
+                agent_id
+                agent_speed
+                agent_deviation
+                intruder_detected
+                intruder_id
+                distance_to_intruder
+                relative_heading_intruder
+                intruder_heading
+        """
 
         # TODO #9 - create simple logging to check all observations are in correct format and range- use print()
         if intruder_info:
@@ -294,6 +329,15 @@ class UamUavEnv(gym.Env):
     def _get_info(
         self,
     ) -> dict:
+        """
+        Gets the distance between the uav and target vertiport
+
+        Args:
+            agent_id (str): The ID of the target UAV
+
+        Returns:
+            (dict): distance to target vertiport
+        """
 
         return {
             "distance_to_end_vertiport": self.auto_uav.current_position.distance(
@@ -334,6 +378,15 @@ class UamUavEnv(gym.Env):
         basic UAVs will step without action. so I will need to modify basic uav_basic in such a way that they will step without action.
         This tells me that basic uav_basic will need to have collision avoidance built into the uav_basic module, such that they can step without action.
 
+        Args:
+            action (tuple): the action of the auto_uav
+
+        Return:
+            observations (dict): Feeds the state space of the agent
+            rewards (int): The reward earned durring the step
+            terminations (bool): Checks if the agent has reached its destination
+            truncations (bool): Checks for collisions with static and dynamic objects
+            infos (dict): distance of agent from target vertiport
         """
         # decomposing action tuple
         # TODO #11 - should acceleration and heading_correction be transformed from normalized value to absolute value
@@ -403,6 +456,23 @@ class UamUavEnv(gym.Env):
         return obs, reward, terminated, truncated, info
 
     def get_reward(self, obs: dict) -> float:
+        """
+        Returns the reward the agent earns at each step
+
+        Args:
+            obs (dict): The observation space of the agent
+                agent_id
+                agent_speed
+                agent_deviation
+                intruder_detected
+                intruder_id
+                distance_to_intruder
+                relative_heading_intruder
+                intruder_heading
+
+        Returns:
+            reward_sum (float): Reward earned by the agent in that time step
+        """
 
         punishment_existing = -0.1
         if obs["intruder_detected"] == 0:
@@ -435,12 +505,25 @@ class UamUavEnv(gym.Env):
     def render_init(
         self,
     ) -> tuple[Figure, Axes]:
+        """
+        Initalizes the rendering
+
+        Returns:
+            fig(plt.Figure): The outside of the graph that is rendered
+            ax(plt.Axes): The backdrop of the graph
+        """
         fig, ax = plt.subplots()
         return fig, ax
 
     def render_static_assets(
         self, ax: Axes
     ) -> None:  #! spelling error - fix everywhere this is used
+        """
+        Renders static assets onto the graph
+
+        Args:
+            ax(plt.Axes): The backdrop of the graph
+        """
         self.airspace.location_utm_gdf.plot(ax=ax, color="gray", linewidth=0.6)
         self.airspace.location_utm_hospital_buffer.plot(ax=ax, color="red", alpha=0.3)
         self.airspace.location_utm_hospital.plot(ax=ax, color="black")
@@ -448,6 +531,13 @@ class UamUavEnv(gym.Env):
         gpd.GeoSeries(self.sim_vertiports_point_array).plot(ax=ax, color="black")
 
     def render(self, fig: Figure, ax: Axes) -> None:
+        """
+        Renders everything in the graph
+
+        Args:
+            fig(plt.Figure): The outside of the graph that is rendered
+            ax(plt.Axes): The backdrop of the graph
+        """
         plt.cla()
         self.render_static_assets(ax)
 
@@ -463,12 +553,12 @@ class UamUavEnv(gym.Env):
             uav_detection_poly.plot(
                 ax=ax, color=uav_obj.uav_detection_radius_color, alpha=0.3
             )
-            x_current,y_current,dx_current,dy_current = uav_obj.get_uav_current_heading_arrow()
-            ax.arrow(x_current,y_current,dx_current,dy_current,alpha=1 )
+            x_current, y_current, dx_current, dy_current = (
+                uav_obj.get_uav_current_heading_arrow()
+            )
+            ax.arrow(x_current, y_current, dx_current, dy_current, alpha=1)
             x_final, y_final, dx_final, dy_final = uav_obj.get_uav_final_heading_arrow()
             ax.arrow(x_final, y_final, dx_final, dy_final, alpha=0.8)
-
-
 
         auto_uav_footprint_poly = self.auto_uav.uav_polygon_plot(
             self.auto_uav.collision_radius
@@ -488,9 +578,15 @@ class UamUavEnv(gym.Env):
         auto_uav_detection_poly.plot(
             ax=ax, color=self.auto_uav.uav_detection_radius_color, alpha=0.3
         )
-        auto_x_current, auto_y_current, auto_dx_current, auto_dy_current = self.auto_uav.get_uav_current_heading_arrow()
-        ax.arrow(auto_x_current, auto_y_current, auto_dx_current, auto_dy_current, alpha=1)
-        auto_x_final, auto_y_final, auto_dx_final, auto_dy_final = self.auto_uav.get_uav_final_heading_arrow()
+        auto_x_current, auto_y_current, auto_dx_current, auto_dy_current = (
+            self.auto_uav.get_uav_current_heading_arrow()
+        )
+        ax.arrow(
+            auto_x_current, auto_y_current, auto_dx_current, auto_dy_current, alpha=1
+        )
+        auto_x_final, auto_y_final, auto_dx_final, auto_dy_final = (
+            self.auto_uav.get_uav_final_heading_arrow()
+        )
         ax.arrow(auto_x_final, auto_y_final, auto_dx_final, auto_dy_final, alpha=0.8)
 
         fig.canvas.draw()
@@ -500,12 +596,24 @@ class UamUavEnv(gym.Env):
     def get_start_vertiport_auto_uav(
         self,
     ) -> Vertiport:
+        """
+        Gets the vertiport for the UAV to start at
+
+        Returns:
+            start_vertiport_auto_uav (Vertiport): the starting vertiport for the UAV
+        """
         for vertiport in self.atc.vertiports_in_airspace:
             if len(vertiport.uav_list) == 0:
                 start_vertiport_auto_uav = vertiport
         return start_vertiport_auto_uav
 
     def get_end_vertiport_auto_uav(self, start_vertiport: Vertiport) -> Vertiport:
+        """
+        Gets the vertiport for the UAV to target
+
+        Returns:
+            scome_vertiport (Vertiport): the target vertiport for the UAV
+        """
         some_vertiport = self.atc.provide_vertiport()
         while some_vertiport.location == start_vertiport.location:
             some_vertiport = self.atc.provide_vertiport()
@@ -515,6 +623,12 @@ class UamUavEnv(gym.Env):
     def collision_with_static_obj(
         self,
     ) -> bool:
+        """
+        Checks for a collision between the UAV and static objects (hospitals)
+
+        Returns:
+            colsion_with_static_obj (bool): Returns true if there has been a collision with a static object
+        """
         collision_with_static_obj, _ = self.auto_uav.get_state_static_obj(
             self.airspace.location_utm_hospital.geometry, "collision"
         )

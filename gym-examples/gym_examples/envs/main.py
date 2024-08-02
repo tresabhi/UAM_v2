@@ -24,7 +24,7 @@ if __name__ == "__main__":
     # controller_predict = controller.get_action
 
     sim = SimulatorBasic(
-        "Austin, Texas, USA", 10, 9, sleep_time=0.02, total_timestep=500
+        "Austin, Texas, USA", 15, 14, sleep_time=0.02, total_timestep=500
     )
 
     # fig, ax initialization

@@ -2,7 +2,7 @@
 
 ## Overview
 
-As urban air mobility (UAM) slowly becomes a reality, the strategic placement of vertiports (takeoff and landing areas for vertical takeoff and landing (VTOL) aircraft) will become a crucial design problem to ensure safe and eficient travel while limiting audial impact on surrounding areas. This work aims to use GNNS to determine the optimal placement of these vertiports. By using RL we aim to... finish this with the design constraints of the RL algorithm.
+As urban air mobility (UAM) slowly becomes a reality, the strategic placement of vertiports (takeoff and landing areas for vertical takeoff and landing (VTOL) aircraft) will become a crucial design problem to ensure safe and eficient travel while limiting audial impact on surrounding areas. This work aims to use GNNS-RL to determine the optimal placement of these vertiports. By using RL we aim to... finish this with the design constraints of the RL algorithm.
 
 ## Setup
 

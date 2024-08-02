@@ -500,7 +500,7 @@ class UamUavEnv(gym.Env):
 
         reward_sum *= float(self.current_time_step)
 
-        return reward_sum
+        return float(reward_sum)
 
     def render_init(
         self,

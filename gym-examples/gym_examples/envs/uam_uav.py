@@ -369,7 +369,7 @@ class UamUavEnv(gym.Env):
     #     # self.auto_uav.get_airspace_building_list(self.airspace.location_utm_hospital_buffer)
     #     self.auto_uav.get
 
-    def step(self, action: tuple) -> tuple[dict, dict, bool, bool, dict]:
+    def step(self, action: tuple) -> tuple[dict, float, bool, bool, dict]:
         """
         This method is used to step the environment, it will step the environment by one timestep.
 
@@ -498,7 +498,7 @@ class UamUavEnv(gym.Env):
             + reward_to_destination
         )
 
-        reward_sum *= self.current_time_step
+        reward_sum *= float(self.current_time_step)
 
         return reward_sum
 

@@ -1,8 +1,10 @@
 import functools
 import numpy as np
+import pandas as pd 
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib.axes._axes import Axes
+from matplotlib.animation import FuncAnimation
 from typing import List, Dict
 import time
 from geopandas import GeoSeries
@@ -30,6 +32,17 @@ class UamUavEnvPZ(ParallelEnv):
         sleep_time: float = 0.05,
         render_mode: str = None,
     ) -> None:
+        
+
+        # Animation data
+        data = {'current_time_step':[],
+                'auto_uav_id':[],
+                'auto_uav':[],
+                'current_position':[],
+                'current_heading':[],
+                'final_heading':[]}
+        self.df = pd.DataFrame(data)
+        
         # Environment attributes
         self.current_time_step = 0
         self.num_vertiports = num_vertiports
@@ -73,6 +86,20 @@ class UamUavEnvPZ(ParallelEnv):
         # self.num_agents = num_auto_uav
         # self.max_num_agents = max_agents
 
+    def add_data(self,auto_uav:AutonomousUAV):
+        self.df = self.df._append({
+            'current_time_step':self.current_time_step,
+            'auto_uav_id':auto_uav.id,
+            'auto_uav':auto_uav,
+            'current_position':auto_uav.current_position,
+            'current_heading':auto_uav.current_heading_radians,
+            'final_heading':auto_uav.current_ref_final_heading_rad},
+            ignore_index = True)
+    
+    
+    
+    
+    
     def has_terminated(self, agent_id: str) -> bool:
         agent = self.auto_uavs_dict[agent_id]
         dist_to_end_point = agent.current_position.distance(agent.end_point)
@@ -155,6 +182,11 @@ class UamUavEnvPZ(ParallelEnv):
         }
         self.possible_agents = list(self.auto_uavs_dict.keys())
 
+
+        # List of all AUTO UAV  for animation 
+        #! might be redundant 
+        self.auto_uav_in_airspace = self.atc.auto_uavs_list
+        
         # agents should be a list of agent_id = auto_uav.id
         self.agents = self.possible_agents
         # self.num_agents = len(self.agents)
@@ -172,6 +204,10 @@ class UamUavEnvPZ(ParallelEnv):
     def step(self, actions: dict) -> tuple[dict, dict, dict, dict, dict]:
 
         for agent_id in actions:
+            # Adding data to data_frame for animation 
+            self.add_data(self.auto_uavs_dict[agent_id])
+            
+            # Step method 
             action = actions[agent_id]
             self.auto_uavs_dict[agent_id].step(action[0], action[1])
 
@@ -205,9 +241,9 @@ class UamUavEnvPZ(ParallelEnv):
         fig, ax = plt.subplots()
         return fig, ax
 
-    def render_static_assest(
+    def render_static_asset(
         self, ax: plt.Axes
-    ):  #! spelling error - fix everywhere this is used
+    ):
         self.airspace.location_utm_gdf.plot(ax=ax, color="gray", linewidth=0.6)
         self.airspace.location_utm_hospital_buffer.plot(ax=ax, color="red", alpha=0.3)
         self.airspace.location_utm_hospital.plot(ax=ax, color="black")
@@ -216,7 +252,7 @@ class UamUavEnvPZ(ParallelEnv):
 
     def render(self, fig: Figure, ax: Axes):
         plt.cla()
-        self.render_static_assest(ax)
+        self.render_static_asset(ax)
 
         for auto_uav in self.auto_uavs_list:
             auto_uav_footprint_poly = auto_uav.uav_polygon_plot(
@@ -380,3 +416,54 @@ class UamUavEnvPZ(ParallelEnv):
     @functools.lru_cache(maxsize=None)
     def action_space(self, agent_id: str) -> spaces.Box:
         return spaces.Box(low=-1, high=1, shape=(2,), dtype=np.float64)
+
+
+    
+    def get_data_at_timestep(self,timestep):
+        filtered_df = self.df[self.df['current_time_step']== timestep]
+        return filtered_df[['auto_uav_id', 'auto_uav', 'current_position', 'current_heading', 'final_heading']]
+    
+
+    def get_animate_fig_ax(self):
+        fig, ax = plt.subplots()
+        return fig, ax
+
+    def init_animate(self, animate_ax):
+        self.render_static_asset(animate_ax)
+        return []
+    
+    def update_animate(self, frame, animate_ax):
+        plt.cla()
+        self.render_static_assets(animate_ax)
+        data_frame = self.get_data_at_timestep(frame)
+        artists = []
+
+        for i, row in data_frame.iterrows():
+            if isinstance(row['uav'], AutonomousUAV):
+                autouav_obj:AutonomousUAV = row['uav']
+                autouav = gpd.GeoSeries([row['current_position']])
+                current_heading = row['current_heading']
+                final_heading = row['final_heading']
+                auto_uav_detection = autouav.buffer(autouav_obj.detection_radius).plot(color = autouav_obj.uav_detection_radius_color,ax=animate_ax)
+                auto_uav_nmac = autouav.buffer(autouav_obj.nmac_radius).plot(color=autouav_obj.uav_nmac_radius_color,ax=animate_ax)
+                
+                x,y = row['current_position'].x, row['current_position'].y 
+                r = autouav_obj.detection_radius
+                dx, dy = r*np.cos(current_heading), r*np.sin(current_heading)
+                auto_uav_current_heading_arrow = animate_ax.arrow(x,y,dx,dy, alpha=1)
+                artists.append(auto_uav_detection)
+                artists.append(auto_uav_nmac)
+                artists.append(auto_uav_current_heading_arrow)
+            else:
+                raise RuntimeError('Update animate has instance type error')
+        return artists
+    
+    def create_animation(self, env_time_step):
+        fig, ax = self.get_animate_fig_ax()
+        df = self.df
+        ani = FuncAnimation(fig, self.update_animate, frames=range(0,env_time_step), fargs=[ax])
+        return ani
+    
+    def save_animation(self, animation_obj, file_name):
+        animation_obj.save(file_name+'.mp4', writer='ffmpeg')
+    

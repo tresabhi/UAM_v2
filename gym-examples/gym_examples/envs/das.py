@@ -35,6 +35,19 @@ class CollisionController:
         self.name = "Baseline Collision Controller"
 
     def get_quadrant(self, theta: float) -> int:
+        """
+        Gets the quadrant based on the angle theta provided.
+        There are 4 quadrands.
+        2|1
+        ---
+        4|3
+
+        Args:
+            Theta (float): angle relative to the x axis(ccw is +)
+
+        Returns:
+            (int): Only 1-4
+        """
         if (theta >= 0) and (theta < 90):
             return 1
         elif (theta >= 90) and (theta <= 180):
@@ -54,6 +67,17 @@ class CollisionController:
     #                    state -> ((bool,                float                  ), dict            | None)
     #                               static_obj_detected, uav.current_heading_deg , dynamic_obj_info| None
     def get_action(self, state: list) -> tuple[float, float]:
+        """
+        Gets the action for a basic uav
+
+        Args:
+            state (list): The state space for the UAV
+                ?all uavs position, speed, current_heading, ref_final_heading
+
+        Returns:
+            accelleration (int): the acceleration of the UAV in m/s^2 [0 or -1]
+            heading_correction (int): the heading correction of the UAV in degrees [0, 25 or -25]
+        """
         if state[0][0] is False and state[1] is None:
             acceleration = 0
             heading_correction = 0

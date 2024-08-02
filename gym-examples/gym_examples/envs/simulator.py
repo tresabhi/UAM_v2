@@ -43,6 +43,8 @@ class Simulator:
             location_name (str): The name of the location for the simulation.
             num_vertiports (int): The number of vertiports to create in the simulation.
             num_basic_uavs (int): The number of basic UAVs to create in the simulation.
+            sleep_time (float): Time to sleep after each step
+            total_timestep (int): Total number of timesteps in simulation
         """
         # sim airspace and ATC
         self.airspace = Airspace(location_name=location_name)
@@ -79,6 +81,16 @@ class Simulator:
         sim: "Simulator",
         gpd: gpd.GeoDataFrame,
     ) -> None:
+        """
+        Renders everything in the graph
+
+        Args:
+            fig(plt.Figure): The outside of the graph that is rendered
+            ax(plt.Axes): The backdrop of the graph
+            static_plot (Callable): Function that plots static objects
+            sim (Simulator):
+            gdp (gdp.GeoDataFrame):
+        """
         plt.cla()
         static_plot(sim, ax, gpd)
         # UAV PLOT LOGIC
@@ -93,8 +105,10 @@ class Simulator:
             uav_detection_poly.plot(
                 ax=ax, color=uav_obj.uav_detection_radius_color, alpha=0.3
             )
-            x_current,y_current,dx_current,dy_current = uav_obj.get_uav_current_heading_arrow()
-            ax.arrow(x_current,y_current,dx_current,dy_current,alpha=1 )
+            x_current, y_current, dx_current, dy_current = (
+                uav_obj.get_uav_current_heading_arrow()
+            )
+            ax.arrow(x_current, y_current, dx_current, dy_current, alpha=1)
             x_final, y_final, dx_final, dy_final = uav_obj.get_uav_final_heading_arrow()
             ax.arrow(x_final, y_final, dx_final, dy_final, alpha=0.8)
 

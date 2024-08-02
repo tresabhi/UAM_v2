@@ -26,6 +26,7 @@ class UAV:
         #UAV builtin properties 
         self.heading_deg = np.random.randint(-178,178) + np.random.rand() # random heading between -180 and 180
         self.collision_radius = 17 #H175 nose to tail length of 17m,
+        self.uav_footprint = 17
         self.nmac_radius = 150 #NMAC radius
         self.detection_radius = 550
         self.uav_footprint_color = 'blue' # this color represents the UAV object 

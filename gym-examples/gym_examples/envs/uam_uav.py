@@ -39,13 +39,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib.axes._axes import Axes
+from matplotlib.animation import FuncAnimation
 from typing import List
 import time
 from geopandas import GeoSeries
 import geopandas as gpd
 import gymnasium as gym
 from gymnasium import spaces
-
+import pandas as pd
 from airspace import Airspace
 from airtrafficcontroller import ATC
 from uav_basic import UAVBasic
@@ -65,6 +66,16 @@ class UamUavEnv(gym.Env):
         sleep_time: float = 0.005,  # sleep time between render frames
         render_mode: str = None,  #! check where this argument is used
     ) -> None:
+        
+        # animation data
+        data = {'current_time_step':[],
+                'uav_id':[],
+                'uav':[],
+                'current_position':[],
+                'current_heading':[],
+                'final_heading':[]}
+        self.df = pd.DataFrame(data)
+        
         # Environment attributes
         self.current_time_step = 0  #! not being used during step
         self.num_vertiports = num_vertiport
@@ -153,6 +164,18 @@ class UamUavEnv(gym.Env):
             dtype=np.float64,  #! should action choosen form action space be converted back when applied in step()
         )
 
+
+    def add_data(self,uav:UAVBasic|AutonomousUAV):
+        self.df = self.df._append({
+            'current_time_step':self.current_time_step,
+            'uav_id':uav.id,
+            'uav':uav,
+            'current_position':uav.current_position,
+            'current_heading':uav.current_heading_radians,
+            'final_heading':uav.current_ref_final_heading_rad},
+            ignore_index = True)
+
+
     def get_vertiport_from_atc(self) -> None:
         """This is a convinience method, for reset()"""
 
@@ -200,7 +223,10 @@ class UamUavEnv(gym.Env):
         )
 
         self.auto_uav = AutonomousUAV(start_vertiport_auto_uav, end_vertiport_auto_uav)
-
+        
+        #This is a list of all UAVs in the airspace - uav_basic + auto_uav
+        self.uavs_in_airspace = self.uav_basic_list + [self.auto_uav]
+        
         observation = self._get_obs()
         info = self._get_info()
 
@@ -335,6 +361,10 @@ class UamUavEnv(gym.Env):
         This tells me that basic uav_basic will need to have collision avoidance built into the uav_basic module, such that they can step without action.
 
         """
+        # saving data for animation 
+        for uav in self.uavs_in_airspace:
+            self.add_data(uav)
+        
         # decomposing action tuple
         # TODO #11 - should acceleration and heading_correction be transformed from normalized value to absolute value
         acceleration = action[0]
@@ -541,6 +571,75 @@ class UamUavEnv(gym.Env):
         # self.atc.has_left_start_vertiport(uav_basic) -> will need these two depending on how an experiment ends
         # self.atc.has_reached_end_vertiport(uav_basic)
 
+    
+    def get_data_at_timestep(self,timestep):
+        filtered_df = self.df[self.df['current_time_step']== timestep]
+        return filtered_df[['uav_id', 'uav', 'current_position', 'current_heading', 'final_heading']]
+    
+
+    def get_animate_fig_ax(self):
+        fig, ax = plt.subplots()
+        return fig, ax
+
+    def init_animate(self, animate_ax):
+        self.render_static_assets(animate_ax)
+        return []
+    
+    def update_animate(self, frame, animate_ax):
+        plt.cla()
+        self.render_static_assets(animate_ax)
+        data_frame = self.get_data_at_timestep(frame)
+        artists = []
+
+        for i, row in data_frame.iterrows():
+            if isinstance(row['uav'], UAVBasic):
+                uav_obj:UAVBasic = row['uav']
+                uav = gpd.GeoSeries([row['current_position']])
+                current_heading = row['current_heading']
+                final_heading = row['final_heading']
+                uav_detection = uav.buffer(uav_obj.detection_radius).plot(color = uav_obj.uav_detection_radius_color,ax=animate_ax)
+                uav_nmac = uav.buffer(uav_obj.nmac_radius).plot(color=uav_obj.uav_nmac_radius_color,ax=animate_ax)
+                
+                r = uav_obj.detection_radius
+                
+                x,y = row['current_position'].x, row['current_position'].y 
+                dx, dy = r*np.cos(current_heading), r*np.sin(current_heading)
+                uav_current_heading_arrow = animate_ax.arrow(x,y,dx,dy, alpha=0.8)
+                
+                x_f,y_f = row['current_position'].x, row['current_position'].y
+                dx_f, dy_f = r*np.cos(final_heading), r*np.sin(final_heading)
+                uav_final_heading_arrow = animate_ax.arrow(x,y,dx,dy, alpha=0.5)
+                
+                artists.append(uav_detection)
+                artists.append(uav_nmac)
+                artists.append(uav_current_heading_arrow)
+                artists.append(uav_final_heading_arrow)
+
+            elif isinstance(row['uav'], AutonomousUAV):
+                autouav_obj:AutonomousUAV = row['uav']
+                autouav = gpd.GeoSeries([row['current_position']])
+                current_heading = row['current_heading']
+                final_heading = row['final_heading']
+                uav_detection = autouav.buffer(autouav_obj.detection_radius).plot(color = autouav_obj.uav_detection_radius_color,ax=animate_ax)
+                uav_nmac = autouav.buffer(autouav_obj.nmac_radius).plot(color=autouav_obj.uav_nmac_radius_color,ax=animate_ax)
+                x,y = row['current_position'].x, row['current_position'].y 
+                r = autouav_obj.detection_radius
+                dx, dy = r*np.cos(current_heading), r*np.sin(current_heading)
+                uav_current_heading_arrow = animate_ax.arrow(x,y,dx,dy, alpha=1)
+                artists.append(uav_detection)
+                artists.append(uav_nmac)
+                artists.append(uav_current_heading_arrow)
+        return artists
+    
+    def create_animation(self, env_time_step):
+        fig, ax = self.get_animate_fig_ax()
+        df = self.df
+        ani = FuncAnimation(fig, self.update_animate, frames=range(0,env_time_step), fargs=[ax])
+        return ani
+    
+    def save_animation(self, animation_obj, file_name):
+        animation_obj.save(file_name+'.mp4', writer='ffmpeg')
+    
     def _render_frame(
         self,
     ):

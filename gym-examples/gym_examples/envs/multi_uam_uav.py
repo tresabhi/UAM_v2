@@ -1,6 +1,6 @@
 import functools
 import numpy as np
-import pandas as pd 
+import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib.axes._axes import Axes
@@ -42,17 +42,18 @@ class UamUavEnvPZ(ParallelEnv):
             sleep_time (float): Time to sleep in between steps
             render_mode (str): The render mode of the simulation
         """
-        
 
         # Animation data
-        data = {'current_time_step':[],
-                'auto_uav_id':[],
-                'auto_uav':[],
-                'current_position':[],
-                'current_heading':[],
-                'final_heading':[]}
+        data = {
+            "current_time_step": [],
+            "auto_uav_id": [],
+            "auto_uav": [],
+            "current_position": [],
+            "current_heading": [],
+            "final_heading": [],
+        }
         self.df = pd.DataFrame(data)
-        
+
         # Environment attributes
         self.current_time_step = 0
         self.num_vertiports = num_vertiports
@@ -96,64 +97,193 @@ class UamUavEnvPZ(ParallelEnv):
         # self.num_agents = num_auto_uav
         # self.max_num_agents = max_agents
 
-    def add_data(self,auto_uav:AutonomousUAV):
-        self.df = self.df._append({
-            'current_time_step':self.current_time_step,
-            'auto_uav_id':auto_uav.id,
-            'auto_uav':auto_uav,
-            'current_position':auto_uav.current_position,
-            'current_heading':auto_uav.current_heading_radians,
-            'final_heading':auto_uav.current_ref_final_heading_rad},
-            ignore_index = True)
-    
-    
-    
-    
-    
-    def has_terminated(self, agent_id: str) -> bool:
+    def reset(self, seed: int = None, options: dict = None) -> tuple[dict, dict]:
         """
-        Checks to see if the agent has reached the target vertiport
+        resets the environment
 
         Args:
-            agent_id (str): The ID of the target UAV
+            seed (int): A number coorelated to the sequnce of randomy generated numbers. (Not in use)
+            options (dict): (Not in use)
 
         Returns:
-            terminated (bool): True or false. Has the UAV reached the targeted vertiport
+            observations(dict): Stores all of the agents
+            infos(dict): Stores all of the agents
         """
-        agent = self.auto_uavs_dict[agent_id]
-        dist_to_end_point = agent.current_position.distance(agent.end_point)
+        self.current_time_step = 0
+        self.auto_uavs_list = []
+        self.atc.auto_uavs_list = []
+        self.atc.vertiports_in_airspace = []
+        self.sim_vertiports_point_array = []
 
-        if dist_to_end_point < agent.landing_proximity:
-            terminated = True
-        else:
-            terminated = False
+        self.atc.create_n_random_vertiports(self.num_vertiports)
+        self.atc.create_n_auto_uavs(self.num_auto_uav)
+        self.get_vertiport_from_atc()
 
-        return terminated
+        self.auto_uavs_list = self.atc.auto_uavs_list
+        self.auto_uavs_dict = {
+            auto_uav.id: auto_uav for auto_uav in self.auto_uavs_list
+        }
+        self.possible_agents = list(self.auto_uavs_dict.keys())
 
-    def has_truncated(self, agent_id: str) -> bool:
+        # List of all AUTO UAV  for animation
+        #! might be redundant
+        self.auto_uav_in_airspace = self.atc.auto_uavs_list
+
+        # agents should be a list of agent_id = auto_uav.id
+        self.agents = self.possible_agents
+        # self.num_agents = len(self.agents)
+
+        self.rewards = {agent: 0 for agent in self.agents}
+        # self._cumulative_rewards = {agent: 0 for agent in self.agents}
+        self.terminations = {agent: False for agent in self.agents}
+        self.truncations = {agent: False for agent in self.agents}
+        self.infos = {agent: {} for agent in self.agents}
+        # self.state = {agent: NONE for agent in self.agents}
+        self.observations = {agent: None for agent in self.agents}
+
+        return self.observations, self.infos
+
+    def step(self, actions: dict) -> tuple[dict, dict, dict, dict, dict]:
         """
-        Checks for collision between UAV and static or dynamic object
+        Step function advances the entire simulation
 
         Args:
-            agent_id (str): The ID of the target UAV
+            Actions (dict): The action the UAV takes
 
-        Returns:
-            truncated (bool): returns true for collision
+        Return:
+            observations (dict): Feeds the state space of the agent
+            rewards (int): The reward earned durring the step
+            terminations (bool): Checks if the agent has reached its destination
+            truncations (bool): Checks for collisions with static and dynamic objects
+            infos (dict): distance of agent from target vertiport
         """
-        agent = self.auto_uavs_dict[agent_id]
-        collision_with_stat_obj, _ = agent.get_state_static_obj(
-            self.airspace.location_utm_hospital.geometry, "collision"
+        for agent_id in actions:
+            # Adding data to data_frame for animation
+            self.add_data(self.auto_uavs_dict[agent_id])
+
+            # Step method
+            action = actions[agent_id]
+            self.auto_uavs_dict[agent_id].step(action[0], action[1])
+
+            obs = self._get_obs(agent_id)
+            reward = self.get_reward(obs)
+            termination = self.has_terminated(agent_id)
+            truncation = self.has_truncated(agent_id)
+            info = self._get_info(agent_id)
+
+            #       dict[key]     = value -------  value type
+            self.observations[agent_id] = obs  #
+            self.rewards[agent_id] = reward
+            self.terminations[agent_id] = termination
+            self.truncations[agent_id] = truncation
+            self.infos[agent_id] = info
+
+        # Every time step is called the current time step increments by one second
+        self.current_time_step += 1
+
+        return (
+            self.observations,
+            self.rewards,
+            self.terminations,
+            self.truncations,
+            self.infos,
         )
-        other_agent_list = agent.get_other_uav_list(self.auto_uavs_list)
-        collision_with_dyn_obj = agent.get_collision(other_agent_list)
 
-        collision_detected = collision_with_dyn_obj or collision_with_stat_obj
-        if collision_detected:
-            truncated = True
-        else:
-            truncated = False
+    def render(self, fig: Figure, ax: Axes):
+        """
+        Renders everything in the graph
 
-        return truncated
+        Args:
+            fig(plt.Figure): The outside of the graph that is rendered
+            ax(plt.Axes): The backdrop of the graph
+        """
+        plt.cla()
+        self.render_static_asset(ax)
+        self.render_static_asset(ax)
+
+        for auto_uav in self.auto_uavs_list:
+            auto_uav_footprint_poly = auto_uav.uav_polygon_plot(
+                auto_uav.collision_radius
+            )
+            auto_uav_footprint_poly.plot(
+                ax=ax, color=auto_uav.uav_footprint_color, alpha=0.3
+            )
+
+            auto_uav_nmac_poly = auto_uav.uav_polygon_plot(auto_uav.nmac_radius)
+            auto_uav_nmac_poly.plot(
+                ax=ax, color=auto_uav.uav_nmac_radius_color, alpha=0.3
+            )
+
+            auto_uav_detection_poly = auto_uav.uav_polygon_plot(
+                auto_uav.detection_radius
+            )
+            auto_uav_detection_poly.plot(
+                ax=ax, color=auto_uav.uav_detection_radius_color, alpha=0.3
+            )
+            auto_x_current, auto_y_current, auto_dx_current, auto_dy_current = (
+                auto_uav.get_uav_current_heading_arrow()
+            )
+            ax.arrow(
+                auto_x_current,
+                auto_y_current,
+                auto_dx_current,
+                auto_dy_current,
+                alpha=1,
+            )
+            auto_x_final, auto_y_final, auto_dx_final, auto_dy_final = (
+                auto_uav.get_uav_final_heading_arrow()
+            )
+            ax.arrow(
+                auto_x_final, auto_y_final, auto_dx_final, auto_dy_final, alpha=0.8
+            )
+
+        fig.canvas.draw()
+        fig.canvas.flush_events()
+        time.sleep(self.sleep_time)
+
+    @functools.lru_cache(maxsize=None)
+    def action_space(self, agent_id: str) -> spaces.Box:
+        return spaces.Box(low=-1, high=1, shape=(2,), dtype=np.float64)
+
+    def add_data(self, auto_uav: AutonomousUAV):
+        self.df = self.df._append(
+            {
+                "current_time_step": self.current_time_step,
+                "auto_uav_id": auto_uav.id,
+                "auto_uav": auto_uav,
+                "current_position": auto_uav.current_position,
+                "current_heading": auto_uav.current_heading_radians,
+                "final_heading": auto_uav.current_ref_final_heading_rad,
+            },
+            ignore_index=True,
+        )
+
+    def get_animate_fig_ax(self):
+        fig, ax = plt.subplots()
+        return fig, ax
+
+    def get_agent_speed(
+        self, auto_uav: AutonomousUAV
+    ) -> np.ndarray:  # TODO #8 - rename to get_agent_speed()
+        return np.array([auto_uav.current_speed])
+
+    def get_agent_deviation(self, auto_uav: AutonomousUAV) -> np.ndarray:
+        #! should this be converted between -180 to 180
+        return np.array(
+            [auto_uav.current_heading_deg - auto_uav.current_ref_final_heading_deg]
+        )
+
+    def get_data_at_timestep(self, timestep):
+        filtered_df = self.df[self.df["current_time_step"] == timestep]
+        return filtered_df[
+            [
+                "auto_uav_id",
+                "auto_uav",
+                "current_position",
+                "current_heading",
+                "final_heading",
+            ]
+        ]
 
     def get_reward(self, obs: dict) -> float:
         """
@@ -209,97 +339,101 @@ class UamUavEnvPZ(ParallelEnv):
         ]
         self.sim_vertiports_point_array = vertiports_point_array
 
-    def reset(self, seed: int = None, options: dict = None) -> tuple[dict, dict]:
+    def has_terminated(self, agent_id: str) -> bool:
         """
-        resets the environment
+        Checks to see if the agent has reached the target vertiport
 
         Args:
-            seed (int): A number coorelated to the sequnce of randomy generated numbers. (Not in use)
-            options (dict): (Not in use)
+            agent_id (str): The ID of the target UAV
 
         Returns:
-            observations(dict): Stores all of the agents
-            infos(dict): Stores all of the agents
+            terminated (bool): True or false. Has the UAV reached the targeted vertiport
         """
-        self.current_time_step = 0
-        self.auto_uavs_list = []
-        self.atc.auto_uavs_list = []
-        self.atc.vertiports_in_airspace = []
-        self.sim_vertiports_point_array = []
+        agent = self.auto_uavs_dict[agent_id]
+        dist_to_end_point = agent.current_position.distance(agent.end_point)
 
-        self.atc.create_n_random_vertiports(self.num_vertiports)
-        self.atc.create_n_auto_uavs(self.num_auto_uav)
-        self.get_vertiport_from_atc()
+        if dist_to_end_point < agent.landing_proximity:
+            terminated = True
+        else:
+            terminated = False
 
-        self.auto_uavs_list = self.atc.auto_uavs_list
-        self.auto_uavs_dict = {
-            auto_uav.id: auto_uav for auto_uav in self.auto_uavs_list
-        }
-        self.possible_agents = list(self.auto_uavs_dict.keys())
+        return terminated
 
-
-        # List of all AUTO UAV  for animation 
-        #! might be redundant 
-        self.auto_uav_in_airspace = self.atc.auto_uavs_list
-        
-        # agents should be a list of agent_id = auto_uav.id
-        self.agents = self.possible_agents
-        # self.num_agents = len(self.agents)
-
-        self.rewards = {agent: 0 for agent in self.agents}
-        # self._cumulative_rewards = {agent: 0 for agent in self.agents}
-        self.terminations = {agent: False for agent in self.agents}
-        self.truncations = {agent: False for agent in self.agents}
-        self.infos = {agent: {} for agent in self.agents}
-        # self.state = {agent: NONE for agent in self.agents}
-        self.observations = {agent: None for agent in self.agents}
-
-        return self.observations, self.infos
-
-    def step(self, actions: dict) -> tuple[dict, dict, dict, dict, dict]:
+    def has_truncated(self, agent_id: str) -> bool:
         """
-        Step function advances the entire simulation
+        Checks for collision between UAV and static or dynamic object
 
         Args:
-            Actions (dict): The action the UAV takes
+            agent_id (str): The ID of the target UAV
 
-        Return:
-            observations (dict): Feeds the state space of the agent
-            rewards (int): The reward earned durring the step
-            terminations (bool): Checks if the agent has reached its destination
-            truncations (bool): Checks for collisions with static and dynamic objects
-            infos (dict): distance of agent from target vertiport
+        Returns:
+            truncated (bool): returns true for collision
         """
-        for agent_id in actions:
-            # Adding data to data_frame for animation 
-            self.add_data(self.auto_uavs_dict[agent_id])
-            
-            # Step method 
-            action = actions[agent_id]
-            self.auto_uavs_dict[agent_id].step(action[0], action[1])
+        agent = self.auto_uavs_dict[agent_id]
+        collision_with_stat_obj, _ = agent.get_state_static_obj(
+            self.airspace.location_utm_hospital.geometry, "collision"
+        )
+        other_agent_list = agent.get_other_uav_list(self.auto_uavs_list)
+        collision_with_dyn_obj = agent.get_collision(other_agent_list)
 
-            obs = self._get_obs(agent_id)
-            reward = self.get_reward(obs)
-            termination = self.has_terminated(agent_id)
-            truncation = self.has_truncated(agent_id)
-            info = self._get_info(agent_id)
+        collision_detected = collision_with_dyn_obj or collision_with_stat_obj
+        if collision_detected:
+            truncated = True
+        else:
+            truncated = False
 
-            #       dict[key]     = value -------  value type
-            self.observations[agent_id] = obs  #
-            self.rewards[agent_id] = reward
-            self.terminations[agent_id] = termination
-            self.truncations[agent_id] = truncation
-            self.infos[agent_id] = info
+        return truncated
 
-        # Every time step is called the current time step increments by one second
-        self.current_time_step += 1
+    @functools.lru_cache(maxsize=None)
+    def observation_space(self, agent_id: str) -> spaces.Dict:
+        """
+        Creates the observation space for the agents
 
-        return (
-            self.observations,
-            self.rewards,
-            self.terminations,
-            self.truncations,
-            self.infos,
+        Args:
+            agent_id (str): The ID of the target UAV
+
+        Returns:
+            (spaces.Dict): state space of the agent
+                agent_id (int32): The identification number of the target UAV
+                agent_speed (float64): The speed of the agent UAV
+                agent_deveation (float64): The angular deveation from the path to the target vertiport
+                intruder_detected (spaces.Discrete): Boolean that returns true when an intruder is detected
+                intruder_id (int32): The identification number of the intruding UAV
+                distance_to_intruder (float64): The distance to the UAV in meters
+                relative_heading_intruder (float64): The relative heaving to the intruder
+                intruder_current_heading (float64): The heading at wich the intruder is traveling
+        """
+        return spaces.Dict(
+            {
+                "agent_id": spaces.Box(
+                    low=0, high=np.iinfo(np.int32).max, shape=(1,), dtype=np.int32
+                ),
+                "agent_speed": spaces.Box(
+                    low=0,
+                    high=self.auto_uav_max_speed,
+                    shape=(1,),
+                    dtype=np.float64,
+                ),
+                "agent_deviation": spaces.Box(
+                    low=-180, high=180, shape=(1,), dtype=np.float64
+                ),
+                "intruder_detected": spaces.Discrete(2),
+                "intruder_id": spaces.Box(
+                    low=0, high=np.iinfo(np.int32).max, shape=(1,), dtype=np.int32
+                ),
+                "distance_to_intruder": spaces.Box(
+                    low=0,
+                    high=self.auto_uav_detection_radius,
+                    shape=(1,),
+                    dtype=np.float64,
+                ),
+                "relative_heading_intruder": spaces.Box(
+                    low=-180, high=180, shape=(1,), dtype=np.float64
+                ),
+                "intruder_current_heading": spaces.Box(
+                    low=-180, high=180, shape=(1,), dtype=np.float64
+                ),
+            }
         )
 
     def render_init(
@@ -322,77 +456,13 @@ class UamUavEnvPZ(ParallelEnv):
         Args:
             ax(plt.Axes): The backdrop of the graph
         """
-    def render_static_asset(
-        self, ax: plt.Axes
-    ):
+
+    def render_static_asset(self, ax: plt.Axes):
         self.airspace.location_utm_gdf.plot(ax=ax, color="gray", linewidth=0.6)
         self.airspace.location_utm_hospital_buffer.plot(ax=ax, color="red", alpha=0.3)
         self.airspace.location_utm_hospital.plot(ax=ax, color="black")
         # adding vertiports to static plot
         gpd.GeoSeries(self.sim_vertiports_point_array).plot(ax=ax, color="black")
-
-    def render(self, fig: Figure, ax: Axes):
-        """
-        Renders everything in the graph
-
-        Args:
-            fig(plt.Figure): The outside of the graph that is rendered
-            ax(plt.Axes): The backdrop of the graph
-        """
-        plt.cla()
-        self.render_static_asset(ax)
-        self.render_static_asset(ax)
-
-        for auto_uav in self.auto_uavs_list:
-            auto_uav_footprint_poly = auto_uav.uav_polygon_plot(
-                auto_uav.collision_radius
-            )
-            auto_uav_footprint_poly.plot(
-                ax=ax, color=auto_uav.uav_footprint_color, alpha=0.3
-            )
-
-            auto_uav_nmac_poly = auto_uav.uav_polygon_plot(auto_uav.nmac_radius)
-            auto_uav_nmac_poly.plot(
-                ax=ax, color=auto_uav.uav_nmac_radius_color, alpha=0.3
-            )
-
-            auto_uav_detection_poly = auto_uav.uav_polygon_plot(
-                auto_uav.detection_radius
-            )
-            auto_uav_detection_poly.plot(
-                ax=ax, color=auto_uav.uav_detection_radius_color, alpha=0.3
-            )
-            auto_x_current, auto_y_current, auto_dx_current, auto_dy_current = (
-                auto_uav.get_uav_current_heading_arrow()
-            )
-            ax.arrow(
-                auto_x_current,
-                auto_y_current,
-                auto_dx_current,
-                auto_dy_current,
-                alpha=1,
-            )
-            auto_x_final, auto_y_final, auto_dx_final, auto_dy_final = (
-                auto_uav.get_uav_final_heading_arrow()
-            )
-            ax.arrow(
-                auto_x_final, auto_y_final, auto_dx_final, auto_dy_final, alpha=0.8
-            )
-
-        fig.canvas.draw()
-        fig.canvas.flush_events()
-        time.sleep(self.sleep_time)
-
-    def get_agent_speed(
-        self, auto_uav: AutonomousUAV
-    ) -> np.ndarray:  # TODO #8 - rename to get_agent_speed()
-        return np.array([auto_uav.current_speed])
-
-    def get_agent_deviation(self, auto_uav: AutonomousUAV) -> np.ndarray:
-        #! should this be converted between -180 to 180
-        return np.array(
-            [auto_uav.current_heading_deg - auto_uav.current_ref_final_heading_deg]
-        )
 
     def _get_obs(self, agent_id: str) -> dict:
         """
@@ -504,77 +574,10 @@ class UamUavEnvPZ(ParallelEnv):
             )
         }
 
-    @functools.lru_cache(maxsize=None)
-    def observation_space(self, agent_id: str) -> spaces.Dict:
-        """
-        Creates the observation space for the agents
-
-        Args:
-            agent_id (str): The ID of the target UAV
-
-        Returns:
-            (spaces.Dict): state space of the agent
-                agent_id (int32): The identification number of the target UAV
-                agent_speed (float64): The speed of the agent UAV
-                agent_deveation (float64): The angular deveation from the path to the target vertiport
-                intruder_detected (spaces.Discrete): Boolean that returns true when an intruder is detected
-                intruder_id (int32): The identification number of the intruding UAV
-                distance_to_intruder (float64): The distance to the UAV in meters
-                relative_heading_intruder (float64): The relative heaving to the intruder
-                intruder_current_heading (float64): The heading at wich the intruder is traveling
-        """
-        return spaces.Dict(
-            {
-                "agent_id": spaces.Box(
-                    low=0, high=np.iinfo(np.int32).max, shape=(1,), dtype=np.int32
-                ),
-                "agent_speed": spaces.Box(
-                    low=0,
-                    high=self.auto_uav_max_speed,
-                    shape=(1,),
-                    dtype=np.float64,
-                ),
-                "agent_deviation": spaces.Box(
-                    low=-180, high=180, shape=(1,), dtype=np.float64
-                ),
-                "intruder_detected": spaces.Discrete(2),
-                "intruder_id": spaces.Box(
-                    low=0, high=np.iinfo(np.int32).max, shape=(1,), dtype=np.int32
-                ),
-                "distance_to_intruder": spaces.Box(
-                    low=0,
-                    high=self.auto_uav_detection_radius,
-                    shape=(1,),
-                    dtype=np.float64,
-                ),
-                "relative_heading_intruder": spaces.Box(
-                    low=-180, high=180, shape=(1,), dtype=np.float64
-                ),
-                "intruder_current_heading": spaces.Box(
-                    low=-180, high=180, shape=(1,), dtype=np.float64
-                ),
-            }
-        )
-
-    @functools.lru_cache(maxsize=None)
-    def action_space(self, agent_id: str) -> spaces.Box:
-        return spaces.Box(low=-1, high=1, shape=(2,), dtype=np.float64)
-
-
-    
-    def get_data_at_timestep(self,timestep):
-        filtered_df = self.df[self.df['current_time_step']== timestep]
-        return filtered_df[['auto_uav_id', 'auto_uav', 'current_position', 'current_heading', 'final_heading']]
-    
-
-    def get_animate_fig_ax(self):
-        fig, ax = plt.subplots()
-        return fig, ax
-
     def init_animate(self, animate_ax):
         self.render_static_asset(animate_ax)
         return []
-    
+
     def update_animate(self, frame, animate_ax):
         plt.cla()
         self.render_static_assets(animate_ax)
@@ -582,31 +585,36 @@ class UamUavEnvPZ(ParallelEnv):
         artists = []
 
         for i, row in data_frame.iterrows():
-            if isinstance(row['uav'], AutonomousUAV):
-                autouav_obj:AutonomousUAV = row['uav']
-                autouav = gpd.GeoSeries([row['current_position']])
-                current_heading = row['current_heading']
-                final_heading = row['final_heading']
-                auto_uav_detection = autouav.buffer(autouav_obj.detection_radius).plot(color = autouav_obj.uav_detection_radius_color,ax=animate_ax)
-                auto_uav_nmac = autouav.buffer(autouav_obj.nmac_radius).plot(color=autouav_obj.uav_nmac_radius_color,ax=animate_ax)
-                
-                x,y = row['current_position'].x, row['current_position'].y 
+            if isinstance(row["uav"], AutonomousUAV):
+                autouav_obj: AutonomousUAV = row["uav"]
+                autouav = gpd.GeoSeries([row["current_position"]])
+                current_heading = row["current_heading"]
+                final_heading = row["final_heading"]
+                auto_uav_detection = autouav.buffer(autouav_obj.detection_radius).plot(
+                    color=autouav_obj.uav_detection_radius_color, ax=animate_ax
+                )
+                auto_uav_nmac = autouav.buffer(autouav_obj.nmac_radius).plot(
+                    color=autouav_obj.uav_nmac_radius_color, ax=animate_ax
+                )
+
+                x, y = row["current_position"].x, row["current_position"].y
                 r = autouav_obj.detection_radius
-                dx, dy = r*np.cos(current_heading), r*np.sin(current_heading)
-                auto_uav_current_heading_arrow = animate_ax.arrow(x,y,dx,dy, alpha=1)
+                dx, dy = r * np.cos(current_heading), r * np.sin(current_heading)
+                auto_uav_current_heading_arrow = animate_ax.arrow(x, y, dx, dy, alpha=1)
                 artists.append(auto_uav_detection)
                 artists.append(auto_uav_nmac)
                 artists.append(auto_uav_current_heading_arrow)
             else:
-                raise RuntimeError('Update animate has instance type error')
+                raise RuntimeError("Update animate has instance type error")
         return artists
-    
+
     def create_animation(self, env_time_step):
         fig, ax = self.get_animate_fig_ax()
         df = self.df
-        ani = FuncAnimation(fig, self.update_animate, frames=range(0,env_time_step), fargs=[ax])
+        ani = FuncAnimation(
+            fig, self.update_animate, frames=range(0, env_time_step), fargs=[ax]
+        )
         return ani
-    
+
     def save_animation(self, animation_obj, file_name):
-        animation_obj.save(file_name+'.mp4', writer='ffmpeg')
-    
+        animation_obj.save(file_name + ".mp4", writer="ffmpeg")

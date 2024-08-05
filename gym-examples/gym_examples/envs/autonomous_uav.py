@@ -29,17 +29,17 @@ class AutonomousUAV(UAV):
         self.uav_detection_radius_color = "blue"
         self.uav_collision_controller = None
 
-    def _update_speed(
-        self, acceleration_from_controller: float, d_t: float = 1
-    ) -> None:
-        self.current_speed += acceleration_from_controller * d_t
-
     def step(self, acceleration: float, heading_correction: float) -> None:
         self._update_speed(acceleration, d_t=1)
         self._update_position(d_t=1)
 
         self._update_theta_d(heading_correction)
         self._update_ref_final_heading()
+
+    def _update_speed(
+        self, acceleration_from_controller: float, d_t: float = 1
+    ) -> None:
+        self.current_speed += acceleration_from_controller * d_t
 
 
 # from vertiport import Vertiport

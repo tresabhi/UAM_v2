@@ -34,38 +34,6 @@ class CollisionController:
     def __init__(self) -> None:
         self.name = "Baseline Collision Controller"
 
-    def get_quadrant(self, theta: float) -> int:
-        """
-        Gets the quadrant based on the angle theta provided.
-        There are 4 quadrands.
-        2|1
-        ---
-        4|3
-
-        Args:
-            Theta (float): angle relative to the x axis(ccw is +)
-
-        Returns:
-            (int): Only 1-4
-        """
-        if (theta >= 0) and (theta < 90):
-            return 1
-        elif (theta >= 90) and (theta <= 180):
-            return 2
-        elif (theta < 0) and (theta >= -90):
-            return 3
-        elif (theta >= -180) and (theta < -90):
-            return 4
-        else:
-            raise RuntimeError("DAS Error: Invalid heading")
-
-    """
-    state -> static state                dynamic state                          get_action
-            False                           None                                    
-    """
-
-    #                    state -> ((bool,                float                  ), dict            | None)
-    #                               static_obj_detected, uav.current_heading_deg , dynamic_obj_info| None
     def get_action(self, state: list) -> tuple[float, float]:
         """
         Gets the action for a basic uav
@@ -151,6 +119,39 @@ class CollisionController:
             )
 
         return acceleration, heading_correction
+
+    def get_quadrant(self, theta: float) -> int:
+        """
+        Gets the quadrant based on the angle theta provided.
+        There are 4 quadrands.
+        2|1
+        ---
+        4|3
+
+        Args:
+            Theta (float): angle relative to the x axis(ccw is +)
+
+        Returns:
+            (int): Only 1-4
+        """
+        if (theta >= 0) and (theta < 90):
+            return 1
+        elif (theta >= 90) and (theta <= 180):
+            return 2
+        elif (theta < 0) and (theta >= -90):
+            return 3
+        elif (theta >= -180) and (theta < -90):
+            return 4
+        else:
+            raise RuntimeError("DAS Error: Invalid heading")
+
+    """
+    state -> static state                dynamic state                          get_action
+            False                           None                                    
+    """
+
+    #                    state -> ((bool,                float                  ), dict            | None)
+    #                               static_obj_detected, uav.current_heading_deg , dynamic_obj_info| None
 
 
 class ZeroController:

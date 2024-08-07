@@ -7,8 +7,14 @@ from envs.airtrafficcontroller import ATC
 from envs.airspace import Airspace
 
 
-def check_create_n_random_vertiports():
-    pass
+def check_create_n_random_vertiports(num_vertiport):
+    atc.create_n_random_vertiports(num_vertiport)
+    try:
+        assert len(atc.vertiports_in_airspace) == num_vertiport
+    except:
+        raise AssertionError('length of vp not correct')
+    print('VP check passed')
+  
 
 
 if __name__ == "__main__":
@@ -22,4 +28,9 @@ if __name__ == "__main__":
         for func in dir(atc)
         if callable(getattr(atc, func)) and not func.startswith("__")
     ]
-    print(methods)
+    #print(methods)
+
+    # atc.create_n_auto_uavs(5)
+    # assert len(atc.auto_uavs_list) == 5
+    check_create_n_random_vertiports(10)
+    

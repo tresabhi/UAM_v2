@@ -1,9 +1,9 @@
-import sys
-import os
+# import sys
+# import os
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from envs.airspace import Airspace
+from airspace import Airspace
 
 if __name__ == "__main__":
     location_name = "Austin, Texas, USA"
@@ -14,3 +14,6 @@ if __name__ == "__main__":
 
     for attribute, value in airspace_attributes.items():
         print(f"Attribute: '{attribute}', Type: '{type(attribute)}'")
+        
+    assert airspace.buffer_radius == 500
+    assert airspace.location_name == 'Austin, Texas'

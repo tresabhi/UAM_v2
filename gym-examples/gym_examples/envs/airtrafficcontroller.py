@@ -86,6 +86,39 @@ class ATC:
 
     # TODO - break the task of creating UAVs and assigning start end vertiport
     # * This method needs to be run once to initialize the sim
+
+    def create_n_auto_uavs(self, num_auto_uavs: int) -> None:
+        """
+        Creates a specified number of autonomus UAVs and assigns them random start and end vertiports.
+
+        Args:
+            num_auto_uavs (int): The number of autonomus UAVs to create.
+
+        Returns:
+            None
+        """
+
+        start_vertiport_list = copy.deepcopy(self.vertiports_in_airspace)
+        end_vertiport_list = copy.deepcopy(self.vertiports_in_airspace)
+
+        # to choose unique start and end vertiport pair
+        for _ in range(num_auto_uavs):
+            uav_start_vertiport = random.choice(start_vertiport_list)
+            uav_end_vertiport = random.choice(end_vertiport_list)
+            while uav_start_vertiport.location == uav_end_vertiport.location:
+                uav_end_vertiport = random.choice(end_vertiport_list)
+
+            # create instance of UAVBasic
+            auto_uav = AutonomousUAV(uav_start_vertiport, uav_end_vertiport)
+            # add UAV to vertiport's uav_list
+            uav_start_vertiport.uav_list.append(auto_uav)
+            # remove vertiport from start list
+            start_vertiport_list.pop(start_vertiport_list.index(uav_start_vertiport))
+            # remove vertiport from end list
+            end_vertiport_list.pop(end_vertiport_list.index(uav_end_vertiport))
+            # add uav to atc uav_list
+            self.auto_uavs_list.append(auto_uav)
+
     def create_n_basic_uavs(
         self,
         num_uavs: int,
@@ -120,55 +153,6 @@ class ATC:
             end_vertiport_list.pop(end_vertiport_list.index(uav_end_vertiport))
             # add uav to atc uav_list
             self.basic_uav_list.append(uav)
-
-    def create_n_auto_uavs(self, num_auto_uavs: int) -> None:
-        """
-        Creates a specified number of autonomus UAVs and assigns them random start and end vertiports.
-
-        Args:
-            num_auto_uavs (int): The number of autonomus UAVs to create.
-
-        Returns:
-            None
-        """
-
-        start_vertiport_list = copy.deepcopy(self.vertiports_in_airspace)
-        end_vertiport_list = copy.deepcopy(self.vertiports_in_airspace)
-
-        # to choose unique start and end vertiport pair
-        for _ in range(num_auto_uavs):
-            uav_start_vertiport = random.choice(start_vertiport_list)
-            uav_end_vertiport = random.choice(end_vertiport_list)
-            while uav_start_vertiport.location == uav_end_vertiport.location:
-                uav_end_vertiport = random.choice(end_vertiport_list)
-
-            # create instance of UAVBasic
-            auto_uav = AutonomousUAV(uav_start_vertiport, uav_end_vertiport)
-            # add UAV to vertiport's uav_list
-            uav_start_vertiport.uav_list.append(auto_uav)
-            # remove vertiport from start list
-            start_vertiport_list.pop(start_vertiport_list.index(uav_start_vertiport))
-            # remove vertiport from end list
-            end_vertiport_list.pop(end_vertiport_list.index(uav_end_vertiport))
-            # add uav to atc uav_list
-            self.auto_uavs_list.append(auto_uav)
-
-    def _vertiport_filtering(self, some_vertiport: Vertiport) -> list:
-        """Internal method. Used for selecting end vertiports for UAVs,
-           such that at the beginning of the simulation,
-           all UAVs have different vertiports.
-
-        Parameters:
-        some_vertiport (Vertiport): The vertiport to filter out.
-
-        Returns:
-        list: A list of filtered vertiports.
-        """
-        filtered_vertiport = []
-        for vertiport in self.vertiports_in_airspace:
-            if vertiport != some_vertiport:
-                filtered_vertiport.append(vertiport)
-        return filtered_vertiport
 
     def has_reached_end_vertiport(self, uav: UAVBasic | AutonomousUAV) -> None:
         """Checks if a UAV has reached its end_vertiport.
@@ -221,6 +205,42 @@ class ATC:
         sample_vertiport = random.choice(self.vertiports_in_airspace)
         return sample_vertiport
 
+    def set_start_end_uav(self, list_uav_airspace: list):
+        """Assign start-end point to all uavs in airspace"""
+        pass
+
+    def _clearing_procedure(
+        self, outgoing_uav: UAVBasic | AutonomousUAV
+    ) -> None:  #! rename to _takeoff_procedure()
+        """
+        Performs the clearing procedure for a given UAV.
+        Args:
+            outgoing_uav (UAV): The UAV that is outgoing(leaving the start_vertiport).
+        Returns:
+            None
+        Raises:
+            None
+        """
+        outgoing_uav_id = outgoing_uav.id
+        for uav in outgoing_uav.start_vertiport.uav_list:
+            if uav.id == outgoing_uav_id:
+                outgoing_uav.start_vertiport.uav_list.remove(uav)
+
+    def _landing_procedure(self, landing_uav: UAVBasic | AutonomousUAV) -> None:
+        """
+        Performs the landing procedure for a given UAV.
+        Args:
+            landing_uav (UAV): The UAV that is landing.
+        Returns:
+            None
+        Raises:
+            None
+        """
+        landing_vertiport = landing_uav.end_vertiport
+        landing_vertiport.uav_list.append(landing_uav)
+        landing_uav.refresh_uav()
+        self._reassign_end_vertiport_of_uav(landing_uav)
+
     def _reassign_end_vertiport_of_uav(self, uav: UAVBasic) -> None:
         """Reassigns the end vertiport of a UAV.
 
@@ -256,41 +276,22 @@ class ATC:
         uav.start_vertiport = vertiport
         uav.update_start_point()
 
-    def _landing_procedure(self, landing_uav: UAVBasic | AutonomousUAV) -> None:
-        """
-        Performs the landing procedure for a given UAV.
-        Args:
-            landing_uav (UAV): The UAV that is landing.
-        Returns:
-            None
-        Raises:
-            None
-        """
-        landing_vertiport = landing_uav.end_vertiport
-        landing_vertiport.uav_list.append(landing_uav)
-        landing_uav.refresh_uav()
-        self._reassign_end_vertiport_of_uav(landing_uav)
+    def _vertiport_filtering(self, some_vertiport: Vertiport) -> list:
+        """Internal method. Used for selecting end vertiports for UAVs,
+           such that at the beginning of the simulation,
+           all UAVs have different vertiports.
 
-    def _clearing_procedure(
-        self, outgoing_uav: UAVBasic | AutonomousUAV
-    ) -> None:  #! rename to _takeoff_procedure()
-        """
-        Performs the clearing procedure for a given UAV.
-        Args:
-            outgoing_uav (UAV): The UAV that is outgoing(leaving the start_vertiport).
-        Returns:
-            None
-        Raises:
-            None
-        """
-        outgoing_uav_id = outgoing_uav.id
-        for uav in outgoing_uav.start_vertiport.uav_list:
-            if uav.id == outgoing_uav_id:
-                outgoing_uav.start_vertiport.uav_list.remove(uav)
+        Parameters:
+        some_vertiport (Vertiport): The vertiport to filter out.
 
-    def set_start_end_uav(self, list_uav_airspace: list):
-        """Assign start-end point to all uavs in airspace"""
-        pass
+        Returns:
+        list: A list of filtered vertiports.
+        """
+        filtered_vertiport = []
+        for vertiport in self.vertiports_in_airspace:
+            if vertiport != some_vertiport:
+                filtered_vertiport.append(vertiport)
+        return filtered_vertiport
 
     # TODO #16
     def create_auto_uav(

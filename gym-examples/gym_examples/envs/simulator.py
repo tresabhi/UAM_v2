@@ -116,12 +116,17 @@ class Simulator:
         fig.canvas.flush_events()
         time.sleep(self.sleep_time)
 
-    def _get_obs(self, uav_obj: UAV) -> tuple[tuple[bool, float], None | dict]:
-        state_info = uav_obj.get_state(
-            self.uav_list, self.airspace.location_utm_hospital_buffer
-        )
-
-        return state_info
+    def sim_step(self, action_list: list) -> list[tuple[str, Point]]:
+        obs_list = []
+        for uav_id, action in action_list:
+            # print(uav_id, action)
+            uav = self.get_uav(uav_id)
+            self.atc.has_left_start_vertiport(uav)
+            self.atc.has_reached_end_vertiport(uav)
+            obs = uav.step(action)
+            assert uav.id == uav_id
+            obs_list.append((uav_id, obs))
+        return obs_list
 
     #! arg -> action_list needs to be unpacked, action_list should contain (action, uav_id) tuple,
     #! which will be unpacked and assigned to each uav based on uav_id
@@ -142,18 +147,6 @@ class Simulator:
             else:
                 continue
         raise RuntimeError("UAV not it list")
-
-    def sim_step(self, action_list: list) -> list[tuple[str, Point]]:
-        obs_list = []
-        for uav_id, action in action_list:
-            # print(uav_id, action)
-            uav = self.get_uav(uav_id)
-            self.atc.has_left_start_vertiport(uav)
-            self.atc.has_reached_end_vertiport(uav)
-            obs = uav.step(action)
-            assert uav.id == uav_id
-            obs_list.append((uav_id, obs))
-        return obs_list
 
     def run_simulator(
         self,
@@ -190,6 +183,13 @@ class Simulator:
             self.sim_step(action_list)  #! how would step behave to action_list
 
         print("Simulation complete.")
+
+    def _get_obs(self, uav_obj: UAV) -> tuple[tuple[bool, float], None | dict]:
+        state_info = uav_obj.get_state(
+            self.uav_list, self.airspace.location_utm_hospital_buffer
+        )
+
+        return state_info
 
     # #TODO - this is necessary
     # def reset(self,):

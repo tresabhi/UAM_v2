@@ -62,33 +62,6 @@ class SimulatorBasic:
         # sim run time
         self.total_timestep = total_timestep
 
-    def get_vertiport_from_atc(self) -> None:
-        """Get the vertaport location"""
-        """This is a convinience method, for reset()"""
-        vertiports_point_array = [
-            vertiport.location for vertiport in self.atc.vertiports_in_airspace
-        ]
-        self.sim_vertiports_point_array = vertiports_point_array
-
-    def get_uav_list_from_atc(self) -> None:
-        """Get a list of UAVs"""
-        """This is a convinience method, for reset()"""
-        self.uav_list = self.atc.basic_uav_list
-
-    def render_init(
-        self,
-    ):
-        fig, ax = plt.subplots()
-        return fig, ax
-
-    def render_static_assets(self, ax: Axes) -> None:
-        """Adds hospitals(black), hospital buffers(green), underlying map of city(gray), and vertaports(black) to the map"""
-        self.airspace.location_utm_gdf.plot(ax=ax, color="gray", linewidth=0.6)
-        self.airspace.location_utm_hospital_buffer.plot(ax=ax, color="green", alpha=0.3)
-        self.airspace.location_utm_hospital.plot(ax=ax, color="black")
-        # adding vertiports to static plot
-        gpd.GeoSeries(self.sim_vertiports_point_array).plot(ax=ax, color="black")
-
     def render(
         self,
         fig: Figure,
@@ -127,30 +100,20 @@ class SimulatorBasic:
         fig.canvas.flush_events()
         time.sleep(self.sleep_time)
 
-    def _get_obs(self, uav_obj: UAVBasic) -> dict:
-        """Checks the location of UAVs and Hospital buffer zones"""
-        state_info = uav_obj.get_state(
-            self.uav_list, self.airspace.location_utm_hospital_buffer
-        )
+    def reset(
+        self,
+    ) -> None:
+        self.current_time_step = 0
+        self.atc.basic_uav_list = []
+        self.atc.vertiports_in_airspace = []
+        self.uav_list = []
+        self.sim_vertiports_point_array = []
 
-        return state_info
-
-    def get_uav(self, uav_id: str) -> UAV:
-        """Returns UAV information of a specific uavID"""
-        for uav in self.uav_list:
-            if uav.id == int(uav_id):
-                return uav
-            else:
-                continue
-        raise RuntimeError("UAV not in list")
-
-    def set_uav_intruder_list(self) -> None:
-        for uav in self.uav_list:
-            uav.get_intruder_uav_list(self.uav_list)
-
-    def set_building_gdf(self) -> None:
-        for uav in self.uav_list:
-            uav.get_airspace_building_list(self.airspace.location_utm_hospital_buffer)
+        # needs to reset the step_count
+        self.atc.create_n_random_vertiports(self.num_vertiports)
+        self.atc.create_n_basic_uavs(self.num_basic_uavs)
+        self.get_vertiport_from_atc()
+        self.get_uav_list_from_atc()
 
     def sim_step(
         self,
@@ -161,6 +124,44 @@ class SimulatorBasic:
             self.atc.has_reached_end_vertiport(uav)
             uav.step()
             # self.collision = uav.has_uav_collision()
+
+    # Simulation functions above
+
+    def get_uav(self, uav_id: str) -> UAV:
+        """Returns UAV information of a specific uavID"""
+        for uav in self.uav_list:
+            if uav.id == int(uav_id):
+                return uav
+            else:
+                continue
+        raise RuntimeError("UAV not in list")
+
+    def get_uav_list_from_atc(self) -> None:
+        """Get a list of UAVs"""
+        """This is a convinience method, for reset()"""
+        self.uav_list = self.atc.basic_uav_list
+
+    def get_vertiport_from_atc(self) -> None:
+        """Get the vertaport location"""
+        """This is a convinience method, for reset()"""
+        vertiports_point_array = [
+            vertiport.location for vertiport in self.atc.vertiports_in_airspace
+        ]
+        self.sim_vertiports_point_array = vertiports_point_array
+
+    def render_init(
+        self,
+    ):
+        fig, ax = plt.subplots()
+        return fig, ax
+
+    def render_static_assets(self, ax: Axes) -> None:
+        """Adds hospitals(black), hospital buffers(green), underlying map of city(gray), and vertaports(black) to the map"""
+        self.airspace.location_utm_gdf.plot(ax=ax, color="gray", linewidth=0.6)
+        self.airspace.location_utm_hospital_buffer.plot(ax=ax, color="green", alpha=0.3)
+        self.airspace.location_utm_hospital.plot(ax=ax, color="black")
+        # adding vertiports to static plot
+        gpd.GeoSeries(self.sim_vertiports_point_array).plot(ax=ax, color="black")
 
     def run_simulator(
         self,
@@ -190,20 +191,21 @@ class SimulatorBasic:
 
         print("Simulation complete.")
 
-    def reset(
-        self,
-    ) -> None:
-        self.current_time_step = 0
-        self.atc.basic_uav_list = []
-        self.atc.vertiports_in_airspace = []
-        self.uav_list = []
-        self.sim_vertiports_point_array = []
+    def set_building_gdf(self) -> None:
+        for uav in self.uav_list:
+            uav.get_airspace_building_list(self.airspace.location_utm_hospital_buffer)
 
-        # needs to reset the step_count
-        self.atc.create_n_random_vertiports(self.num_vertiports)
-        self.atc.create_n_basic_uavs(self.num_basic_uavs)
-        self.get_vertiport_from_atc()
-        self.get_uav_list_from_atc()
+    def set_uav_intruder_list(self) -> None:
+        for uav in self.uav_list:
+            uav.get_intruder_uav_list(self.uav_list)
+
+    def _get_obs(self, uav_obj: UAVBasic) -> dict:
+        """Checks the location of UAVs and Hospital buffer zones"""
+        state_info = uav_obj.get_state(
+            self.uav_list, self.airspace.location_utm_hospital_buffer
+        )
+
+        return state_info
 
     # #TODO - this is necessary
     # def close(self,):

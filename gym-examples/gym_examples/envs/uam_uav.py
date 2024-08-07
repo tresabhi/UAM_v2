@@ -76,16 +76,18 @@ class UamUavEnv(gym.Env):
             sleep_time (float): Time to sleep in between render frames
             render_mode (str): The render mode of the simulation
         """
-        
+
         # animation data
-        data = {'current_time_step':[],
-                'uav_id':[],
-                'uav':[],
-                'current_position':[],
-                'current_heading':[],
-                'final_heading':[]}
+        data = {
+            "current_time_step": [],
+            "uav_id": [],
+            "uav": [],
+            "current_position": [],
+            "current_heading": [],
+            "final_heading": [],
+        }
         self.df = pd.DataFrame(data)
-        
+
         # Environment attributes
         self.current_time_step = 0  #! not being used during step
         self.num_vertiports = num_vertiport
@@ -174,30 +176,68 @@ class UamUavEnv(gym.Env):
             dtype=np.float64,  #! should action choosen form action space be converted back when applied in step()
         )
 
+    def render(self, fig: Figure, ax: Axes) -> None:
+        """
+        Renders everything in the graph
 
-    def add_data(self,uav:UAVBasic|AutonomousUAV):
-        self.df = self.df._append({
-            'current_time_step':self.current_time_step,
-            'uav_id':uav.id,
-            'uav':uav,
-            'current_position':uav.current_position,
-            'current_heading':uav.current_heading_radians,
-            'final_heading':uav.current_ref_final_heading_rad},
-            ignore_index = True)
+        Args:
+            fig(plt.Figure): The outside of the graph that is rendered
+            ax(plt.Axes): The backdrop of the graph
+        """
+        plt.cla()
+        self.render_static_assets(ax)
 
+        # uav_basic PLOT LOGIC
+        for uav_obj in self.uav_basic_list:
+            uav_footprint_poly = uav_obj.uav_polygon_plot(uav_obj.uav_footprint)
+            uav_footprint_poly.plot(ax=ax, color=uav_obj.uav_footprint_color, alpha=0.3)
 
-    def get_vertiport_from_atc(self) -> None:
-        """This is a convinience method, for reset()"""
+            uav_nmac_poly = uav_obj.uav_polygon_plot(uav_obj.nmac_radius)
+            uav_nmac_poly.plot(ax=ax, color=uav_obj.uav_nmac_radius_color, alpha=0.3)
 
-        vertiports_point_array = [
-            vertiport.location for vertiport in self.atc.vertiports_in_airspace
-        ]
-        self.sim_vertiports_point_array = vertiports_point_array
+            uav_detection_poly = uav_obj.uav_polygon_plot(uav_obj.detection_radius)
+            uav_detection_poly.plot(
+                ax=ax, color=uav_obj.uav_detection_radius_color, alpha=0.3
+            )
+            x_current, y_current, dx_current, dy_current = (
+                uav_obj.get_uav_current_heading_arrow()
+            )
+            ax.arrow(x_current, y_current, dx_current, dy_current, alpha=1)
+            x_final, y_final, dx_final, dy_final = uav_obj.get_uav_final_heading_arrow()
+            ax.arrow(x_final, y_final, dx_final, dy_final, alpha=0.8)
 
-    def get_uav_list_from_atc(self) -> None:
-        """This is a convinience method, for reset()"""
+        auto_uav_footprint_poly = self.auto_uav.uav_polygon_plot(
+            self.auto_uav.collision_radius
+        )
+        auto_uav_footprint_poly.plot(
+            ax=ax, color=self.auto_uav.uav_footprint_color, alpha=0.3
+        )
 
-        self.uav_basic_list = self.atc.basic_uav_list
+        auto_uav_nmac_poly = self.auto_uav.uav_polygon_plot(self.auto_uav.nmac_radius)
+        auto_uav_nmac_poly.plot(
+            ax=ax, color=self.auto_uav.uav_nmac_radius_color, alpha=0.3
+        )
+
+        auto_uav_detection_poly = self.auto_uav.uav_polygon_plot(
+            self.auto_uav.detection_radius
+        )
+        auto_uav_detection_poly.plot(
+            ax=ax, color=self.auto_uav.uav_detection_radius_color, alpha=0.3
+        )
+        auto_x_current, auto_y_current, auto_dx_current, auto_dy_current = (
+            self.auto_uav.get_uav_current_heading_arrow()
+        )
+        ax.arrow(
+            auto_x_current, auto_y_current, auto_dx_current, auto_dy_current, alpha=1
+        )
+        auto_x_final, auto_y_final, auto_dx_final, auto_dy_final = (
+            self.auto_uav.get_uav_final_heading_arrow()
+        )
+        ax.arrow(auto_x_final, auto_y_final, auto_dx_final, auto_dy_final, alpha=0.8)
+
+        fig.canvas.draw()
+        fig.canvas.flush_events()
+        time.sleep(self.sleep_time)
 
     def reset(self, seed: int = None, options: dict = None) -> tuple[dict, dict]:
         """
@@ -241,14 +281,147 @@ class UamUavEnv(gym.Env):
         )
 
         self.auto_uav = AutonomousUAV(start_vertiport_auto_uav, end_vertiport_auto_uav)
-        
-        #This is a list of all UAVs in the airspace - uav_basic + auto_uav
+
+        # This is a list of all UAVs in the airspace - uav_basic + auto_uav
         self.uavs_in_airspace = self.uav_basic_list + [self.auto_uav]
-        
+
         observation = self._get_obs()
         info = self._get_info()
 
         return observation, info
+
+    def step(self, action: tuple) -> tuple[dict, float, bool, bool, dict]:
+        """
+        This method is used to step the environment, it will step the environment by one timestep.
+
+        The action argument - will be passed to auto_uav's step method
+
+        basic UAVs will step without action. so I will need to modify basic uav_basic in such a way that they will step without action.
+        This tells me that basic uav_basic will need to have collision avoidance built into the uav_basic module, such that they can step without action.
+
+        Args:
+            action (tuple): the action of the auto_uav
+
+        Return:
+            observations (dict): Feeds the state space of the agent
+            rewards (int): The reward earned durring the step
+            terminations (bool): Checks if the agent has reached its destination
+            truncations (bool): Checks for collisions with static and dynamic objects
+            infos (dict): distance of agent from target vertiport
+        """
+        # saving data for animation
+        for uav in self.uavs_in_airspace:
+            self.add_data(uav)
+
+        # decomposing action tuple
+        # TODO #11 - should acceleration and heading_correction be transformed from normalized value to absolute value
+        acceleration = action[0]
+        heading_correction = action[1]
+
+        self.set_uav_basic_intruder_list()
+        self.set_uav_basic_building_gdf()
+
+        # for uav_basic in uav_basic_list step all uav_basic
+        for uav_basic in self.uav_basic_list:
+            self.atc.has_left_start_vertiport(uav_basic)
+            self.atc.has_reached_end_vertiport(uav_basic)
+            uav_basic.step()
+
+        # Auto_uav step
+        self.auto_uav.step(acceleration, heading_correction)
+
+        #! WE DO NOT NEED TO PERFORM HAS_LEFT_START_VERTIPORT and HAS_REACHED_END_VERTIPORT
+        #! because once the auto uav reaches its end_vertiport the training stops and we reset the environment
+        # TODO #12 - check if environment should be reset after completing only one journey
+        obs = self._get_obs()
+        reward = self.get_reward(obs)
+        info = self._get_info()
+
+        # TODO - develop methods for termination and truncation
+        # Logic for termination and truncation
+        auto_uav_current_position = self.auto_uav.current_position
+        auto_uav_end_position = self.auto_uav.end_point
+
+        distance_to_end_point = auto_uav_current_position.distance(
+            auto_uav_end_position
+        )
+
+        """if distance to endpoint is less than landing proximity of auto_uav
+                we have reached our end vertiport, thus we can terminate our episode"""
+        if distance_to_end_point < self.auto_uav.landing_proximity:
+            reached_end_vertiport = True
+        else:
+            reached_end_vertiport = False
+
+        if reached_end_vertiport:
+            terminated = True
+        else:
+            terminated = False
+
+        # check collision with static object
+        collision_static_obj, _ = self.auto_uav.get_state_static_obj(
+            self.airspace.location_utm_hospital.geometry,
+            "collision",  # self.collision_with_static_obj()
+        )
+
+        # check collision with dynamic object
+        collision_dynamic_obj = self.auto_uav.get_collision(
+            self.uav_basic_list
+        )  # self.collision_with_dynamic_obj()
+
+        collision_detected = collision_static_obj or collision_dynamic_obj
+
+        if collision_detected:
+            truncated = True
+        else:
+            truncated = False
+
+        self.current_time_step += 1
+
+        return obs, reward, terminated, truncated, info
+
+    def add_data(self, uav: UAVBasic | AutonomousUAV):
+        self.df = self.df._append(
+            {
+                "current_time_step": self.current_time_step,
+                "uav_id": uav.id,
+                "uav": uav,
+                "current_position": uav.current_position,
+                "current_heading": uav.current_heading_radians,
+                "final_heading": uav.current_ref_final_heading_rad,
+            },
+            ignore_index=True,
+        )
+
+    #! there are UAV methods that accomplish this task - remove this method and use UAV native methods
+    def collision_with_static_obj(
+        self,
+    ) -> bool:
+        """
+        Checks for a collision between the UAV and static objects (hospitals)
+
+        Returns:
+            colsion_with_static_obj (bool): Returns true if there has been a collision with a static object
+        """
+        collision_with_static_obj, _ = self.auto_uav.get_state_static_obj(
+            self.airspace.location_utm_hospital.geometry, "collision"
+        )
+        return collision_with_static_obj
+
+    #! there are UAV methods that accomplish this task - remove this method and use UAV native methods
+    def collision_with_dynamic_obj(
+        self,
+    ) -> bool:
+        collision = self.auto_uav.get_collision(self.uav_basic_list)
+        return collision
+
+    def create_animation(self, env_time_step):
+        fig, ax = self.get_animate_fig_ax()
+        df = self.df
+        ani = FuncAnimation(
+            fig, self.update_animate, frames=range(0, env_time_step), fargs=[ax]
+        )
+        return ani
 
     def get_agent_speed(
         self,
@@ -265,6 +438,228 @@ class UamUavEnv(gym.Env):
                 - self.auto_uav.current_ref_final_heading_deg
             ]
         )
+
+    def get_animate_fig_ax(self):
+        fig, ax = plt.subplots()
+        return fig, ax
+
+    def get_data_at_timestep(self, timestep):
+        filtered_df = self.df[self.df["current_time_step"] == timestep]
+        return filtered_df[
+            ["uav_id", "uav", "current_position", "current_heading", "final_heading"]
+        ]
+
+    def get_end_vertiport_auto_uav(self, start_vertiport: Vertiport) -> Vertiport:
+        """
+        Gets the vertiport for the UAV to target
+
+        Returns:
+            scome_vertiport (Vertiport): the target vertiport for the UAV
+        """
+        some_vertiport = self.atc.provide_vertiport()
+        while some_vertiport.location == start_vertiport.location:
+            some_vertiport = self.atc.provide_vertiport()
+        return some_vertiport
+
+    def get_start_vertiport_auto_uav(
+        self,
+    ) -> Vertiport:
+        """
+        Gets the vertiport for the UAV to start at
+
+        Returns:
+            start_vertiport_auto_uav (Vertiport): the starting vertiport for the UAV
+        """
+        for vertiport in self.atc.vertiports_in_airspace:
+            if len(vertiport.uav_list) == 0:
+                start_vertiport_auto_uav = vertiport
+        return start_vertiport_auto_uav
+
+    def get_reward(self, obs: dict) -> float:
+        """
+        Returns the reward the agent earns at each step
+
+        Args:
+            obs (dict): The observation space of the agent
+                agent_id
+                agent_speed
+                agent_deviation
+                intruder_detected
+                intruder_id
+                distance_to_intruder
+                relative_heading_intruder
+                intruder_heading
+
+        Returns:
+            reward_sum (float): Reward earned by the agent in that time step
+        """
+
+        punishment_existing = -0.1
+        if obs["intruder_detected"] == 0:
+            punishment_closeness: float = 0.0
+        else:
+            normed_nmac_distance = (
+                self.auto_uav.nmac_radius / self.auto_uav.detection_radius
+            )  # what is this and why do i need it
+            punishment_closeness = -np.exp(
+                (normed_nmac_distance - obs["distance_to_intruder"]) * 10
+            )
+
+        reward_to_destination = float(obs["agent_speed"]) * float(
+            np.cos(obs["agent_deviation"])
+        )
+
+        punishment_deviation = float(-2 * (obs["agent_deviation"] / np.pi) ** 2)
+
+        reward_sum = (
+            punishment_existing
+            + punishment_closeness
+            + punishment_deviation
+            + reward_to_destination
+        )
+
+        reward_sum *= float(self.current_time_step)
+
+        return float(reward_sum)
+
+    def get_uav_list_from_atc(self) -> None:
+        """This is a convinience method, for reset()"""
+
+        self.uav_basic_list = self.atc.basic_uav_list
+
+    def get_vertiport_from_atc(self) -> None:
+        """This is a convinience method, for reset()"""
+
+        vertiports_point_array = [
+            vertiport.location for vertiport in self.atc.vertiports_in_airspace
+        ]
+        self.sim_vertiports_point_array = vertiports_point_array
+
+    def init_animate(self, animate_ax):
+        self.render_static_assets(animate_ax)
+        return []
+
+    #! there are UAV methods that accomplish this task - remove this method and use UAV native methods
+    def nmac_with_dynamic_obj(
+        self,
+    ) -> dict:
+        nmac_info_dict = self.auto_uav.get_state_dynamic_obj(
+            self.uav_basic_list, "nmac"
+        )
+        return nmac_info_dict
+
+        # TODO - determine if one run of experiment will end when auto_uav reaches its first destination, or should we define a number of destinations or should it be a number of steps based completion
+        #! auto uav_basic will also need these two methods for moving to the next vertiport
+        # self.atc.has_left_start_vertiport(uav_basic) -> will need these two depending on how an experiment ends
+        # self.atc.has_reached_end_vertiport(uav_basic)
+
+    def render_init(
+        self,
+    ) -> tuple[Figure, Axes]:
+        """
+        Initalizes the rendering
+
+        Returns:
+            fig(plt.Figure): The outside of the graph that is rendered
+            ax(plt.Axes): The backdrop of the graph
+        """
+        fig, ax = plt.subplots()
+        return fig, ax
+
+    def render_static_assets(
+        self, ax: Axes
+    ) -> None:  #! spelling error - fix everywhere this is used
+        """
+        Renders static assets onto the graph
+
+        Args:
+            ax(plt.Axes): The backdrop of the graph
+        """
+        self.airspace.location_utm_gdf.plot(ax=ax, color="gray", linewidth=0.6)
+        self.airspace.location_utm_hospital_buffer.plot(ax=ax, color="red", alpha=0.3)
+        self.airspace.location_utm_hospital.plot(ax=ax, color="black")
+        # adding vertiports to static plot
+        gpd.GeoSeries(self.sim_vertiports_point_array).plot(ax=ax, color="black")
+
+    #!rename method for clarity -> this method is for uav_basic in environment
+    def set_uav_basic_intruder_list(self) -> list[UAVBasic]:
+        """Each UAV needs access to UAV list in the environment
+        to perform dynamic detection and collision operation, this method
+        assigns the uav_list to all uavs"""
+
+        for uav in self.uav_basic_list:
+            uav.get_intruder_uav_list(self.uav_basic_list)
+
+    #!rename method for clarity -> this method is for uav_basic in environment
+    def set_uav_basic_building_gdf(self) -> None:
+        """Each UAV needs to have information about restriced airspace,
+        to perform static detection and collision operation. This setter method
+          assigns environment information to all uavs"""
+
+        for uav in self.uav_basic_list:
+            uav.get_airspace_building_list(self.airspace.location_utm_hospital_buffer)
+
+    #! WHAT IS THIS
+    # def set_auto_uav_building_gdf(self):
+    #     #! might need to set building property for auto_uav
+    #     # self.auto_uav.get_airspace_building_list(self.airspace.location_utm_hospital_buffer)
+    #     self.auto_uav.get
+    def save_animation(self, animation_obj, file_name):
+        animation_obj.save(file_name + ".mp4", writer="ffmpeg")
+
+    def update_animate(self, frame, animate_ax):
+        plt.cla()
+        self.render_static_assets(animate_ax)
+        data_frame = self.get_data_at_timestep(frame)
+        artists = []
+
+        for i, row in data_frame.iterrows():
+            if isinstance(row["uav"], UAVBasic):
+                uav_obj: UAVBasic = row["uav"]
+                uav = gpd.GeoSeries([row["current_position"]])
+                current_heading = row["current_heading"]
+                final_heading = row["final_heading"]
+                uav_detection = uav.buffer(uav_obj.detection_radius).plot(
+                    color=uav_obj.uav_detection_radius_color, ax=animate_ax
+                )
+                uav_nmac = uav.buffer(uav_obj.nmac_radius).plot(
+                    color=uav_obj.uav_nmac_radius_color, ax=animate_ax
+                )
+
+                r = uav_obj.detection_radius
+
+                x, y = row["current_position"].x, row["current_position"].y
+                dx, dy = r * np.cos(current_heading), r * np.sin(current_heading)
+                uav_current_heading_arrow = animate_ax.arrow(x, y, dx, dy, alpha=0.8)
+
+                x_f, y_f = row["current_position"].x, row["current_position"].y
+                dx_f, dy_f = r * np.cos(final_heading), r * np.sin(final_heading)
+                uav_final_heading_arrow = animate_ax.arrow(x, y, dx, dy, alpha=0.5)
+
+                artists.append(uav_detection)
+                artists.append(uav_nmac)
+                artists.append(uav_current_heading_arrow)
+                artists.append(uav_final_heading_arrow)
+
+            elif isinstance(row["uav"], AutonomousUAV):
+                autouav_obj: AutonomousUAV = row["uav"]
+                autouav = gpd.GeoSeries([row["current_position"]])
+                current_heading = row["current_heading"]
+                final_heading = row["final_heading"]
+                uav_detection = autouav.buffer(autouav_obj.detection_radius).plot(
+                    color=autouav_obj.uav_detection_radius_color, ax=animate_ax
+                )
+                uav_nmac = autouav.buffer(autouav_obj.nmac_radius).plot(
+                    color=autouav_obj.uav_nmac_radius_color, ax=animate_ax
+                )
+                x, y = row["current_position"].x, row["current_position"].y
+                r = autouav_obj.detection_radius
+                dx, dy = r * np.cos(current_heading), r * np.sin(current_heading)
+                uav_current_heading_arrow = animate_ax.arrow(x, y, dx, dy, alpha=1)
+                artists.append(uav_detection)
+                artists.append(uav_nmac)
+                artists.append(uav_current_heading_arrow)
+        return artists
 
     def _get_obs(self) -> dict:
         agent_id = np.array([self.auto_uav.id])
@@ -371,389 +766,6 @@ class UamUavEnv(gym.Env):
             )
         }
 
-    #!rename method for clarity -> this method is for uav_basic in environment
-    def set_uav_basic_intruder_list(self) -> list[UAVBasic]:
-        """Each UAV needs access to UAV list in the environment
-        to perform dynamic detection and collision operation, this method
-        assigns the uav_list to all uavs"""
-
-        for uav in self.uav_basic_list:
-            uav.get_intruder_uav_list(self.uav_basic_list)
-
-    #!rename method for clarity -> this method is for uav_basic in environment
-    def set_uav_basic_building_gdf(self) -> None:
-        """Each UAV needs to have information about restriced airspace,
-        to perform static detection and collision operation. This setter method
-          assigns environment information to all uavs"""
-
-        for uav in self.uav_basic_list:
-            uav.get_airspace_building_list(self.airspace.location_utm_hospital_buffer)
-
-    #! WHAT IS THIS
-    # def set_auto_uav_building_gdf(self):
-    #     #! might need to set building property for auto_uav
-    #     # self.auto_uav.get_airspace_building_list(self.airspace.location_utm_hospital_buffer)
-    #     self.auto_uav.get
-
-    def step(self, action: tuple) -> tuple[dict, float, bool, bool, dict]:
-        """
-        This method is used to step the environment, it will step the environment by one timestep.
-
-        The action argument - will be passed to auto_uav's step method
-
-        basic UAVs will step without action. so I will need to modify basic uav_basic in such a way that they will step without action.
-        This tells me that basic uav_basic will need to have collision avoidance built into the uav_basic module, such that they can step without action.
-
-        Args:
-            action (tuple): the action of the auto_uav
-
-        Return:
-            observations (dict): Feeds the state space of the agent
-            rewards (int): The reward earned durring the step
-            terminations (bool): Checks if the agent has reached its destination
-            truncations (bool): Checks for collisions with static and dynamic objects
-            infos (dict): distance of agent from target vertiport
-        """
-        # saving data for animation 
-        for uav in self.uavs_in_airspace:
-            self.add_data(uav)
-        
-        # decomposing action tuple
-        # TODO #11 - should acceleration and heading_correction be transformed from normalized value to absolute value
-        acceleration = action[0]
-        heading_correction = action[1]
-
-        self.set_uav_basic_intruder_list()
-        self.set_uav_basic_building_gdf()
-
-        # for uav_basic in uav_basic_list step all uav_basic
-        for uav_basic in self.uav_basic_list:
-            self.atc.has_left_start_vertiport(uav_basic)
-            self.atc.has_reached_end_vertiport(uav_basic)
-            uav_basic.step()
-
-        # Auto_uav step
-        self.auto_uav.step(acceleration, heading_correction)
-
-        #! WE DO NOT NEED TO PERFORM HAS_LEFT_START_VERTIPORT and HAS_REACHED_END_VERTIPORT
-        #! because once the auto uav reaches its end_vertiport the training stops and we reset the environment
-        # TODO #12 - check if environment should be reset after completing only one journey
-        obs = self._get_obs()
-        reward = self.get_reward(obs)
-        info = self._get_info()
-
-        # TODO - develop methods for termination and truncation
-        # Logic for termination and truncation
-        auto_uav_current_position = self.auto_uav.current_position
-        auto_uav_end_position = self.auto_uav.end_point
-
-        distance_to_end_point = auto_uav_current_position.distance(
-            auto_uav_end_position
-        )
-
-        """if distance to endpoint is less than landing proximity of auto_uav
-                we have reached our end vertiport, thus we can terminate our episode"""
-        if distance_to_end_point < self.auto_uav.landing_proximity:
-            reached_end_vertiport = True
-        else:
-            reached_end_vertiport = False
-
-        if reached_end_vertiport:
-            terminated = True
-        else:
-            terminated = False
-
-        # check collision with static object
-        collision_static_obj, _ = self.auto_uav.get_state_static_obj(
-            self.airspace.location_utm_hospital.geometry,
-            "collision",  # self.collision_with_static_obj()
-        )
-
-        # check collision with dynamic object
-        collision_dynamic_obj = self.auto_uav.get_collision(
-            self.uav_basic_list
-        )  # self.collision_with_dynamic_obj()
-
-        collision_detected = collision_static_obj or collision_dynamic_obj
-
-        if collision_detected:
-            truncated = True
-        else:
-            truncated = False
-
-        self.current_time_step += 1
-
-        return obs, reward, terminated, truncated, info
-
-    def get_reward(self, obs: dict) -> float:
-        """
-        Returns the reward the agent earns at each step
-
-        Args:
-            obs (dict): The observation space of the agent
-                agent_id
-                agent_speed
-                agent_deviation
-                intruder_detected
-                intruder_id
-                distance_to_intruder
-                relative_heading_intruder
-                intruder_heading
-
-        Returns:
-            reward_sum (float): Reward earned by the agent in that time step
-        """
-
-        punishment_existing = -0.1
-        if obs["intruder_detected"] == 0:
-            punishment_closeness: float = 0.0
-        else:
-            normed_nmac_distance = (
-                self.auto_uav.nmac_radius / self.auto_uav.detection_radius
-            )  # what is this and why do i need it
-            punishment_closeness = -np.exp(
-                (normed_nmac_distance - obs["distance_to_intruder"]) * 10
-            )
-
-        reward_to_destination = float(obs["agent_speed"]) * float(
-            np.cos(obs["agent_deviation"])
-        )
-
-        punishment_deviation = float(-2 * (obs["agent_deviation"] / np.pi) ** 2)
-
-        reward_sum = (
-            punishment_existing
-            + punishment_closeness
-            + punishment_deviation
-            + reward_to_destination
-        )
-
-        reward_sum *= float(self.current_time_step)
-
-        return float(reward_sum)
-
-    def render_init(
-        self,
-    ) -> tuple[Figure, Axes]:
-        """
-        Initalizes the rendering
-
-        Returns:
-            fig(plt.Figure): The outside of the graph that is rendered
-            ax(plt.Axes): The backdrop of the graph
-        """
-        fig, ax = plt.subplots()
-        return fig, ax
-
-    def render_static_assets(
-        self, ax: Axes
-    ) -> None:  #! spelling error - fix everywhere this is used
-        """
-        Renders static assets onto the graph
-
-        Args:
-            ax(plt.Axes): The backdrop of the graph
-        """
-        self.airspace.location_utm_gdf.plot(ax=ax, color="gray", linewidth=0.6)
-        self.airspace.location_utm_hospital_buffer.plot(ax=ax, color="red", alpha=0.3)
-        self.airspace.location_utm_hospital.plot(ax=ax, color="black")
-        # adding vertiports to static plot
-        gpd.GeoSeries(self.sim_vertiports_point_array).plot(ax=ax, color="black")
-
-    def render(self, fig: Figure, ax: Axes) -> None:
-        """
-        Renders everything in the graph
-
-        Args:
-            fig(plt.Figure): The outside of the graph that is rendered
-            ax(plt.Axes): The backdrop of the graph
-        """
-        plt.cla()
-        self.render_static_assets(ax)
-
-        # uav_basic PLOT LOGIC
-        for uav_obj in self.uav_basic_list:
-            uav_footprint_poly = uav_obj.uav_polygon_plot(uav_obj.uav_footprint)
-            uav_footprint_poly.plot(ax=ax, color=uav_obj.uav_footprint_color, alpha=0.3)
-
-            uav_nmac_poly = uav_obj.uav_polygon_plot(uav_obj.nmac_radius)
-            uav_nmac_poly.plot(ax=ax, color=uav_obj.uav_nmac_radius_color, alpha=0.3)
-
-            uav_detection_poly = uav_obj.uav_polygon_plot(uav_obj.detection_radius)
-            uav_detection_poly.plot(
-                ax=ax, color=uav_obj.uav_detection_radius_color, alpha=0.3
-            )
-            x_current, y_current, dx_current, dy_current = (
-                uav_obj.get_uav_current_heading_arrow()
-            )
-            ax.arrow(x_current, y_current, dx_current, dy_current, alpha=1)
-            x_final, y_final, dx_final, dy_final = uav_obj.get_uav_final_heading_arrow()
-            ax.arrow(x_final, y_final, dx_final, dy_final, alpha=0.8)
-
-        auto_uav_footprint_poly = self.auto_uav.uav_polygon_plot(
-            self.auto_uav.collision_radius
-        )
-        auto_uav_footprint_poly.plot(
-            ax=ax, color=self.auto_uav.uav_footprint_color, alpha=0.3
-        )
-
-        auto_uav_nmac_poly = self.auto_uav.uav_polygon_plot(self.auto_uav.nmac_radius)
-        auto_uav_nmac_poly.plot(
-            ax=ax, color=self.auto_uav.uav_nmac_radius_color, alpha=0.3
-        )
-
-        auto_uav_detection_poly = self.auto_uav.uav_polygon_plot(
-            self.auto_uav.detection_radius
-        )
-        auto_uav_detection_poly.plot(
-            ax=ax, color=self.auto_uav.uav_detection_radius_color, alpha=0.3
-        )
-        auto_x_current, auto_y_current, auto_dx_current, auto_dy_current = (
-            self.auto_uav.get_uav_current_heading_arrow()
-        )
-        ax.arrow(
-            auto_x_current, auto_y_current, auto_dx_current, auto_dy_current, alpha=1
-        )
-        auto_x_final, auto_y_final, auto_dx_final, auto_dy_final = (
-            self.auto_uav.get_uav_final_heading_arrow()
-        )
-        ax.arrow(auto_x_final, auto_y_final, auto_dx_final, auto_dy_final, alpha=0.8)
-
-        fig.canvas.draw()
-        fig.canvas.flush_events()
-        time.sleep(self.sleep_time)
-
-    def get_start_vertiport_auto_uav(
-        self,
-    ) -> Vertiport:
-        """
-        Gets the vertiport for the UAV to start at
-
-        Returns:
-            start_vertiport_auto_uav (Vertiport): the starting vertiport for the UAV
-        """
-        for vertiport in self.atc.vertiports_in_airspace:
-            if len(vertiport.uav_list) == 0:
-                start_vertiport_auto_uav = vertiport
-        return start_vertiport_auto_uav
-
-    def get_end_vertiport_auto_uav(self, start_vertiport: Vertiport) -> Vertiport:
-        """
-        Gets the vertiport for the UAV to target
-
-        Returns:
-            scome_vertiport (Vertiport): the target vertiport for the UAV
-        """
-        some_vertiport = self.atc.provide_vertiport()
-        while some_vertiport.location == start_vertiport.location:
-            some_vertiport = self.atc.provide_vertiport()
-        return some_vertiport
-
-    #! there are UAV methods that accomplish this task - remove this method and use UAV native methods
-    def collision_with_static_obj(
-        self,
-    ) -> bool:
-        """
-        Checks for a collision between the UAV and static objects (hospitals)
-
-        Returns:
-            colsion_with_static_obj (bool): Returns true if there has been a collision with a static object
-        """
-        collision_with_static_obj, _ = self.auto_uav.get_state_static_obj(
-            self.airspace.location_utm_hospital.geometry, "collision"
-        )
-        return collision_with_static_obj
-
-    #! there are UAV methods that accomplish this task - remove this method and use UAV native methods
-    def collision_with_dynamic_obj(
-        self,
-    ) -> bool:
-        collision = self.auto_uav.get_collision(self.uav_basic_list)
-        return collision
-
-    #! there are UAV methods that accomplish this task - remove this method and use UAV native methods
-    def nmac_with_dynamic_obj(
-        self,
-    ) -> dict:
-        nmac_info_dict = self.auto_uav.get_state_dynamic_obj(
-            self.uav_basic_list, "nmac"
-        )
-        return nmac_info_dict
-
-        # TODO - determine if one run of experiment will end when auto_uav reaches its first destination, or should we define a number of destinations or should it be a number of steps based completion
-        #! auto uav_basic will also need these two methods for moving to the next vertiport
-        # self.atc.has_left_start_vertiport(uav_basic) -> will need these two depending on how an experiment ends
-        # self.atc.has_reached_end_vertiport(uav_basic)
-
-    
-    def get_data_at_timestep(self,timestep):
-        filtered_df = self.df[self.df['current_time_step']== timestep]
-        return filtered_df[['uav_id', 'uav', 'current_position', 'current_heading', 'final_heading']]
-    
-
-    def get_animate_fig_ax(self):
-        fig, ax = plt.subplots()
-        return fig, ax
-
-    def init_animate(self, animate_ax):
-        self.render_static_assets(animate_ax)
-        return []
-    
-    def update_animate(self, frame, animate_ax):
-        plt.cla()
-        self.render_static_assets(animate_ax)
-        data_frame = self.get_data_at_timestep(frame)
-        artists = []
-
-        for i, row in data_frame.iterrows():
-            if isinstance(row['uav'], UAVBasic):
-                uav_obj:UAVBasic = row['uav']
-                uav = gpd.GeoSeries([row['current_position']])
-                current_heading = row['current_heading']
-                final_heading = row['final_heading']
-                uav_detection = uav.buffer(uav_obj.detection_radius).plot(color = uav_obj.uav_detection_radius_color,ax=animate_ax)
-                uav_nmac = uav.buffer(uav_obj.nmac_radius).plot(color=uav_obj.uav_nmac_radius_color,ax=animate_ax)
-                
-                r = uav_obj.detection_radius
-                
-                x,y = row['current_position'].x, row['current_position'].y 
-                dx, dy = r*np.cos(current_heading), r*np.sin(current_heading)
-                uav_current_heading_arrow = animate_ax.arrow(x,y,dx,dy, alpha=0.8)
-                
-                x_f,y_f = row['current_position'].x, row['current_position'].y
-                dx_f, dy_f = r*np.cos(final_heading), r*np.sin(final_heading)
-                uav_final_heading_arrow = animate_ax.arrow(x,y,dx,dy, alpha=0.5)
-                
-                artists.append(uav_detection)
-                artists.append(uav_nmac)
-                artists.append(uav_current_heading_arrow)
-                artists.append(uav_final_heading_arrow)
-
-            elif isinstance(row['uav'], AutonomousUAV):
-                autouav_obj:AutonomousUAV = row['uav']
-                autouav = gpd.GeoSeries([row['current_position']])
-                current_heading = row['current_heading']
-                final_heading = row['final_heading']
-                uav_detection = autouav.buffer(autouav_obj.detection_radius).plot(color = autouav_obj.uav_detection_radius_color,ax=animate_ax)
-                uav_nmac = autouav.buffer(autouav_obj.nmac_radius).plot(color=autouav_obj.uav_nmac_radius_color,ax=animate_ax)
-                x,y = row['current_position'].x, row['current_position'].y 
-                r = autouav_obj.detection_radius
-                dx, dy = r*np.cos(current_heading), r*np.sin(current_heading)
-                uav_current_heading_arrow = animate_ax.arrow(x,y,dx,dy, alpha=1)
-                artists.append(uav_detection)
-                artists.append(uav_nmac)
-                artists.append(uav_current_heading_arrow)
-        return artists
-    
-    def create_animation(self, env_time_step):
-        fig, ax = self.get_animate_fig_ax()
-        df = self.df
-        ani = FuncAnimation(fig, self.update_animate, frames=range(0,env_time_step), fargs=[ax])
-        return ani
-    
-    def save_animation(self, animation_obj, file_name):
-        animation_obj.save(file_name+'.mp4', writer='ffmpeg')
-    
     def _render_frame(
         self,
     ):

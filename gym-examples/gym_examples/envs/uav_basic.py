@@ -29,6 +29,7 @@ class UAVBasic:
         self.uav_footprint = 17 #H175 nose to tail length of 17m,
         self.nmac_radius = 150 #NMAC radius
         self.detection_radius = 550
+        self.collision_radius = 17  # H175 nose to tail length of 17m,
 
         # UAV technical properties
         self.id = id(self)

@@ -21,6 +21,13 @@ class UAV:
                  landing_proximity: float = 50., 
                  max_speed: float = 43,
                  ) -> None:
+        """
+        Args:
+            start_vertiport (Vertiport): The starting vertiport for the UAV
+            end_vertiport (Vertiport): The target vertiport for the UAV
+            landing_proximity (float): How close the UAV needs to be to a vertiport to land
+            max_speed (float): The maximum speed of the UAV
+        """
 
         # UAV builtin properties
         self.heading_deg = np.random.randint(-178,178) + np.random.rand() # random heading between -180 and 180
@@ -84,6 +91,9 @@ class UAV:
     def acceleration_controller(
         self,
     ) -> float:
+        """
+        Determines the acceleration of the UAV based on current speed and distance to the end point
+        """
 
         if self.current_speed == 0:
             acc = self.max_acceleration

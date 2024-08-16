@@ -103,6 +103,9 @@ class SimulatorBasic:
     def reset(
         self,
     ) -> None:
+        """
+        Resets the simulation. Clears the list of UAV's and vertiports in the airspace.
+        """
         self.current_time_step = 0
         self.atc.basic_uav_list = []
         self.atc.vertiports_in_airspace = []

@@ -117,6 +117,12 @@ class Simulator:
         time.sleep(self.sleep_time)
 
     def sim_step(self, action_list: list) -> list[tuple[str, Point]]:
+        """
+        Advances the simulation one time step
+
+        Args:
+            action_list (list): A list of actions for the UAVs in the simulation
+        """
         obs_list = []
         for uav_id, action in action_list:
             # print(uav_id, action)
@@ -141,6 +147,7 @@ class Simulator:
         return action_list
 
     def get_uav(self, uav_id: str) -> UAV:
+        """Returns the UAV properties when given a uav_id"""
         for uav in self.uav_list:
             if uav.id == int(uav_id):
                 return uav

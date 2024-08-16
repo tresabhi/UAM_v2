@@ -18,6 +18,14 @@ class UAVBasic:
                  landing_proximity: float = 250., 
                  max_speed: float = 43,
                  ):
+        
+        """
+        Args:
+            start_vertiport (Vertiport): The starting vertiport for the basic UAV
+            end_vertiport (Vertiport): The target vertiport for the basic UAV
+            landing_proximity (float): How close the UAV needs to be to a vertiport to land
+            max_speed (float): The maximum speed of the basic UAV
+        """
 
         # UAV rendering-representation properties
         self.uav_footprint_color = 'blue' # this color represents the UAV object 

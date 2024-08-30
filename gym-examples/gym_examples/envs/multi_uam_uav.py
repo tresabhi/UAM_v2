@@ -29,6 +29,7 @@ class UamUavEnvPZ(ParallelEnv):
         location_name: str,
         num_vertiports: int,
         num_auto_uav: int,
+        airspace_tag_list=[("building", "hospital"),("aeroway", "aerodrome")],
         sleep_time: float = 0.05,
         render_mode: str = None,
     ) -> None:
@@ -59,7 +60,7 @@ class UamUavEnvPZ(ParallelEnv):
         self.num_vertiports = num_vertiports
         self.num_auto_uav = num_auto_uav
         self.sleep_time = sleep_time
-        self.airspace = Airspace(location_name)
+        self.airspace = Airspace(location_name,airspace_tag_list=airspace_tag_list)
         self.atc = ATC(airspace=self.airspace)
 
         # AUTO UAV detail
@@ -198,7 +199,6 @@ class UamUavEnvPZ(ParallelEnv):
             ax(plt.Axes): The backdrop of the graph
         """
         plt.cla()
-        self.render_static_asset(ax)
         self.render_static_asset(ax)
 
         for auto_uav in self.auto_uavs_list:
@@ -371,7 +371,9 @@ class UamUavEnvPZ(ParallelEnv):
         """
         agent = self.auto_uavs_dict[agent_id]
         collision_with_stat_obj, _ = agent.get_state_static_obj(
-            self.airspace.location_utm_hospital.geometry, "collision"
+            # self.airspace.location_utm_hospital.geometry, 
+            self.airspace.restricted_airspace_geo_series.geometry,
+            "collision"
         )
         other_agent_list = agent.get_other_uav_list(self.auto_uavs_list)
         collision_with_dyn_obj = agent.get_collision(other_agent_list)
@@ -449,6 +451,9 @@ class UamUavEnvPZ(ParallelEnv):
         fig, ax = plt.subplots()
         return fig, ax
 
+
+        
+
     def render_static_asset(self, ax: plt.Axes):
         """
         Renders static assets onto the graph
@@ -456,11 +461,16 @@ class UamUavEnvPZ(ParallelEnv):
         Args:
             ax(plt.Axes): The backdrop of the graph
         """
-
-    def render_static_asset(self, ax: plt.Axes):
         self.airspace.location_utm_gdf.plot(ax=ax, color="gray", linewidth=0.6)
-        self.airspace.location_utm_hospital_buffer.plot(ax=ax, color="red", alpha=0.3)
-        self.airspace.location_utm_hospital.plot(ax=ax, color="black")
+        #! START - DELETION
+        # self.airspace.location_utm_hospital_buffer.plot(ax=ax, color="red", alpha=0.3)
+        # self.airspace.location_utm_hospital.plot(ax=ax, color="black")
+        #! END - DELETION
+
+        for tag_value in self.airspace.location_tags.keys():
+            self.airspace.location_utm[tag_value].plot(ax=ax, color="black")
+            self.airspace.location_utm_buffer[tag_value].plot(ax=ax, color="green", alpha=0.3)
+
         # adding vertiports to static plot
         gpd.GeoSeries(self.sim_vertiports_point_array).plot(ax=ax, color="black")
 
@@ -517,7 +527,8 @@ class UamUavEnvPZ(ParallelEnv):
         #!restricted airspace
         #!implementatation will require updating observation space in __init__
         restricted_airspace, _ = agent.get_state_static_obj(
-            self.atc.airspace.location_utm_hospital.geometry,
+            # self.atc.airspace.location_utm_hospital.geometry,
+            self.airspace.restricted_airspace_geo_series.geometry,
             "detection",  # the collision string represents that we are using detection as indicator
         )
         # what is the output of this method

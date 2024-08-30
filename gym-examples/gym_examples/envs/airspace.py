@@ -1,3 +1,4 @@
+import pandas as pd
 import geopandas as gpd
 from osmnx import features as ox_features
 from osmnx import geocode_to_gdf as geocode_to_gdf
@@ -5,7 +6,7 @@ from osmnx import projection as ox_projection
 
 
 class Airspace:
-    def __init__(self, location_name: str, buffer_radius: float = 500) -> None:
+    def __init__(self, location_name: str, buffer_radius: float = 500, airspace_tag_list=[]) -> None:   #! airspace feature has to be list of strings
         """Airspace - Defines the location of the map. Imports key information on hopitals(no fly zone)
 
         Args:
@@ -22,40 +23,58 @@ class Airspace:
         self.location_name = location_name  #'Austin, Texas, USA'
         self.buffer_radius = buffer_radius
 
-        # TODO - Buffer area needs to be added to all location of interest as they are added to the airspace
-        # self.buffer_area = buffer_area
+        #! adding airspace_feature list here add in to other necessary places 
+        self.airspace_tag_list = airspace_tag_list
 
         # location
-        location_gdf = geocode_to_gdf(
-            location_name
-        )  # converts named geocode - 'Austin,Texas' location to gdf
-        self.location_utm_gdf: gpd.GeoDataFrame = ox_projection.project_gdf(
-            location_gdf
-        )  # default projection - UTM projection #! GeoDataFrame has deprication warning - need quick fix
-        self.location_utm_gdf["boundary"] = (
-            self.location_utm_gdf.boundary
-        )  # adding column 'boundary'
+        location_gdf = geocode_to_gdf(location_name)  # converts named geocode - 'Austin,Texas' location to gdf
+        self.location_utm_gdf: gpd.GeoDataFrame = ox_projection.project_gdf(location_gdf)  # default projection - UTM projection #! GeoDataFrame has deprication warning - need quick fix
+        self.location_utm_gdf["boundary"] = (self.location_utm_gdf.boundary)  # adding column 'boundary'
+        
+        #TODO - DELETION START 
+        # # airspace feature                                                                      OSMtag     : tag_value``
+        # location_hospital = ox_features.features_from_polygon(location_gdf["geometry"][0], tags={"building": "hospital"}) #! Attach data types to these
+        
+        # # airspace feature - gdf
+        # self.location_utm_hospital: gpd.GeoDataFrame = ox_projection.project_gdf(location_hospital)
 
-        # hospital
-        location_hospital = ox_features.features_from_polygon(
-            location_gdf["geometry"][0], tags={"building": "hospital"}
-        )
-        self.location_utm_hospital: gpd.GeoDataFrame = ox_projection.project_gdf(
-            location_hospital
-        )
-        self.location_utm_hospital_buffer = self.location_utm_hospital.buffer(
-            self.buffer_radius
-        )  # 500 meter buffer area
+        # # airspace feature - gdf buffer
+        # self.location_utm_hospital_buffer: gpd.GeoSeries = self.location_utm_hospital.buffer(self.buffer_radius)  # 500 meter buffer area
 
-        # self._location_property -> (private property) lists the properties of the location, which is a gpd.GeoDataFrame
+        # # self._location_property -> (private property) lists the properties of the location, which is a gpd.GeoDataFrame
+        #!      DELETION END 
+        
+        #* accept strings from user -> hospital, airport ... etc 
+        #* place all the string in a list 
+        #* loop through the list and use the strings to append location object data to the dictionary 
+        #* 
+        #airspace_object_list = ['hospital', 'airport', 'factory']
+        self.location_tags = {}
+        self.location_feature = {}
+        self.location_utm = {}
+        self.location_utm_buffer = {}
+        
+        self.airspace_restricted_area_buffer_array = []
+        self.airspace_restricted_area_array = []
+        
+        for tag, tag_value in self.airspace_tag_list:
+            self.location_tags[tag_value] = tag
+            self.location_feature[tag_value] = ox_features.features_from_polygon(location_gdf["geometry"][0], tags={tag:tag_value})
+            self.location_utm[tag_value] = ox_projection.project_gdf(self.location_feature[tag_value])
+            self.location_utm_buffer[tag_value] = self.location_utm[tag_value].buffer(self.buffer_radius)
+            self.airspace_restricted_area_array.append(self.location_utm[tag_value])
+            self.airspace_restricted_area_buffer_array.append(self.location_utm_buffer[tag_value])
+        
+        self.restricted_airspace_buffer_geo_series = pd.concat(self.airspace_restricted_area_buffer_array)
+        self.restricted_airspace_geo_series = pd.concat(self.airspace_restricted_area_array)
+
+
+
+            
+
+        #! add above to the object 
+        #! where are these objects plotted - plot them there
 
     def __repr__(self) -> str:
         return "Airspace({location_name})".format(location_name=self.location_name)
 
-    # TODO - Look at system design principles to choose one of the ways to populate the area with 1) hospitals 2) airport and airspace 3) school etc.
-
-
-# austin = Airspace('Austin, Texas, USA')
-# print(type(austin.location_utm_hospital.geometry))
-# print(type(austin.location_utm_hospital_buffer))
-# print(austin.location_utm_hospital.geometry)

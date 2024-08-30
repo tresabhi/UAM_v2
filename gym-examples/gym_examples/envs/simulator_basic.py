@@ -21,6 +21,7 @@ class SimulatorBasic:
         num_basic_uavs: int,
         sleep_time: float,
         total_timestep: int,
+        airspace_tag_list:List[tuple] #!pass a list of string 
     ) -> None:
         """
         Initializes a Simulator object.
@@ -36,29 +37,28 @@ class SimulatorBasic:
         self.current_time_step = 0
         self.num_vertiports = num_vertiports
         self.num_basic_uavs = num_basic_uavs
-        self.airspace = Airspace(location_name=location_name)
+        self.airspace = Airspace(location_name=location_name, airspace_tag_list=airspace_tag_list)
         self.atc = ATC(
             self.airspace,
         )
+        
         # Initialize sim's vertiports and uavs using ATC
-        # *
-        #! These two statements will most probably be in reset()
         #! Think how a seed value can be added to the system, so that the system is reproduceable - the vertiports and the uav assignment fixed to some seed value.
         self.atc.create_n_random_vertiports(num_vertiports)
-        self.atc.create_n_basic_uavs(
-            num_basic_uavs,
-        )
+        self.atc.create_n_basic_uavs(num_basic_uavs)
 
         # unpacking atc.vertiports in airspace
         vertiports_point_array = [
             vertiport.location for vertiport in self.atc.vertiports_in_airspace
         ]
+        
         # sim data
         self.sim_vertiports_point_array = vertiports_point_array
         self.uav_list: List[UAVBasic] = self.atc.basic_uav_list
-        # *
+
         # sim sleep time
         self.sleep_time = sleep_time
+        
         # sim run time
         self.total_timestep = total_timestep
 
@@ -158,10 +158,20 @@ class SimulatorBasic:
     def render_static_assets(self, ax: Axes) -> None:
         """Adds hospitals(black), hospital buffers(green), underlying map of city(gray), and vertaports(black) to the map"""
         self.airspace.location_utm_gdf.plot(ax=ax, color="gray", linewidth=0.6)
-        self.airspace.location_utm_hospital_buffer.plot(ax=ax, color="green", alpha=0.3)
-        self.airspace.location_utm_hospital.plot(ax=ax, color="black")
+        
+        #! DELETION start - comment the bottom two lines 
+        # self.airspace.location_utm_hospital.plot(ax=ax, color="black")
+        # self.airspace.location_utm_hospital_buffer.plot(ax=ax, color="green", alpha=0.3)
+        #! DELETION end
+
+        for tag_value in self.airspace.location_tags.keys():
+            self.airspace.location_utm[tag_value].plot(ax=ax, color="black")
+            self.airspace.location_utm_buffer[tag_value].plot(ax=ax, color="green", alpha=0.3)
+
+
         # adding vertiports to static plot
         gpd.GeoSeries(self.sim_vertiports_point_array).plot(ax=ax, color="black")
+
 
     def run_simulator(
         self,
@@ -193,7 +203,7 @@ class SimulatorBasic:
 
     def set_building_gdf(self) -> None:
         for uav in self.uav_list:
-            uav.get_airspace_building_list(self.airspace.location_utm_hospital_buffer)
+            uav.set_airspace_building_list(self.airspace.restricted_airspace_buffer_geo_series)
 
     def set_uav_intruder_list(self) -> None:
         for uav in self.uav_list:
@@ -201,8 +211,12 @@ class SimulatorBasic:
 
     def _get_obs(self, uav_obj: UAVBasic) -> dict:
         """Checks the location of UAVs and Hospital buffer zones"""
+        #! get_state method needs to be worked to handle airspace restricted zones 
         state_info = uav_obj.get_state(
-            self.uav_list, self.airspace.location_utm_hospital_buffer
+            #! START DELETE
+            # self.uav_list, self.airspace.location_utm_hospital_buffer
+            #! END DELETE
+            self.uav_list, self.airspace.restricted_airspace_buffer_geo_series
         )
 
         return state_info

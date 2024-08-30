@@ -50,6 +50,9 @@ class UAVBasic:
         self.start_point:Point = self.start_vertiport.location
         self.end_point:Point = self.end_vertiport.location
         self.current_position:Point = self.start_point
+        
+        #! this attribute is provided by Point object, we could use this for performing z axis calculation 
+        self.current_position_z = 3000
 
         # UAV heading properties
         self.current_heading_deg:float = self.heading_deg
@@ -166,10 +169,18 @@ class UAVBasic:
             )
 
         return acceleration, heading_correction
-
-    def get_airspace_building_list(self, building_gdf: GeoSeries) -> None:
+    
+    
+    
+    #! START - method name and function update 
+    def set_airspace_building_list(self, building_gdf: GeoSeries) -> None:
         self.building_gdf = building_gdf
 
+    
+
+    
+    
+    
     def get_intruder_distance(self, other_uav: "UAVBasic") -> float:
         return self.current_position.distance(other_uav.current_position)
 
@@ -278,6 +289,7 @@ class UAVBasic:
 
             return intruder_state_info
 
+    #TODO - complete the logic for static object detection and avoidance 
     def get_state_static_obj(self, radius_str: str = 'detection') -> tuple[bool, float]:
         '''
         Currently, this method only detects a building and returns True/False.
@@ -298,7 +310,13 @@ class UAVBasic:
         intersection_list = []
 
         for i in range(building_polygon_count):
+            # this line is iterating through all the restricted airspace and finding intersection with UAV 
             intersection_list.append(self.uav_polygon(own_radius).intersection(self.building_gdf.iloc[i]))
+            # if there is intersection
+            # collect distance from uav to restricted airspace polygon
+            # save that as an attribute: distace to restricted
+            # if there is no collision then: distance to restricted is np.inf
+            # this attribute needs to be used for auto_uav and reward function  
 
         intersection_with_building = any(intersection_list)
 
@@ -324,6 +342,7 @@ class UAVBasic:
         dy = r * np.sin(self.current_ref_final_heading_rad)
         return x, y, dx, dy
 
+    #! START - HOW does this method make any sense with its name 
     def has_uav_collision(self, uav_list: list["UAVBasic"]) -> bool:
         intruder_uav_list = self.get_intruder_uav_list(uav_list, "collision")
 
@@ -331,6 +350,7 @@ class UAVBasic:
             return True
         else:
             return False
+    #! END
 
     def refresh_uav(self,) -> None:
         '''Update the start vertiport of a UAV 

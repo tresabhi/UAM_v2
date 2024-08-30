@@ -63,6 +63,7 @@ class UamUavEnv(gym.Env):
         location_name: str,
         num_vertiport: int,
         num_basic_uav: int,
+        airspace_tag_list=[("building", "hospital"),("aeroway", "aerodrome")],
         sleep_time: float = 0.005,  # sleep time between render frames
         render_mode: str = None,  #! check where this argument is used
     ) -> None:
@@ -89,11 +90,11 @@ class UamUavEnv(gym.Env):
         self.df = pd.DataFrame(data)
 
         # Environment attributes
-        self.current_time_step = 0  #! not being used during step
+        self.current_time_step = 0
         self.num_vertiports = num_vertiport
         self.num_basic_uavs = num_basic_uav
         self.sleep_time = sleep_time
-        self.airspace = Airspace(location_name)
+        self.airspace = Airspace(location_name, airspace_tag_list=airspace_tag_list)
         self.atc = ATC(airspace=self.airspace)
 
         # Vertiport initialization
@@ -114,6 +115,7 @@ class UamUavEnv(gym.Env):
         end_vertiport_auto_uav = self.get_end_vertiport_auto_uav(
             start_vertiport_auto_uav
         )
+        
         self.auto_uav = AutonomousUAV(start_vertiport_auto_uav, end_vertiport_auto_uav)
 
         # Environment spaces
@@ -165,10 +167,24 @@ class UamUavEnv(gym.Env):
                 "intruder_current_heading": spaces.Box(
                     low=-180, high=180, shape=(1,), dtype=np.float64
                 ),  # Intruder's heading
+                
+                # restricted airspace
+                # "restricted_airspace_detected":spaces.Discrete(
+                #     2 
+                # ),
+                # # distance to airspace 
+                # "distance_to_restricted_airspace": spaces.Box(
+                #     low=0,
+                #     high=1000,
+                #     shape=(1,),
+                #     dtype=np.float64,
+                # ),
             }
         )
 
         # Normalized action space
+        #! need to have two separate actions
+        #! one for acceleration, one for heading_change
         self.action_space = spaces.Box(
             low=-1,
             high=1,
@@ -315,8 +331,8 @@ class UamUavEnv(gym.Env):
 
         # decomposing action tuple
         # TODO #11 - should acceleration and heading_correction be transformed from normalized value to absolute value
-        acceleration = action[0]
-        heading_correction = action[1]
+        acceleration = action[0] #! should action be multiplied with max_acc
+        heading_correction = action[1] #! should action be multipled with max_heading_change
 
         self.set_uav_basic_intruder_list()
         self.set_uav_basic_building_gdf()
@@ -360,7 +376,8 @@ class UamUavEnv(gym.Env):
 
         # check collision with static object
         collision_static_obj, _ = self.auto_uav.get_state_static_obj(
-            self.airspace.location_utm_hospital.geometry,
+            # self.airspace.location_utm_hospital.geometry,
+            self.airspace.restricted_airspace_geo_series.geometry,
             "collision",  # self.collision_with_static_obj()
         )
 
@@ -403,8 +420,12 @@ class UamUavEnv(gym.Env):
         Returns:
             colsion_with_static_obj (bool): Returns true if there has been a collision with a static object
         """
+        #! refactor this - the call to get_static_state does not look nice, create similar method - get_dyn_collision -> get_collision
         collision_with_static_obj, _ = self.auto_uav.get_state_static_obj(
-            self.airspace.location_utm_hospital.geometry, "collision"
+            # self.airspace.location_utm_hospital.geometry,
+            self.airspace.restricted_airspace_geo_series.geometry,
+
+            "collision"
         )
         return collision_with_static_obj
 
@@ -511,6 +532,8 @@ class UamUavEnv(gym.Env):
 
         punishment_deviation = float(-2 * (obs["agent_deviation"] / np.pi) ** 2)
 
+        #! add new logic for static state object detection 
+
         reward_sum = (
             punishment_existing
             + punishment_closeness
@@ -568,16 +591,21 @@ class UamUavEnv(gym.Env):
 
     def render_static_assets(
         self, ax: Axes
-    ) -> None:  #! spelling error - fix everywhere this is used
+    ) -> None:  
+        
         """
         Renders static assets onto the graph
 
         Args:
             ax(plt.Axes): The backdrop of the graph
         """
+        
         self.airspace.location_utm_gdf.plot(ax=ax, color="gray", linewidth=0.6)
-        self.airspace.location_utm_hospital_buffer.plot(ax=ax, color="red", alpha=0.3)
-        self.airspace.location_utm_hospital.plot(ax=ax, color="black")
+        
+        for tag_value in self.airspace.location_tags.keys():
+            self.airspace.location_utm[tag_value].plot(ax=ax, color="black")
+            self.airspace.location_utm_buffer[tag_value].plot(ax=ax, color="green", alpha=0.3)
+        
         # adding vertiports to static plot
         gpd.GeoSeries(self.sim_vertiports_point_array).plot(ax=ax, color="black")
 
@@ -597,12 +625,12 @@ class UamUavEnv(gym.Env):
           assigns environment information to all uavs"""
 
         for uav in self.uav_basic_list:
-            uav.get_airspace_building_list(self.airspace.location_utm_hospital_buffer)
+            uav.set_airspace_building_list(self.airspace.restricted_airspace_buffer_geo_series)
 
     #! WHAT IS THIS
     # def set_auto_uav_building_gdf(self):
     #     #! might need to set building property for auto_uav
-    #     # self.auto_uav.get_airspace_building_list(self.airspace.location_utm_hospital_buffer)
+    #     # self.auto_uav.set_airspace_building_list(self.airspace.location_utm_hospital_buffer)
     #     self.auto_uav.get
     def save_animation(self, animation_obj, file_name):
         animation_obj.save(file_name + ".mp4", writer="ffmpeg")
@@ -708,7 +736,8 @@ class UamUavEnv(gym.Env):
         #!restricted airspace
         #!implementatation will require updating observation space in __init__
         restricted_airspace, _ = self.auto_uav.get_state_static_obj(
-            self.airspace.location_utm_hospital.geometry,
+            # self.airspace.location_utm_hospital.geometry,
+            self.airspace.restricted_airspace_geo_series.geometry,
             "detection",  # the collision string represents that we are using detection as indicator
         )
         # what is the output of this method

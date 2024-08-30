@@ -4,7 +4,7 @@ from simulator import Simulator
 from simulator_basic import SimulatorBasic
 from matplotlib.animation import FuncAnimation
 import geopandas as gpd
-from utils import static_plot
+from utils import static_plot #! delete this if not needed 
 from das import CollisionController, ZeroController
 
 
@@ -24,7 +24,7 @@ if __name__ == "__main__":
     # controller_predict = controller.get_action
 
     sim = SimulatorBasic(
-        "Austin, Texas, USA", 15, 14, sleep_time=0.02, total_timestep=500
+        "Austin, Texas, USA", 15, 14, sleep_time=0.02, total_timestep=500, airspace_tag_list=[("building", "hospital"),("aeroway", "aerodrome")]
     )
 
     # fig, ax initialization

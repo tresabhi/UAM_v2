@@ -71,10 +71,19 @@ class ATC:
             - Creates the vertiports and updates the vertiports in the airspace list.
         """
 
+        #! Need to remove all the restricted airspace from the area for vertiport selection
+        #! START - DELETION 
         # Need to remove the hospital regions first so that vertiports are not sampled from hospital and buffer zones
-        sample_space = self.airspace.location_utm_gdf.iloc[0, 0].difference(
-            self.airspace.location_utm_hospital_buffer.unary_union
-        )
+        # sample_space = self.airspace.location_utm_gdf.iloc[0, 0].difference(
+        #     self.airspace.location_utm_hospital_buffer.unary_union
+        # )
+        #! END - DELETION 
+
+        for tag_value in self.airspace.location_tags.keys():
+            sample_space = self.airspace.location_utm_gdf.iloc[0,0].difference(
+                self.airspace.location_utm_buffer[tag_value].unary_union
+            )
+
         sample_space_gdf = GeoSeries(sample_space)
         sample_vertiport: GeoSeries = sample_space_gdf.sample_points(num_vertiports)
         sample_vertiport_array: np.ndarray = shapely.get_parts(sample_vertiport[0])

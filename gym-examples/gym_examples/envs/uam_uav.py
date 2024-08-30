@@ -63,7 +63,7 @@ class UamUavEnv(gym.Env):
         location_name: str,
         num_vertiport: int,
         num_basic_uav: int,
-        airspace_tag_list=[("building", "hospital"),("aeroway", "aerodrome")],
+        airspace_tag_list: List[tuple], 
         sleep_time: float = 0.005,  # sleep time between render frames
         render_mode: str = None,  #! check where this argument is used
     ) -> None:
@@ -422,9 +422,7 @@ class UamUavEnv(gym.Env):
         """
         #! refactor this - the call to get_static_state does not look nice, create similar method - get_dyn_collision -> get_collision
         collision_with_static_obj, _ = self.auto_uav.get_state_static_obj(
-            # self.airspace.location_utm_hospital.geometry,
             self.airspace.restricted_airspace_geo_series.geometry,
-
             "collision"
         )
         return collision_with_static_obj
@@ -455,8 +453,8 @@ class UamUavEnv(gym.Env):
         #! should this be converted between -180 to 180
         return np.array(
             [
-                self.auto_uav.current_heading_deg
-                - self.auto_uav.current_ref_final_heading_deg
+                np.abs(self.auto_uav.current_heading_deg
+                - self.auto_uav.current_ref_final_heading_deg)
             ]
         )
 
@@ -627,11 +625,7 @@ class UamUavEnv(gym.Env):
         for uav in self.uav_basic_list:
             uav.set_airspace_building_list(self.airspace.restricted_airspace_buffer_geo_series)
 
-    #! WHAT IS THIS
-    # def set_auto_uav_building_gdf(self):
-    #     #! might need to set building property for auto_uav
-    #     # self.auto_uav.set_airspace_building_list(self.airspace.location_utm_hospital_buffer)
-    #     self.auto_uav.get
+
     def save_animation(self, animation_obj, file_name):
         animation_obj.save(file_name + ".mp4", writer="ffmpeg")
 
@@ -733,10 +727,7 @@ class UamUavEnv(gym.Env):
             relative_heading_intruder = np.array([0])
             intruder_heading = np.array([0])
 
-        #!restricted airspace
-        #!implementatation will require updating observation space in __init__
         restricted_airspace, _ = self.auto_uav.get_state_static_obj(
-            # self.airspace.location_utm_hospital.geometry,
             self.airspace.restricted_airspace_geo_series.geometry,
             "detection",  # the collision string represents that we are using detection as indicator
         )

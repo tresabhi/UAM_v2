@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 from gymnasium.envs.registration import register
 from uam_uav import UamUavEnv
 
-env = UamUavEnv("Austin, Texas, USA", 8, 5, sleep_time=0.01)
+env = UamUavEnv("Austin, Texas, USA", 8, 5, sleep_time=0.01, airspace_tag_list=[("building", "hospital"),("aeroway", "aerodrome")])
 obs, info = env.reset()
 
 # For interactive plotting - to see rendering of airspace during training

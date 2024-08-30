@@ -1,7 +1,7 @@
 from multi_uam_uav import UamUavEnvPZ
 import matplotlib.pyplot as plt
 
-parallel_env = UamUavEnvPZ("Austin, Texas, USA", 8, 5, sleep_time=0.01)
+parallel_env = UamUavEnvPZ("Austin, Texas, USA", 8, 5, airspace_tag_list=[("building", "hospital"),("aeroway", "aerodrome")], sleep_time=0.01)
 observations, infos = parallel_env.reset(seed=42)
 
 

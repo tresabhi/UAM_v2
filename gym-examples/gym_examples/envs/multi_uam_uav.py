@@ -29,7 +29,7 @@ class UamUavEnvPZ(ParallelEnv):
         location_name: str,
         num_vertiports: int,
         num_auto_uav: int,
-        airspace_tag_list=[("building", "hospital"),("aeroway", "aerodrome")],
+        airspace_tag_list:List[tuple],
         sleep_time: float = 0.05,
         render_mode: str = None,
     ) -> None:
@@ -462,10 +462,6 @@ class UamUavEnvPZ(ParallelEnv):
             ax(plt.Axes): The backdrop of the graph
         """
         self.airspace.location_utm_gdf.plot(ax=ax, color="gray", linewidth=0.6)
-        #! START - DELETION
-        # self.airspace.location_utm_hospital_buffer.plot(ax=ax, color="red", alpha=0.3)
-        # self.airspace.location_utm_hospital.plot(ax=ax, color="black")
-        #! END - DELETION
 
         for tag_value in self.airspace.location_tags.keys():
             self.airspace.location_utm[tag_value].plot(ax=ax, color="black")
@@ -524,10 +520,7 @@ class UamUavEnvPZ(ParallelEnv):
             relative_heading_intruder = np.array([0])
             intruder_heading = np.array([0])
 
-        #!restricted airspace
-        #!implementatation will require updating observation space in __init__
         restricted_airspace, _ = agent.get_state_static_obj(
-            # self.atc.airspace.location_utm_hospital.geometry,
             self.airspace.restricted_airspace_geo_series.geometry,
             "detection",  # the collision string represents that we are using detection as indicator
         )

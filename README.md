@@ -62,4 +62,7 @@ May be required if this was missed in conda env create:
 
 ```
 pip install pettingzoo
+
 ```
+##### From aw in lab
+

@@ -36,23 +36,44 @@ class AutonomousUAV(UAV):
         self.uav_collision_controller = None
 
     def step(self, acceleration: float, heading_correction: float) -> None:
-        """
-        Advances the UAV one time step
-
-        Args:
-            acceleration (float): The acceleration of the UAV
-            heading_correction (float): The change in heading in degrees of the UAV
-        """
-        self._update_speed(acceleration, d_t=1)
-        self._update_position(d_t=1)
-
+        """Updates the UAV state with proper processing of actions"""
+        
+        # First update speed
+        self._update_speed(acceleration)
+        
+        # Then update heading
         self._update_theta_d(heading_correction)
+        
+        # Then update position using new speed
+        self._update_position(d_t=1)
+        
+        # Finally update reference
         self._update_ref_final_heading()
+        
+    # def step(self, acceleration: float, heading_correction: float) -> None:
+    #     """
+    #     Advances the UAV one time step
 
-    def _update_speed(
-        self, acceleration_from_controller: float, d_t: float = 1
-    ) -> None:
-        self.current_speed += acceleration_from_controller * d_t
+    #     Args:
+    #         acceleration (float): The acceleration of the UAV
+    #         heading_correction (float): The change in heading in degrees of the UAV
+    #     """
+    #     # First update speed
+    #     self._update_speed(acceleration, d_t=1)
+
+    #     # Then update heading
+    #     self._update_theta_d(heading_correction)
+
+    #     # Then update position using new speed
+    #     self._update_position(d_t=1)
+        
+    #     # Finally update reference
+    #     self._update_ref_final_heading()
+
+    # def _update_speed(self, acceleration_from_controller: float, d_t: float = 1) -> None:
+    #     """Update speed ensuring it stays non-negative"""
+    #     updated_speed = self.current_speed + acceleration_from_controller * d_t
+    #     self.current_speed = max(0.0, min(updated_speed, self.max_speed))  # Clamp between 0 and max_speed
 
 
 # from vertiport import Vertiport

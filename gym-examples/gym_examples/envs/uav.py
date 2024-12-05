@@ -69,25 +69,6 @@ class UAV:
                                                                     self.end_point.x - self.current_position.x)
         self.current_ref_final_heading_deg = self.angle_correction(np.rad2deg(self.current_ref_final_heading_rad))
 
-    def step(self, action: tuple[float, float]) -> Point:
-        """Updates the position of the UAV."""
-        if action is None:
-            acceleration = None
-        elif isinstance(action, tuple):
-            acceleration = action[0]
-            heading_correction = action[1]
-
-        self._update_position(
-            d_t=1,
-        )
-        self._update_speed(d_t=1, acceleration_from_controller=acceleration)
-        self._update_ref_final_heading()
-        self._update_theta_d(heading_correction)
-
-        obs = self.current_position
-
-        return obs
-
     def acceleration_controller(
         self,
     ) -> float:
@@ -297,79 +278,67 @@ class UAV:
             self.current_ref_final_heading_rad
         )
 
-    def _update_speed(self, acceleration_from_controller: float, d_t: float = 1) -> None:
-        '''
-        Arg: acceleration_from_controller is an input from controller/das_system
-        '''
-        base_acc = self.acceleration_controller()
-        '''
-        if acceleration from controller, meaning controller is sending some acceleration value,
-        then acceleration from controller will over-ride acceleration from speed controller
+    def step(self, action: tuple[float, float]) -> Point:
+        """Updates the UAV state with proper processing of actions"""
+        acceleration, heading_correction = action
         
-        '''
-        if acceleration_from_controller != 0:
-            final_acc = acceleration_from_controller
-        else:
-            final_acc = base_acc
+        # First update speed
+        self._update_speed(acceleration)
+        
+        # Then update heading
+        self._update_theta_d(heading_correction)
+        
+        # Then update position using new speed
+        self._update_position(d_t=1)
+        
+        # Finally update reference
+        self._update_ref_final_heading()
+        
+        return self.current_position
 
-        self.current_speed = self.current_speed + (final_acc * d_t)
+    def _update_speed(self, acceleration: float, d_t: float = 1) -> None:
+        """Simplified speed update with direct acceleration application"""
+        # Apply acceleration directly
+        new_speed = self.current_speed + acceleration * d_t
+        # Clamp to valid range
+        self.current_speed = max(0.0, min(new_speed, self.max_speed))
 
-    # TODO - update_theta needs to be reworked NOW
-    def _update_theta_d(self, heading_correction_das_controller: float = 0) -> None: 
-        # TODO - update method to include theta_dd and d_t
-        '''Internal method. Updates heading of the aircraft, pointed towards ref_final_heading_deg''' 
-        if heading_correction_das_controller == 0:
-            avg_rate_of_turn = 20 #degree/s, collected from google - https://skybrary.aero/articles/rate-turn#:~:text=Description,%C2%B0%20turn%20in%20two%20minutes.
-
-            #! need to find how to dynamically slow down the turn rate as we get close to the ref_final_heading
-            if np.abs(self.current_ref_final_heading_deg - self.current_heading_deg) < avg_rate_of_turn:
-                avg_rate_of_turn = 1 #degree Airbus H175
-
-            if np.abs(self.current_ref_final_heading_deg - self.current_heading_deg) < 0.5:
-                avg_rate_of_turn = 0.
-
-            # * logic for heading update
-            if (np.sign(self.current_ref_final_heading_deg)==np.sign(self.current_heading_deg)==1):
-                # and (ref_final_heading > current_heading_deg)) or ((np.sign(ref_final_heading)==np.sign(current_heading_deg)== -1) and (np.abs(ref_final_heading)<(np.abs(current_heading_deg)))):
-                if self.current_ref_final_heading_deg > self.current_heading_deg:
-                    self.current_heading_deg += avg_rate_of_turn #counter clockwise turn
-                    self.current_heading_radians = np.deg2rad(self.current_heading_deg) 
-                elif self.current_ref_final_heading_deg < self.current_heading_deg:
-                    self.current_heading_deg -= avg_rate_of_turn #clockwise turn
-                    self.current_heading_radians = np.deg2rad(self.current_heading_deg)
-                else:
-                    pass  
-
-            elif np.sign(self.current_ref_final_heading_deg) == np.sign(self.current_heading_deg) == -1:
-                if np.abs(self.current_ref_final_heading_deg) < np.abs(self.current_heading_deg):
-                    self.current_heading_deg += avg_rate_of_turn #counter clockwise turn
-                    self.current_heading_radians = np.deg2rad(self.current_heading_deg)
-                elif np.abs(self.current_ref_final_heading_deg) > np.abs(self.current_heading_deg):
-                    self.current_heading_deg -= avg_rate_of_turn #clockwise turn
-                    self.current_heading_radians = np.deg2rad(self.current_heading_deg)
-                else:
-                    pass
-
-            elif np.sign(self.current_ref_final_heading_deg) == 1 and np.sign(self.current_heading_deg) == -1:
-                self.current_heading_deg += avg_rate_of_turn #counter clockwise turn
-                self.current_heading_radians = np.deg2rad(self.current_heading_deg)
-
-            elif np.sign(self.current_ref_final_heading_deg) == -1 and np.sign(self.current_heading_deg) == 1:
-                self.current_heading_deg -= avg_rate_of_turn #clockwise turn
-                self.current_heading_radians = np.deg2rad(self.current_heading_deg)
-
+    def _update_theta_d(self, heading_correction: float = 0) -> None:
+        """
+        Update heading with strong goal-seeking behavior and stability
+        """
+        # Calculate target heading to goal
+        target_heading = np.rad2deg(np.arctan2(
+            self.end_point.y - self.current_position.y,
+            self.end_point.x - self.current_position.x
+        ))
+        
+        # Calculate heading difference using smallest angle
+        heading_diff = ((target_heading - self.current_heading_deg + 180) % 360) - 180
+        
+        if heading_correction == 0:
+            # Autonomous goal-seeking behavior
+            if abs(heading_diff) < 1.0:  # Very close to target heading
+                # Maintain current heading
+                return
+            elif abs(heading_diff) < 10.0:  # Close to target
+                turn_rate = np.sign(heading_diff) * min(abs(heading_diff) * 0.1, 5.0)
             else:
-                raise Exception('Error in heading correction')
-
+                # Standard turn rate for larger corrections
+                turn_rate = np.sign(heading_diff) * min(20.0, abs(heading_diff) * 0.2)
+                
+            self.current_heading_deg += turn_rate
         else:
-            self.current_heading_deg += heading_correction_das_controller
-            self.current_heading_radians = np.deg2rad(self.current_heading_deg)
-
-        # normalizing the current_heading_deg before attribute update
-        self.current_heading_deg = self.angle_correction(self.current_heading_deg)
+            # Only apply external correction if it improves goal alignment
+            new_heading = self.current_heading_deg + heading_correction
+            new_diff = ((target_heading - new_heading + 180) % 360) - 180
+            
+            if abs(new_diff) <= abs(heading_diff):
+                self.current_heading_deg = new_heading
+        
+        # Normalize heading
+        self.current_heading_deg = ((self.current_heading_deg + 180) % 360) - 180
         self.current_heading_radians = np.deg2rad(self.current_heading_deg)
-
-    # TODO - might need these later
 
     def undef_state(self, uav_list: list["UAV"]) -> dict:
         # deviation = self.current_heading_deg - self.current_ref_final_heading_deg

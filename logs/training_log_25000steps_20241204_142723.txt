@@ -1,0 +1,220 @@
+2024-12-04 14:27:23,651 - Starting training with parameters:
+2024-12-04 14:27:23,651 - Training timesteps: 25000
+2024-12-04 14:27:23,651 - Max episode steps: 2500
+2024-12-04 14:27:26,056 - Starting training...
+2024-12-04 15:02:03,544 - Training complete!
+2024-12-04 15:02:03,584 - Model saved to trained_models/ppo_uam_25000
+2024-12-04 15:02:03,584 - 
+Evaluation attempt 1/5
+2024-12-04 15:02:03,626 - 
+Starting evaluation episode...
+2024-12-04 15:02:03,627 - Initial observation: {'agent_id': array([22454870579984]), 'agent_speed': array([0.]), 'agent_deviation': array([132.0615251]), 'intruder_detected': 1, 'intruder_id': array([22454629642576]), 'distance_to_intruder': array([0.1]), 'relative_heading_intruder': array([-175.64481645]), 'intruder_current_heading': array([-167.93830984])}
+2024-12-04 15:02:03,701 - 
+Dynamic collision detected!
+2024-12-04 15:02:03,701 - 
+Episode truncated - Reason:
+2024-12-04 15:02:03,701 - - Dynamic collision
+2024-12-04 15:02:03,701 - 
+Evaluation attempt 2/5
+2024-12-04 15:02:03,742 - 
+Starting evaluation episode...
+2024-12-04 15:02:03,742 - Initial observation: {'agent_id': array([22454626519632]), 'agent_speed': array([0.]), 'agent_deviation': array([77.57676363]), 'intruder_detected': 1, 'intruder_id': array([22454626554832]), 'distance_to_intruder': array([0.1]), 'relative_heading_intruder': array([-43.40955973]), 'intruder_current_heading': array([-138.93737891])}
+2024-12-04 15:02:03,815 - 
+Dynamic collision detected!
+2024-12-04 15:02:03,815 - 
+Episode truncated - Reason:
+2024-12-04 15:02:03,816 - - Dynamic collision
+2024-12-04 15:02:03,816 - 
+Evaluation attempt 3/5
+2024-12-04 15:02:03,854 - 
+Starting evaluation episode...
+2024-12-04 15:02:03,855 - Initial observation: {'agent_id': array([22454639831248]), 'agent_speed': array([0.]), 'agent_deviation': array([27.96765429]), 'intruder_detected': 0, 'intruder_id': array([0]), 'distance_to_intruder': array([550.]), 'relative_heading_intruder': array([0.]), 'intruder_current_heading': array([0.])}
+2024-12-04 15:02:11,006 - 
+Step 100:
+2024-12-04 15:02:11,007 - Distance to goal: 20181.50
+2024-12-04 15:02:11,007 - Current speed: 4.911686107516289
+2024-12-04 15:02:11,007 - Current heading: -155.7082694667999
+2024-12-04 15:02:18,177 - 
+Step 200:
+2024-12-04 15:02:18,177 - Distance to goal: 19477.50
+2024-12-04 15:02:18,177 - Current speed: 8.988385576754808
+2024-12-04 15:02:18,177 - Current heading: -155.7082694667999
+2024-12-04 15:02:25,377 - 
+Step 300:
+2024-12-04 15:02:25,378 - Distance to goal: 18330.88
+2024-12-04 15:02:25,378 - Current speed: 13.900071684271097
+2024-12-04 15:02:25,378 - Current heading: -155.7082694667999
+2024-12-04 15:02:32,579 - 
+Step 400:
+2024-12-04 15:02:32,579 - Distance to goal: 16693.26
+2024-12-04 15:02:32,579 - Current speed: 18.811757791787386
+2024-12-04 15:02:32,579 - Current heading: -155.7082694667999
+2024-12-04 15:02:39,784 - 
+Step 500:
+2024-12-04 15:02:39,784 - Distance to goal: 14564.74
+2024-12-04 15:02:39,784 - Current speed: 23.723443899303675
+2024-12-04 15:02:39,784 - Current heading: -155.7082694667999
+2024-12-04 15:02:47,009 - 
+Step 600:
+2024-12-04 15:02:47,009 - Distance to goal: 11945.56
+2024-12-04 15:02:47,009 - Current speed: 28.635130006819963
+2024-12-04 15:02:47,009 - Current heading: -155.7082694667999
+2024-12-04 15:02:54,260 - 
+Step 700:
+2024-12-04 15:02:54,261 - Distance to goal: 8836.34
+2024-12-04 15:02:54,261 - Current speed: 33.54681611433625
+2024-12-04 15:02:54,261 - Current heading: -160.1829714972202
+2024-12-04 15:03:01,503 - 
+Step 800:
+2024-12-04 15:03:01,503 - Distance to goal: 5239.77
+2024-12-04 15:03:01,503 - Current speed: 38.45850222185254
+2024-12-04 15:03:01,503 - Current heading: -160.1829714972202
+2024-12-04 15:03:08,731 - 
+Step 900:
+2024-12-04 15:03:08,731 - Distance to goal: 1309.81
+2024-12-04 15:03:08,731 - Current speed: 40
+2024-12-04 15:03:08,731 - Current heading: -160.1829714972202
+2024-12-04 15:03:15,936 - 
+Step 1000:
+2024-12-04 15:03:15,936 - Distance to goal: 2780.42
+2024-12-04 15:03:15,936 - Current speed: 40
+2024-12-04 15:03:15,936 - Current heading: -160.1829714972202
+2024-12-04 15:03:23,142 - 
+Step 1100:
+2024-12-04 15:03:23,142 - Distance to goal: 6763.57
+2024-12-04 15:03:23,143 - Current speed: 40
+2024-12-04 15:03:23,143 - Current heading: -160.1829714972202
+2024-12-04 15:03:30,323 - 
+Step 1200:
+2024-12-04 15:03:30,323 - Distance to goal: 10658.23
+2024-12-04 15:03:30,323 - Current speed: 40
+2024-12-04 15:03:30,323 - Current heading: 137.17120007689556
+2024-12-04 15:03:37,511 - 
+Step 1300:
+2024-12-04 15:03:37,511 - Distance to goal: 7300.00
+2024-12-04 15:03:37,511 - Current speed: 40
+2024-12-04 15:03:37,511 - Current heading: 11.879543225127065
+2024-12-04 15:03:44,712 - 
+Step 1400:
+2024-12-04 15:03:44,712 - Distance to goal: 3300.00
+2024-12-04 15:03:44,712 - Current speed: 40
+2024-12-04 15:03:44,712 - Current heading: 11.879543225127065
+2024-12-04 15:03:50,605 - 
+Goal reached!
+2024-12-04 15:03:50,606 - 
+Creating animation...
+2024-12-04 15:03:50,642 - Animation.save using <class 'matplotlib.animation.FFMpegWriter'>
+2024-12-04 15:03:50,643 - MovieWriter._run: running command: ffmpeg -f rawvideo -vcodec rawvideo -s 3200x2400 -pix_fmt rgba -framerate 20 -loglevel error -i pipe: -vcodec h264 -pix_fmt yuv420p -b 2000k -y animations/flight_success_1482_steps.mp4.mp4
+2024-12-04 15:12:48,707 - Animation saved to animations/flight_success_1482_steps.mp4
+2024-12-04 15:12:48,707 - Successful evaluation on attempt 3
+2024-12-04 15:12:48,707 - 
+Evaluation attempt 4/5
+2024-12-04 15:12:48,753 - 
+Starting evaluation episode...
+2024-12-04 15:12:48,753 - Initial observation: {'agent_id': array([22454424049488]), 'agent_speed': array([0.]), 'agent_deviation': array([-8.97235095]), 'intruder_detected': 0, 'intruder_id': array([0]), 'distance_to_intruder': array([550.]), 'relative_heading_intruder': array([0.]), 'intruder_current_heading': array([0.])}
+2024-12-04 15:12:55,943 - 
+Step 100:
+2024-12-04 15:12:55,943 - Distance to goal: 32141.93
+2024-12-04 15:12:55,944 - Current speed: 4.616984941065311
+2024-12-04 15:12:55,944 - Current heading: 122.14049927577457
+2024-12-04 15:13:03,119 - 
+Step 200:
+2024-12-04 15:13:03,119 - Distance to goal: 31432.25
+2024-12-04 15:13:03,119 - Current speed: 9.5286710485816
+2024-12-04 15:13:03,119 - Current heading: 122.14049927577457
+2024-12-04 15:13:10,289 - 
+Step 300:
+2024-12-04 15:13:10,289 - Distance to goal: 30231.46
+2024-12-04 15:13:10,290 - Current speed: 14.440357156097889
+2024-12-04 15:13:10,290 - Current heading: 122.14049927577457
+2024-12-04 15:13:17,485 - 
+Step 400:
+2024-12-04 15:13:17,485 - Distance to goal: 28539.57
+2024-12-04 15:13:17,485 - Current speed: 19.352043263614178
+2024-12-04 15:13:17,485 - Current heading: 122.14049927577457
+2024-12-04 15:13:24,703 - 
+Step 500:
+2024-12-04 15:13:24,703 - Distance to goal: 26356.59
+2024-12-04 15:13:24,704 - Current speed: 24.263729371130466
+2024-12-04 15:13:24,704 - Current heading: 122.14049927577457
+2024-12-04 15:13:31,898 - 
+Step 600:
+2024-12-04 15:13:31,898 - Distance to goal: 23682.57
+2024-12-04 15:13:31,898 - Current speed: 29.175415478646755
+2024-12-04 15:13:31,898 - Current heading: 122.14049927577457
+2024-12-04 15:13:39,117 - 
+Step 700:
+2024-12-04 15:13:39,117 - Distance to goal: 20517.60
+2024-12-04 15:13:39,118 - Current speed: 34.087101586163044
+2024-12-04 15:13:39,118 - Current heading: 122.14049927577457
+2024-12-04 15:13:46,366 - 
+Step 800:
+2024-12-04 15:13:46,366 - Distance to goal: 16861.82
+2024-12-04 15:13:46,366 - Current speed: 38.99878769367933
+2024-12-04 15:13:46,366 - Current heading: 122.14049927577457
+2024-12-04 15:13:53,578 - 
+Step 900:
+2024-12-04 15:13:53,578 - Distance to goal: 12873.23
+2024-12-04 15:13:53,578 - Current speed: 40
+2024-12-04 15:13:53,578 - Current heading: 122.14049927577457
+2024-12-04 15:14:00,788 - 
+Step 1000:
+2024-12-04 15:14:00,789 - Distance to goal: 8876.47
+2024-12-04 15:14:00,789 - Current speed: 40
+2024-12-04 15:14:00,789 - Current heading: 122.14049927577457
+2024-12-04 15:14:08,008 - 
+Step 1100:
+2024-12-04 15:14:08,008 - Distance to goal: 4885.02
+2024-12-04 15:14:08,008 - Current speed: 40
+2024-12-04 15:14:08,008 - Current heading: 122.14049927577457
+2024-12-04 15:14:15,225 - 
+Step 1200:
+2024-12-04 15:14:15,225 - Distance to goal: 966.97
+2024-12-04 15:14:15,225 - Current speed: 40
+2024-12-04 15:14:15,225 - Current heading: 122.14049927577457
+2024-12-04 15:14:22,427 - 
+Step 1300:
+2024-12-04 15:14:22,428 - Distance to goal: 3163.33
+2024-12-04 15:14:22,428 - Current speed: 40
+2024-12-04 15:14:22,428 - Current heading: 122.14049927577457
+2024-12-04 15:14:29,646 - 
+Step 1400:
+2024-12-04 15:14:29,646 - Distance to goal: 7146.91
+2024-12-04 15:14:29,647 - Current speed: 40
+2024-12-04 15:14:29,647 - Current heading: 122.14049927577457
+2024-12-04 15:14:36,900 - 
+Step 1500:
+2024-12-04 15:14:36,900 - Distance to goal: 11141.29
+2024-12-04 15:14:36,900 - Current speed: 40
+2024-12-04 15:14:36,900 - Current heading: 108.71639318451366
+2024-12-04 15:14:44,168 - 
+Step 1600:
+2024-12-04 15:14:44,168 - Distance to goal: 8559.02
+2024-12-04 15:14:44,168 - Current speed: 40
+2024-12-04 15:14:44,168 - Current heading: -65.79698600187817
+2024-12-04 15:14:51,422 - 
+Step 1700:
+2024-12-04 15:14:51,422 - Distance to goal: 4559.30
+2024-12-04 15:14:51,422 - Current speed: 40
+2024-12-04 15:14:51,422 - Current heading: -65.79698600187817
+2024-12-04 15:14:58,676 - 
+Step 1800:
+2024-12-04 15:14:58,676 - Distance to goal: 563.49
+2024-12-04 15:14:58,676 - Current speed: 40
+2024-12-04 15:14:58,676 - Current heading: -65.79698600187817
+2024-12-04 15:15:05,951 - 
+Step 1900:
+2024-12-04 15:15:05,952 - Distance to goal: 2185.41
+2024-12-04 15:15:05,952 - Current speed: 40
+2024-12-04 15:15:05,952 - Current heading: 119.68963481173
+2024-12-04 15:15:13,200 - 
+Step 2000:
+2024-12-04 15:15:13,200 - Distance to goal: 1798.82
+2024-12-04 15:15:13,200 - Current speed: 40
+2024-12-04 15:15:13,200 - Current heading: 79.41731653794727
+2024-12-04 15:15:19,845 - 
+Goal reached!
+2024-12-04 15:15:19,845 - 
+Creating animation...
+2024-12-04 15:15:19,854 - Animation.save using <class 'matplotlib.animation.FFMpegWriter'>
+2024-12-04 15:15:19,854 - MovieWriter._run: running command: ffmpeg -f rawvideo -vcodec rawvideo -s 3200x2400 -pix_fmt rgba -framerate 20 -loglevel error -i pipe: -vcodec h264 -pix_fmt yuv420p -b 2000k -y animations/flight_success_2092_steps.mp4.mp4

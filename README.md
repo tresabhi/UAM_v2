@@ -52,6 +52,7 @@ May be required if this was missed in conda env create:
 
 ```
 conda install conda-forge::stable-baselines3
+pip install stable-baseline3[extra]
 ```
 
 ### Multi Agent

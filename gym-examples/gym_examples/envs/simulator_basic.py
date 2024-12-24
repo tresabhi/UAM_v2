@@ -1,4 +1,5 @@
 # Welcome to the simulator, this takes all the classes from all the modules, and builds an instance of the simulator
+import sys
 from airspace import Airspace
 from airtrafficcontroller import ATC
 from uav import UAV
@@ -21,7 +22,7 @@ class SimulatorBasic:
         num_basic_uavs: int,
         sleep_time: float,
         total_timestep: int,
-        airspace_tag_list:List[tuple] #!pass a list of string 
+        airspace_tag_list:List[tuple] 
     ) -> None:
         """
         Initializes a Simulator object.
@@ -33,6 +34,19 @@ class SimulatorBasic:
             sleep_time (float): The sleep time between rendered frames
             total_timestep (int): The total number of time steps.
         """
+
+
+        #system 
+        if num_vertiports <= 1:
+            raise RuntimeError('You should have 2 or more vertiports in your airspace')
+        
+        if num_basic_uavs == 0:
+            sys.exit('Total UAV = 0, simulation will not run ')
+        elif num_basic_uavs >= num_vertiports:
+            raise RuntimeError('There should be one less UAV than vertiports')
+        else:
+            print('Simulation start')
+
         # sim airspace and ATC
         self.current_time_step = 0
         self.num_vertiports = num_vertiports
@@ -43,7 +57,8 @@ class SimulatorBasic:
         )
         
         # Initialize sim's vertiports and uavs using ATC
-        #! Think how a seed value can be added to the system, so that the system is reproduceable - the vertiports and the uav assignment fixed to some seed value.
+        #! Think how a seed value can be added to the system,
+        # so that the system is reproduceable - the vertiports and the uav assignment fixed to some seed value.
         self.atc.create_n_random_vertiports(num_vertiports)
         self.atc.create_n_basic_uavs(num_basic_uavs)
 
@@ -79,13 +94,13 @@ class SimulatorBasic:
 
         # UAV PLOT LOGIC
         for uav_obj in self.uav_list:
-            uav_footprint_poly = uav_obj.uav_polygon_plot(uav_obj.uav_footprint)
+            uav_footprint_poly = uav_obj.uav_geoseries_plot(uav_obj.uav_footprint)
             uav_footprint_poly.plot(ax=ax, color=uav_obj.uav_footprint_color, alpha=0.3)
 
-            uav_nmac_poly = uav_obj.uav_polygon_plot(uav_obj.nmac_radius)
+            uav_nmac_poly = uav_obj.uav_geoseries_plot(uav_obj.nmac_radius)
             uav_nmac_poly.plot(ax=ax, color=uav_obj.uav_nmac_radius_color, alpha=0.3)
 
-            uav_detection_poly = uav_obj.uav_polygon_plot(uav_obj.detection_radius)
+            uav_detection_poly = uav_obj.uav_geoseries_plot(uav_obj.detection_radius)
             uav_detection_poly.plot(
                 ax=ax, color=uav_obj.uav_detection_radius_color, alpha=0.3
             )
@@ -126,7 +141,21 @@ class SimulatorBasic:
             self.atc.has_left_start_vertiport(uav)
             self.atc.has_reached_end_vertiport(uav)
             uav.step()
+
+            #! print the sim state information for debugging and logging 
+            #! START ----> DELETE after dub complete
+            sim_static_state, sim_dynamic_state = self._get_obs(uav)
+            print('UAV ID: ',uav.id)
+            print("Static state")
+            print(sim_static_state[2])
+            print('Number of elements in nearest points:',sim_static_state[3])
+            print('Distance between nearest points: ', sim_static_state[4])
+            print('\n')
+            # print('Dynamic state\n')
+            # print(sim_dynamic_state)
+            # print('\n')
             # self.collision = uav.has_uav_collision()
+            #! END ----> DELETE 
 
     # Simulation functions above
 
@@ -169,7 +198,7 @@ class SimulatorBasic:
 
         for tag_value in self.airspace.location_tags.keys():
             self.airspace.location_utm[tag_value].plot(ax=ax, color="black")
-            self.airspace.location_utm_buffer[tag_value].plot(ax=ax, color="green", alpha=0.3)
+            self.airspace.location_utm_buffer[tag_value].plot(ax=ax, color="red", alpha=0.3)
 
 
         # adding vertiports to static plot
@@ -206,7 +235,9 @@ class SimulatorBasic:
 
     def set_building_gdf(self) -> None:
         for uav in self.uav_list:
+            #! There needs to be two of these lines - one as below for detecting intersection with buffer area
             uav.set_airspace_building_list(self.airspace.restricted_airspace_buffer_geo_series)
+            #! Another for finding distance from UAV to building 
 
     def set_uav_intruder_list(self) -> None:
         for uav in self.uav_list:
@@ -215,14 +246,14 @@ class SimulatorBasic:
     def _get_obs(self, uav_obj: UAVBasic) -> dict:
         """Checks the location of UAVs and Hospital buffer zones"""
         #! get_state method needs to be worked to handle airspace restricted zones 
-        state_info = uav_obj.get_state(
-            #! START DELETE
-            # self.uav_list, self.airspace.location_utm_hospital_buffer
-            #! END DELETE
-            self.uav_list, self.airspace.restricted_airspace_buffer_geo_series
+        static_state, dynamic_state = uav_obj.get_state(
+            # #! START DELETE
+            # # self.uav_list, self.airspace.location_utm_hospital_buffer
+            # #! END DELETE
+            # self.uav_list, self.airspace.restricted_airspace_buffer_geo_series
         )
 
-        return state_info
+        return static_state, dynamic_state
 
     # #TODO - this is necessary
     # def close(self,):

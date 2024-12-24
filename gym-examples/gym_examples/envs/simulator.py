@@ -95,13 +95,13 @@ class Simulator:
         static_plot(sim, ax, gpd)
         # UAV PLOT LOGIC
         for uav_obj in self.uav_list:
-            uav_footprint_poly = uav_obj.uav_polygon_plot(uav_obj.uav_footprint)
+            uav_footprint_poly = uav_obj.uav_geoseries_plot(uav_obj.uav_footprint)
             uav_footprint_poly.plot(ax=ax, color=uav_obj.uav_footprint_color, alpha=0.3)
 
-            uav_nmac_poly = uav_obj.uav_polygon_plot(uav_obj.nmac_radius)
+            uav_nmac_poly = uav_obj.uav_geoseries_plot(uav_obj.nmac_radius)
             uav_nmac_poly.plot(ax=ax, color=uav_obj.uav_nmac_radius_color, alpha=0.3)
 
-            uav_detection_poly = uav_obj.uav_polygon_plot(uav_obj.detection_radius)
+            uav_detection_poly = uav_obj.uav_geoseries_plot(uav_obj.detection_radius)
             uav_detection_poly.plot(
                 ax=ax, color=uav_obj.uav_detection_radius_color, alpha=0.3
             )

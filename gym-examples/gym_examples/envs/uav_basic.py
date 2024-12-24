@@ -1,7 +1,9 @@
 # Deterministic uavs
 from random import sample as random_sample
 import numpy as np
-from shapely.geometry import Point
+import shapely.ops as sops
+import shapely
+from shapely.geometry import Point, Polygon
 from geopandas import GeoSeries
 from vertiport import Vertiport
 from das import CollisionController
@@ -184,6 +186,7 @@ class UAVBasic:
     #! START - method name and function update 
     def set_airspace_building_list(self, building_gdf: GeoSeries) -> None:
         self.building_gdf = building_gdf
+        self.building_gdf_polygon = self.building_gdf.geometry
 
     
 
@@ -237,8 +240,8 @@ class UAVBasic:
         other_uav_list = self.get_other_uav_list(uav_list)
 
         for other_uav in other_uav_list:
-            if self.uav_polygon(own_radius).intersects(
-                other_uav.uav_polygon(other_radius)
+            if self.uav_geoseries(own_radius).intersects(
+                other_uav.uav_geoseries(other_radius)
             ):
                 self.intruder_uav_list.append(other_uav)
 
@@ -317,19 +320,32 @@ class UAVBasic:
 
         building_polygon_count = len(self.building_gdf)
         intersection_list = []
-
+        
         for i in range(building_polygon_count):
-            # this line is iterating through all the restricted airspace and finding intersection with UAV 
-            intersection_list.append(self.uav_polygon(own_radius).intersection(self.building_gdf.iloc[i]))
+            
+            if self.uav_polygon(own_radius).intersection(self.building_gdf.iloc[i]): #explanation: if intersection is true, add 'True' to the list
+                print('Intersection with building detected')
+                intersection_with_building = True
+                intersection_list.append(self.building_gdf.iloc[i]) 
+                info_building_intersection = self.building_gdf.iloc[i] #explanation: if True, a series is added to this variable 
+                nearest_points = sops.nearest_points(self.current_position, self.building_gdf.iloc[i])
+                distance_to_building = shapely.distance(nearest_points[0], nearest_points[1])
+                return intersection_with_building , self.current_heading_deg, info_building_intersection, len(nearest_points), distance_to_building
             # if there is intersection
             # collect distance from uav to restricted airspace polygon
             # save that as an attribute: distace to restricted
             # if there is no collision then: distance to restricted is np.inf
-            # this attribute needs to be used for auto_uav and reward function  
+            # this attribute needs to be used for auto_uav and reward function 
+            else:
+                info_building_intersection = None
+                info_building_type = None 
 
         intersection_with_building = any(intersection_list)
 
-        return intersection_with_building , self.current_heading_deg
+        #! I want to see what information is held in the list 
+        
+        return intersection_with_building , self.current_heading_deg, info_building_intersection, info_building_type, None
+
 
     def get_state(self, ) -> tuple[tuple[bool, float], None | dict]:
         static_state = self.get_state_static_obj()
@@ -368,10 +384,13 @@ class UAVBasic:
         self.leaving_start_vertiport = False
         self.reaching_end_vertiport = False 
 
-    def uav_polygon(self, dimension: float) -> GeoSeries:
+    def uav_geoseries(self, dimension: float) -> GeoSeries:
         return GeoSeries(self.current_position).buffer(dimension).iloc[0]
+    
+    def uav_polygon(self, dimension:float) -> Polygon:
+        return self.current_position.buffer(dimension)
 
-    def uav_polygon_plot(self, dimension: float) -> GeoSeries:
+    def uav_geoseries_plot(self, dimension: float) -> GeoSeries:
         return GeoSeries(self.current_position).buffer(dimension)
 
     def update_end_point(self,) -> None:
@@ -473,7 +492,7 @@ class UAVBasic:
         '''Updates the position of the UAV.'''
 
         state = self.get_state()
-        action = self.get_action(state)
+        action = self.get_action(state) #state: 
 
         if action is None:
             acceleration = None

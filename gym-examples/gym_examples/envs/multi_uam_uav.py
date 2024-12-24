@@ -167,7 +167,7 @@ class UamUavEnvPZ(ParallelEnv):
             self.auto_uavs_dict[agent_id].step(action[0], action[1])
 
             obs = self._get_obs(agent_id)
-            reward = self.get_reward(obs)
+            reward = self.reward(obs)
             termination = self.has_terminated(agent_id)
             truncation = self.has_truncated(agent_id)
             info = self._get_info(agent_id)
@@ -202,19 +202,19 @@ class UamUavEnvPZ(ParallelEnv):
         self.render_static_asset(ax)
 
         for auto_uav in self.auto_uavs_list:
-            auto_uav_footprint_poly = auto_uav.uav_polygon_plot(
+            auto_uav_footprint_poly = auto_uav.uav_geoseries_plot(
                 auto_uav.collision_radius
             )
             auto_uav_footprint_poly.plot(
                 ax=ax, color=auto_uav.uav_footprint_color, alpha=0.3
             )
 
-            auto_uav_nmac_poly = auto_uav.uav_polygon_plot(auto_uav.nmac_radius)
+            auto_uav_nmac_poly = auto_uav.uav_geoseries_plot(auto_uav.nmac_radius)
             auto_uav_nmac_poly.plot(
                 ax=ax, color=auto_uav.uav_nmac_radius_color, alpha=0.3
             )
 
-            auto_uav_detection_poly = auto_uav.uav_polygon_plot(
+            auto_uav_detection_poly = auto_uav.uav_geoseries_plot(
                 auto_uav.detection_radius
             )
             auto_uav_detection_poly.plot(
@@ -285,7 +285,7 @@ class UamUavEnvPZ(ParallelEnv):
             ]
         ]
 
-    def get_reward(self, obs: dict) -> float:
+    def reward(self, obs: dict) -> float:
         """
         Returns the reward the agent earns at each step
 

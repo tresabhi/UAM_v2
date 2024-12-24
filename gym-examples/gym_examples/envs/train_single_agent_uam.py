@@ -1,17 +1,10 @@
-"""
-Use this script to train a model using the custom UAM environment.
-Before training, make sure to run check_uam.py to ensure the environment is in working condition. 
-This check must be done anytime there is a change to the environment.
-
-Once the check is complete you can proceed with training a model using algorithms from sb3
-"""
-
 #local functions
 from utils import *
 
 # from stable_baselines3 import A2C
 import gymnasium as gym
 import matplotlib.pyplot as plt
+import stable_baselines3 as sb3 
 
 # Register your custom environment
 from gymnasium.envs.registration import register
@@ -23,7 +16,7 @@ obs, info = env.reset()
 # For interactive plotting - to see rendering of airspace during training
 # plt.ion()
 # fig, ax = env.render_init()
-training_time_step = 150
+training_time_step = 50
 
 for i in range(training_time_step):
     action = env.action_space.sample()

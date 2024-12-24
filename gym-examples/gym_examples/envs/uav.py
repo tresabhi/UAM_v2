@@ -137,8 +137,11 @@ class UAV:
     ) -> list["UAV"]:
         """
         Here the self.intruder_uav_list is created everytime as an empty list,
-        So everystep this attribute is an empty list and its populated with uavs that are within any(detection, nmac, collision) radius.
-        There is no return from this method, the data is stored in the attribute and should be accessed immediately after calling this method.
+        So everystep this attribute is an empty list 
+        and its populated with uavs that are within any(detection, nmac, collision) radius.
+        There is no return from this method, 
+        the data is stored in the attribute 
+        and should be accessed immediately after calling this method.
         Any subsequent routines can call the attribute and use the attribute for data processing
         """
         if radius_str == "detection":
@@ -157,9 +160,7 @@ class UAV:
         other_uav_list = self.get_other_uav_list(uav_list)
 
         for other_uav in other_uav_list:
-            if self.uav_polygon(own_radius).intersects(
-                other_uav.uav_polygon(other_radius)
-            ):
+            if self.uav_geoseries(own_radius).intersects(other_uav.uav_geoseries(other_radius)):
                 self.intruder_uav_list.append(other_uav)
 
         return self.intruder_uav_list
@@ -206,13 +207,24 @@ class UAV:
         intruder_uav_list = self.get_intruder_uav_list(uav_list,radius_str)
 
         if len(intruder_uav_list) == 0:
+            #! Look here
+            # Its returning None
+            # have the same dict here as below
+            # and populate it with the correct information  
             return None
+        
+
         else:
             '''
             If there are more than one intruder, set first in the list as current intruder,
             and iterate through the list to find the intruder that is nearest. 
             State information, will be built using the nearest intruder. 
             '''
+
+            # I think there is a faster and efficient way to do this
+            # I think the information of intruder UAV is in the intruder_uav_list ->
+            #  all i have to do is pull the uav from that list,
+            # I do not need to use the for loop  
             current_intruder:UAV = intruder_uav_list[0] #set first uav in intruder_list as current intruder 
             # sort based on distance
             for ith_intruder in intruder_uav_list:
@@ -248,7 +260,7 @@ class UAV:
         for i in range(building_polygon_count):
             '''Loop through all buildings in the 
             "building_gdf" that has been passed in as method's argument '''
-            intersection_list.append(self.uav_polygon(own_radius).intersection(building_gdf.iloc[i]))
+            intersection_list.append(self.uav_geoseries(own_radius).intersection(building_gdf.iloc[i]))
 
         intersection_with_building = any(intersection_list)
         own_state_info = self.current_heading_deg
@@ -264,10 +276,10 @@ class UAV:
         self.leaving_start_vertiport = False
         self.reaching_end_vertiport = False
 
-    def uav_polygon(self, dimension) -> GeoSeries:
+    def uav_geoseries(self, dimension) -> GeoSeries:
         return GeoSeries(self.current_position).buffer(dimension).iloc[0]
 
-    def uav_polygon_plot(self, dimension) -> GeoSeries:
+    def uav_geoseries_plot(self, dimension) -> GeoSeries:
         return GeoSeries(self.current_position).buffer(dimension)
 
     def update_end_point(self,) -> None:

@@ -1,16 +1,10 @@
-import os
 import matplotlib.pyplot as plt
-from simulator import Simulator
 from simulator_basic import SimulatorBasic
-from matplotlib.animation import FuncAnimation
-import geopandas as gpd
-from utils import static_plot #! delete this if not needed 
-from das import CollisionController, ZeroController
 
 
 #! - Complete the following checks
-# TODO - 1) make sure there is at least 2 vertiports at all time
-# TODO - 2) There is at least one uav - if 0 UAV, no need to run simulation(simulation should not run, but check to make sure)
+
+
 # TODO - 3) make sure location name is valid
 # TODO - 4) make sure vertiports are not on top of buildings and other structures
 # TODO - 5) run headless(without video)
@@ -24,7 +18,7 @@ if __name__ == "__main__":
     # controller_predict = controller.get_action
 
     sim = SimulatorBasic(
-        "Austin, Texas, USA", 15, 14, sleep_time=0.02, total_timestep=500, airspace_tag_list=[("building", "hospital"),("aeroway", "aerodrome")]
+        "Austin, Texas, USA", 8, 5, sleep_time=0.01, total_timestep=1500, airspace_tag_list=[("building", "hospital"),("aeroway", "aerodrome")]
     )
 
     # fig, ax initialization

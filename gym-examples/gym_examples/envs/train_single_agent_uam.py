@@ -17,7 +17,7 @@ import gymnasium as gym
 import matplotlib.pyplot as plt
 
 # Register your custom environment
-from gymnasium.envs.registration import register
+from gymnasium.envs.registration import register #this line () is not required - not a local package 'remove line when confirmed'
 from uam_uav import UamUavEnv
 
 import sys
@@ -70,6 +70,7 @@ def run_evaluation_episode(env, model, logger, max_steps):
     logger.info("\nStarting evaluation episode...")
     logger.info(f"Initial observation: {obs}")
     
+    ## Evaluation start ##
     while steps < max_steps:
         # Get action from model
         action, _states = model.predict(obs, deterministic=True)
@@ -105,9 +106,11 @@ def run_evaluation_episode(env, model, logger, max_steps):
             if info.get('timeout', False):
                 logger.info("- Timeout")
             break
-    
-    # Create animation if episode completed without collision
-    render_animation = (
+    ## Evaluation end ## 
+
+    # Create animation if episode completed without collision 
+    #! Might need to change the logic - render animation regardless of collision, add new functionality, even if collision is there 
+    render_animation:bool = ( 
         (terminated and info.get('reached_goal', False)) or  # Reached goal
         (steps >= max_steps and not any([  # Reached max steps without collision
             info.get('collision_static', False),

@@ -9,8 +9,8 @@ class UniversalSensor(SensorTemplate):
         super().__init__()
 
 
-    def set_data(self, space:Space, self_uav:UAV_v2) -> None:
-        self.space = space
+    def set_data(self, self_uav:UAV_v2) -> None:
+        '''Collect data of other UAVs in space'''
         uav_list = self.space.get_uav_list()
         self_uav_state = self_uav.get_state()
 
@@ -26,4 +26,5 @@ class UniversalSensor(SensorTemplate):
         return None
     
     def get_data(self):
+        '''Return data of other UAVs in space'''
         return super().get_data()

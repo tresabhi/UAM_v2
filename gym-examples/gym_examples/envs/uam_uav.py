@@ -112,14 +112,12 @@ class UamUavEnv(gym.Env):
 
         # Auto UAV initialization
         start_vertiport_auto_uav = self.get_start_vertiport_auto_uav()
-        end_vertiport_auto_uav = self.get_end_vertiport_auto_uav(
-            start_vertiport_auto_uav
-        )
+        end_vertiport_auto_uav = self.get_end_vertiport_auto_uav(start_vertiport_auto_uav)
         
         self.auto_uav = AutonomousUAV(start_vertiport_auto_uav, end_vertiport_auto_uav)
 
         # Add timeout steps as class attribute
-        self.max_episode_steps = 100000  # Adjust based on environment complexity
+        self.max_episode_steps = 100_000  # Adjust based on environment complexity
         # For tracking progress in reward function
         self.previous_distance = None
         self.previous_heading = None
@@ -168,19 +166,20 @@ class UamUavEnv(gym.Env):
                 ),
                 # Relative heading of intruder #!should this be corrected to -180 to 180,
                 "relative_heading_intruder": spaces.Box(
-                    low=-180, # -360
-                    high=180, # 360
+                    low= -180, # -360
+                    high= 180, # 360
                     shape=(1,), 
                     dtype=np.float64
                 ),
                 # Intruder's current heading
                 "intruder_current_heading": spaces.Box(
-                    low=-180, 
-                    high=180,
+                    low= -180, 
+                    high= 180,
                     shape=(1,), 
                     dtype=np.float64
                 ),  # Intruder's heading
                 
+                #TODO:Add these two to perform collision avoidance 
                 # restricted airspace
                 # "restricted_airspace_detected":spaces.Discrete(
                 #     2 
@@ -449,6 +448,7 @@ class UamUavEnv(gym.Env):
                 "current_position": uav.current_position,
                 "current_heading": uav.current_heading_radians,
                 "final_heading": uav.current_ref_final_heading_rad,
+                #! might need to add NMAC and collision with static and dynamic objects
             },
             ignore_index=True,
         )
@@ -753,7 +753,7 @@ class UamUavEnv(gym.Env):
     def update_animate(self, frame, animate_ax):
         plt.cla()
         self.render_static_assets(animate_ax)
-        data_frame = self.get_data_at_timestep(frame)
+        data_frame = self.get_data_at_timestep(frame) #frame indicates i-th iteration; frame == i, similar to counter in for-loop
         artists = []
 
         for i, row in data_frame.iterrows():

@@ -16,6 +16,7 @@ class Vertiport:
         self.id = id(self)
         self.location = location
         self.uav_list: List = uav_list
+        self.uav_dict = {}
 
     def __repr__(
         self,
@@ -23,3 +24,7 @@ class Vertiport:
         return "Vertiport({location}, {uav_list})".format(
             location=self.location, uav_list=self.uav_list
         )
+    
+
+    def update_uav_dict(self, uav_id):
+        self.uav_dict.update([])

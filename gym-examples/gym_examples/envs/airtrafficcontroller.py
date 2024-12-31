@@ -218,6 +218,13 @@ class ATC:
         """Assign start-end point to all uavs in airspace"""
         pass
 
+
+
+    ## UPDATE THE FOLLOWING METHODS ##
+    ## START UDPATE ##
+    
+    # clearing_procedure and landing_procedure will use vertiport dictionary
+    # delete vertiport list usage  
     def _clearing_procedure(
         self, outgoing_uav: UAVBasic | AutonomousUAV
     ) -> None:  #! rename to _takeoff_procedure()
@@ -250,6 +257,7 @@ class ATC:
         landing_uav.refresh_uav()
         self._reassign_end_vertiport_of_uav(landing_uav)
 
+    # assignment of vertiport after reaching or at start will be performed with one single method
     def _reassign_end_vertiport_of_uav(self, uav: UAVBasic) -> None:
         """Reassigns the end vertiport of a UAV.
 
@@ -284,6 +292,9 @@ class ATC:
         """
         uav.start_vertiport = vertiport
         uav.update_start_point()
+
+
+        ## END UPDATE ##
 
     def _vertiport_filtering(self, some_vertiport: Vertiport) -> list:
         """Internal method. Used for selecting end vertiports for UAVs,

@@ -1,12 +1,11 @@
 from sensor_template import SensorTemplate
 from pandas import DataFrame
-from space import Space
 from uav_v2 import UAV_v2
 
 class UniversalSensor(SensorTemplate):
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, space):
+        super().__init__(space)
 
 
     def set_data(self, self_uav:UAV_v2) -> None:
@@ -20,7 +19,7 @@ class UniversalSensor(SensorTemplate):
                 uav_state = uav.get_state()
                 relative_distance = self_uav_state['current_position'] - uav_state['current_position']
                 relative_heading = self_uav_state['current_heading'] = uav_state['current_heading']
-                other_uav_state = {'id':uav_state['id'],'relative_distance':relative_distance, 'relative_heading':relative_heading}
+                other_uav_state = {'id':uav_state['id'],'start':uav_state['start'], 'end':uav_state['end'], 'relative_distance':relative_distance, 'relative_heading':relative_heading}
                 # save information in data
                 self.data.append(other_uav_state)
         return None

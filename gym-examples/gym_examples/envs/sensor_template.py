@@ -1,13 +1,13 @@
 from abc import ABC, abstractmethod
 from typing import Dict, List
-from space import Space 
+
 class SensorTemplate(ABC):
 
     '''
     Collect other UAVs state information
     '''
     @abstractmethod
-    def __init__(self, space:Space)->None:
+    def __init__(self, space)->None:
         self.space = space
         self.data = []
 
@@ -19,7 +19,7 @@ class SensorTemplate(ABC):
         pass
     
     @abstractmethod
-    def get_data(self)->List:
+    def get_data(self)->List[Dict]:
         '''Return observation data about other UAVs in space'''
         return self.data
     

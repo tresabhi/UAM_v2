@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import List, Dict
 import math
 from shapely import Point
 
@@ -14,57 +15,61 @@ class UAV_v2_template(ABC):
         # controller and dynamics need to be a valid pair
         self.id = id(self) 
         self.radius = radius
-        
-        self.controller:ControllerTemplate = controller
-        self.dynamics:DynamicsTemplate = dynamics
         self.sensor:SensorTemplate = sensor
-
-
+        self.dynamics:DynamicsTemplate = dynamics
+        self.controller:ControllerTemplate = controller
+        self.mission_complete_distance = 50
         self.current_speed = 0
+        
         
 
     @abstractmethod
     def assign_start_end(self, start:Point, end:Point):
+        self.mission_complete_status = False
         self.start = start
         self.end = end
-        
         self.current_position = start
         self.current_heading = math.atan2((start.y - end.y), (start.x - end.x))
-        
         self.body = self.current_position.buffer(self.radius)
-
-    def get_state(self,):
-        return {'id':self.id, 'current_position':self.current_position, 'current_heading':self.current_heading}
+        return None
     
-    # Since dynamics, controller, and sensor are all individual components,
-    # they should be used/called by the UAV inside its implementation
+    @abstractmethod
+    def get_mission_status(self,) -> bool:
+        if self.current_position.distance(self.end) <= self.mission_complete_distance:
+            misison_complete_status = True
+        else:
+            misison_complete_status = False
+        return misison_complete_status
+    
+    @abstractmethod
+    def set_mission_complete_status(self,mission_complete_status) -> None:
+        self.mission_complete_status = mission_complete_status
+        return None
 
+
+
+    
+    @abstractmethod
+    def get_state(self,):
+        return {'id':self.id, 'start':self.start, 'end':self.end, 'current_position':self.current_position, 'current_heading':self.current_heading}
     
     @abstractmethod
     def get_sensor_data(self,):
         '''
         Collect sensor data
         '''
-
         self.sensor_data = self.sensor.get_data()
-        
         return self.sensor_data
     
+    @abstractmethod
+    def get_obs(self) -> List[Dict]:
+        obs = []
+        obs.append(self.get_state())
+        obs = obs + self.get_sensor_data()
+        return obs
     
     @abstractmethod
     def get_action(self, observation):
         self.action = self.controller(observation=observation)
         return self.action
-
-    @abstractmethod
-    def step(self, action):
-        # depending on controller the action will have different input arguments
-        # depending on output of controller dynamics will update current position and current heading
-        self.dynamics.update(self, action)
-        return None 
-
-    
-    
-    
-
     

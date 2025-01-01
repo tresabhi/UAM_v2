@@ -11,14 +11,15 @@ class UAV_v2_template(ABC):
     
 
     @abstractmethod
-    def __init__(self, controller, dynamics, sensor, radius):
+    def __init__(self, controller, dynamics, sensor, radius, nmac_radius):
         # controller and dynamics need to be a valid pair
         self.id = id(self) 
         self.radius = radius
+        self.nmac_radius = nmac_radius
         self.sensor:SensorTemplate = sensor
         self.dynamics:DynamicsTemplate = dynamics
         self.controller:ControllerTemplate = controller
-        self.mission_complete_distance = 50
+        self.mission_complete_distance = 10
         self.current_speed = 0
         
         
@@ -29,7 +30,7 @@ class UAV_v2_template(ABC):
         self.start = start
         self.end = end
         self.current_position = start
-        self.current_heading = math.atan2((start.y - end.y), (start.x - end.x))
+        self.current_heading = math.atan2((end.y - start.y), (end.x - start.x))
         self.body = self.current_position.buffer(self.radius)
         return None
     

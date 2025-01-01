@@ -21,3 +21,19 @@ class Space:
     def get_uav_list(self) -> List[UAV_v2_template]:
         return self.uav_list
     
+
+
+    def remove_uavs_by_id(self, ids_to_remove):
+        """
+        Removes UAV objects from the list based on their id attribute.
+
+        Args:
+            uav_list (list): List of UAV objects.
+            ids_to_remove (set): A set of IDs to remove from the list.
+
+        Returns:
+            None
+        """
+        self.uav_list = [uav for uav in self.uav_list if uav.id not in ids_to_remove]
+
+        return None

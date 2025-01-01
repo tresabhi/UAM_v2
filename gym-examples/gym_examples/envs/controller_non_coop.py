@@ -14,17 +14,17 @@ class NonCoopController(ControllerTemplate):
             self_observation['end'].y - self_observation['current_position'].y, 
             self_observation['end'].x - self_observation['current_position'].x)
 
-        d_heading = self_observation['current_heading'] - final_heading
+        d_heading = final_heading - self_observation['current_heading']
         
         d_heading = (d_heading + math.pi) % (2*math.pi) - math.pi
 
-        if abs(d_heading) > self.max_heading_change:
-            heading_change = -math.copysign(self.max_heading_change, d_heading)
-        else:
-            heading_change = -d_heading
+        # if abs(d_heading) > self.max_heading_change:
+        #     heading_change = -math.copysign(self.max_heading_change, d_heading)
+        # else:
+        #     heading_change = -d_heading
 
         acceleration = self.max_acceleration # replace with constant acceleration 
-        
+        heading_change = -d_heading
         action = (acceleration, heading_change)
         return action
 

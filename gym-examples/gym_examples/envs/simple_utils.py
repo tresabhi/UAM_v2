@@ -1,5 +1,6 @@
 import math
 from typing import List, Tuple
+from shapely import Point
 
 def get_coords(num_co_ords: int, distance: float) -> List[Tuple[float, float]]:
     """
@@ -27,6 +28,22 @@ def get_coords(num_co_ords: int, distance: float) -> List[Tuple[float, float]]:
         angle = i * angle_between_points
         x = radius * math.cos(angle)
         y = radius * math.sin(angle)
-        co_ords_list.append((round(x,2), round(y,2)))
+        co_ords_list.append(Point(round(x,2), round(y,2)))
     
     return co_ords_list
+
+
+def assign_coords(space, uav_list, coords_list, assignment_type):
+    '''For a given space, assign start and end coords to UAVs
+    
+       Args: 
+            space: Space type
+            uav_list: List[UAV_v2]
+            coords_list: List[Point]
+            assignment_type: str, 
+                            this string determines how the start-end points are assigned, spiral, consecutive, random
+            
+       Returns:
+            None  
+    '''
+    pass

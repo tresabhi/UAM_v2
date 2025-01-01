@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 from typing import Dict, List
-
 class SensorTemplate(ABC):
 
     '''
@@ -22,6 +21,16 @@ class SensorTemplate(ABC):
     def get_data(self)->List[Dict]:
         '''Return observation data about other UAVs in space'''
         return self.data
+    
+    @abstractmethod
+    def get_nmac(self):
+        '''Collect the time step and UAVs with who there was an NMAC'''
+        pass
+    
+    @abstractmethod
+    def get_collision(self,):
+        '''returns a bool if there is a collision along with UAV id'''
+        pass
     
     
 

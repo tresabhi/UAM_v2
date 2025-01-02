@@ -7,7 +7,7 @@ from controller_non_coop import NonCoopController
 from controller_non_coop_smooth import NonCoopControllerSmooth
 from dynamics_point_mass import PointMassDynamics
 from sensor_universal import UniversalSensor
-from simple_utils import get_coords, assign_coords
+
 
 
 

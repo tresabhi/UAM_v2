@@ -7,7 +7,7 @@ from controller_non_coop import NonCoopController
 from controller_non_coop_smooth import NonCoopControllerSmooth
 from dynamics_point_mass import PointMassDynamics
 from sensor_universal import UniversalSensor
-from simple_utils import get_coords
+from simple_utils import get_coords, assign_coords
 
 
 
@@ -72,8 +72,27 @@ from simple_utils import get_coords
 #         print('--- END SIMULATION ---')
 #         break
 
+space = Space(number_of_vertiports=10,distance_between_vertiports=250, assignment_type='opposite')
+
+universal_sensor = UniversalSensor(space=space)
+static_controller = StaticController(0,0)
+non_coop_smooth_controller = NonCoopControllerSmooth(10,2)
+non_coop_controller = NonCoopController(10,1)
+pm_dynamics = PointMassDynamics()
+universal_sensor = UniversalSensor(space=space)
+
+space.create_vertiports()
+space.create_uav(6, UAV_v2,non_coop_controller,pm_dynamics,universal_sensor,5,20)
+space.assign_vertiports()
+
+print(space.get_vertiport_list())
+
+for uav in space.get_uav_list():
+    print(uav.start, uav.end)
 
 
 
-coords = get_coords(12, 300)
-print(coords)
+
+
+
+

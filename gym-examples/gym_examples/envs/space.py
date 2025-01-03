@@ -1,4 +1,5 @@
 import math
+import random
 from typing import List
 from uav_v2_template import UAV_v2_template
 from shapely import Point
@@ -6,17 +7,27 @@ from shapely import Point
 
 
 class Space:
-    def __init__(self, number_of_vertiports:int, distance_between_vertiports:float, assignment_type:str):
+    def __init__(self, max_uavs:int, max_vertiports:int):
+        # max_vertiports has to be EVEN 
+        # max_uavs has to be ODD and one less than max_vertiports
         """
         Initializes the Space object with empty lists for UAVs and vertiports.
         number of vertiports has to be even.
         """
-        if number_of_vertiports % 2 != 0:
-            raise RuntimeError('number_of_vertiports argument requires an even number.')
-        
-        self.number_of_vertiports = number_of_vertiports
-        self.distance_between_vertiports = distance_between_vertiports
-        self.assignment_type = assignment_type
+
+        if max_vertiports % 2 != 0:
+            self.max_vertiports = max_vertiports - 1
+
+        if max_uavs <= max_vertiports:
+            if max_uavs % 2 == 0:
+                self.max_uavs = max_uavs - 1
+            else: 
+                self.max_uavs = max_uavs
+        else:
+            max_uavs = max_vertiports
+            self.max_uavs = max_uavs - 1
+            print(f'Max number of UAVs has to be less than or equal to the number of vertiports, setting max_uavs to {self.max_uavs}')
+
         self.uav_list:List = []
         self.vertiport_list:List = []
 
@@ -30,7 +41,10 @@ class Space:
         Returns:
             None
         """
-        self.vertiport_list.append(vertiport)
+        if len(self.vertiport_list) < self.max_vertiports:
+            self.vertiport_list.append(vertiport)
+        else:
+            print('Max number of vertiports reached, additonal vertiports will not be added')
         return None
     
     def set_uav(self, uav:UAV_v2_template):
@@ -43,7 +57,10 @@ class Space:
         Returns:
             None
         """
-        self.uav_list.append(uav)
+        if len(self.uav_list) < self.max_uavs:
+            self.uav_list.append(uav)
+        else:
+            print('Max number of UAVs reached, additonal UAVs will not be added')
         return None
 
     def get_vertiport_list(self):
@@ -82,7 +99,7 @@ class Space:
         return None
 
 
-    def create_vertiports(self) -> None:
+    def create_circular_pattern_vertiports(self, number_of_vertiports, distance_between_vertiports) -> None:
         """
         Return coordinates evenly distributed in a circle, where consecutive coordinate pairs
         are equal distance away from one another and store them in space.vertiport_list.
@@ -93,7 +110,17 @@ class Space:
         Returns:
             None
         """
+        if number_of_vertiports > self.max_vertiports:
+            number_of_vertiports = self.max_vertiports
+            print(f'Creating maximum number of vertiports, {number_of_vertiports}')
         
+        if number_of_vertiports % 2 != 0:
+            number_of_vertiports = number_of_vertiports - 1
+            print(f'Creating even number of vertiports, {number_of_vertiports}')
+        
+        self.vertiport_pattern = 'circular'
+        self.number_of_vertiports = number_of_vertiports
+        self.distance_between_vertiports = distance_between_vertiports
         # Angle between consecutive points in the polygon
         angle_between_points = (2 * math.pi) / self.number_of_vertiports
         
@@ -108,47 +135,31 @@ class Space:
             self.set_vertiport(Point(round(x,2), round(y,2)))
         
         return None
-
-
-    def assign_vertiports(self):
-        """
-        For a given space, assign start and end coordinates to UAVs.
+    
+    def create_random_pattern_vertiports(self, radius, number_of_vertiports) -> None:
+        if number_of_vertiports > self.max_vertiports:
+            number_of_vertiports = self.max_vertiports
+            print(f'Creating maximum number of vertiports, {number_of_vertiports}')
         
-        Args: 
-            assignment_type (str): This string determines how the start-end points are assigned.
-                                   Options are 'opposite', 'consecutive', 'random'.
-                
-        Returns:
-            None  
-        """
-        coords_list_middle = int(len(self.vertiport_list)/2)
-        coords_list_len = int(len(self.vertiport_list))
+        if number_of_vertiports % 2 != 0:
+            number_of_vertiports = number_of_vertiports - 1
+            print(f'Creating even number of vertiports, {number_of_vertiports}')
+
+        self.vertiport_pattern = 'random'
+        self.vertiport_circle_radius = radius
+        self.number_of_vertiports = number_of_vertiports
+
+        for i in range(self.number_of_vertiports):
+            x = random.uniform(-self.vertiport_circle_radius, self.vertiport_circle_radius) #choose uniformly between -radius and radius
+            y = random.uniform(-self.vertiport_circle_radius, self.vertiport_circle_radius) #choose uniformly between -radius and radius
+            self.set_vertiport(Point(round(x,2), round(y,2)))
         
-        local_veriport_list = self.vertiport_list.copy()
-
-
-        if self.assignment_type == 'opposite':
-            for i in range(len(local_veriport_list)):
-                uav = self.uav_list[i]
-                start = local_veriport_list[i]
-                end = local_veriport_list[(i+coords_list_middle)%coords_list_len]
-                uav.assign_start_end(start, end)
-                local_veriport_list.remove(start)
-                # this will not work - will need to use some sort of pointer, else the logic for choosing vertiport may not work - test this to see if it works 
-            
-        elif self.assignment_type == 'consecutive':
-            pass
-        elif self.assignment_type == 'random':
-            pass
-        else:
-            pass
-
-
         return None
 
 
-
-    def create_uav(self, n, uav_type, controller, dynamics,sensor, radius, nmac_radius) -> None:
+    def create_uavs(self, number_uavs, uav_type, has_agent ,controller, dynamics,sensor, radius, nmac_radius) -> None:
+        # my space can have a max amount of agents
+        # as UAVs are added, the space will keep track of the number of UAVs added 
         """
         Create "n" quantity of UAVs.
 
@@ -164,14 +175,95 @@ class Space:
         Returns:
             None
         """
+        if has_agent:
+            number_uavs = number_uavs - 1
 
         # n has to be less than or equal to the number of vertiports and has to be even number 
-        if n > self.number_of_vertiports or n % 2 != 0:
-            raise RuntimeError('n argument requires an even number and less than or equal to the number of vertiports.')
+        if number_uavs > self.max_uavs :
+            number_uavs = self.max_uavs
+            if number_uavs > self.number_of_vertiports:
+                number_uavs = self.number_of_vertiports
+                print(f'creating UAVs equal to the number of vertiports, {number_uavs}')
+            print(f'creating maximum number of UAVs, {number_uavs}')
+        
+        self.number_of_uavs = number_uavs
         
 
 
-        for _ in range(n):
+        for _ in range(self.number_of_uavs):
             uav = uav_type(controller, dynamics, sensor, radius, nmac_radius)
             self.set_uav(uav)
         return None
+    
+    
+    def assign_vertiports(self, assignment_type:str) -> None:
+        """
+        For a given space, assign start and end coordinates to UAVs.
+        
+        Args: 
+            assignment_type (str): This string determines how the start-end points are assigned.
+                                   Options are 'opposite', 'consecutive', 'random'.
+                
+        Returns:
+            None  
+        """
+        print(f'Number of vertiports in space is {len(self.vertiport_list)}')
+        print(f'Number of UAVs in space is {len(self.uav_list)}')
+        
+        if self.vertiport_pattern == 'circular':
+            print(f'Vertiport pattern in space is {self.vertiport_pattern}')
+        elif self.vertiport_pattern == 'random':
+            print(f'Vertiport pattern in space is {self.vertiport_pattern}')
+        else:
+            print('No vertiport pattern set')
+            raise ValueError('No vertiport pattern set')
+        
+        self.assignment_type = assignment_type
+        coords_list_middle = int(len(self.vertiport_list)/2)
+        coords_list_len = int(len(self.vertiport_list))
+        
+        local_veriport_list = self.vertiport_list.copy()
+
+        if self.vertiport_pattern == 'circular':
+            if self.assignment_type == 'opposite':
+                for i in range(len(local_veriport_list)):
+                    uav = self.uav_list[i]
+                    start = local_veriport_list[i]
+                    end = local_veriport_list[(i+coords_list_middle)%coords_list_len]
+                    uav.assign_start_end(start, end)
+                    local_veriport_list.remove(start)
+                    # this will not work - will need to use some sort of pointer, else the logic for choosing vertiport may not work - test this to see if it works 
+                
+            elif self.assignment_type == 'consecutive':
+                pass
+            elif self.assignment_type == 'random':
+                _start_list = self.vertiport_list.copy()
+                _end_list = self.vertiport_list.copy()
+                for i in range(len(self.uav_list)):
+                    uav = self.uav_list[i]
+                    start = random.choice(_start_list)
+                    end = random.choice(_end_list)
+                    uav.assign_start_end(start, end)
+                    _start_list.remove(start)
+                    _end_list.remove(end)
+                    
+            else:
+                pass
+        
+        elif self.vertiport_pattern == 'random':
+            _start_list = self.vertiport_list.copy()
+            _end_list = self.vertiport_list.copy()
+
+            for i in range(len(self.uav_list)):
+                uav = self.uav_list[i]
+                start = random.choice(_start_list)
+                end = random.choice(_end_list)
+                uav.assign_start_end(start, end)
+                _start_list.remove(start)
+                _end_list.remove(end)
+
+
+        return None
+
+
+

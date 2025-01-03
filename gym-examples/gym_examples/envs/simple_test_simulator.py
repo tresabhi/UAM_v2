@@ -72,7 +72,8 @@ from sensor_universal import UniversalSensor
 #         print('--- END SIMULATION ---')
 #         break
 
-space = Space(number_of_vertiports=10,distance_between_vertiports=250, assignment_type='opposite')
+#TODO - need to create a random assignment type of start end vertiport coordinates
+space = Space(max_uavs=10, max_vertiports=10)
 
 universal_sensor = UniversalSensor(space=space)
 static_controller = StaticController(0,0)
@@ -82,6 +83,7 @@ pm_dynamics = PointMassDynamics()
 universal_sensor = UniversalSensor(space=space)
 
 space.create_vertiports()
+#TODO - create_uav(has_agent:bool) will use num_vertiports to create one less UAV than the number of vertiports, the last UAV will be RL agent UAV 
 space.create_uav(6, UAV_v2,non_coop_controller,pm_dynamics,universal_sensor,5,20)
 space.assign_vertiports()
 

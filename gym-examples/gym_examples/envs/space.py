@@ -7,7 +7,7 @@ from shapely import Point
 
 
 class Space:
-    def __init__(self, max_uavs:int, max_vertiports:int):
+    def __init__(self, max_uavs:int, max_vertiports:int, seed:int):
         # max_vertiports has to be EVEN 
         # max_uavs has to be ODD and one less than max_vertiports
         """
@@ -30,6 +30,7 @@ class Space:
 
         self.uav_list:List = []
         self.vertiport_list:List = []
+        self._seed = seed
 
     def set_vertiport(self,vertiport):
         """
@@ -175,25 +176,28 @@ class Space:
         Returns:
             None
         """
-        if has_agent:
-            number_uavs = number_uavs - 1
 
         # n has to be less than or equal to the number of vertiports and has to be even number 
         if number_uavs > self.max_uavs :
             number_uavs = self.max_uavs
-            if number_uavs > self.number_of_vertiports:
-                number_uavs = self.number_of_vertiports
-                print(f'creating UAVs equal to the number of vertiports, {number_uavs}')
             print(f'creating maximum number of UAVs, {number_uavs}')
+        if number_uavs > self.number_of_vertiports:
+            number_uavs = self.number_of_vertiports
+            print(f'creating UAVs equal to the number of vertiports, {number_uavs}')
         
+        if has_agent:
+            number_uavs = number_uavs - 1
         self.number_of_uavs = number_uavs
         
-
-
+        
         for _ in range(self.number_of_uavs):
             uav = uav_type(controller, dynamics, sensor, radius, nmac_radius)
             self.set_uav(uav)
+        
         return None
+        
+
+
     
     
     def assign_vertiports(self, assignment_type:str) -> None:
@@ -221,17 +225,22 @@ class Space:
         self.assignment_type = assignment_type
         coords_list_middle = int(len(self.vertiport_list)/2)
         coords_list_len = int(len(self.vertiport_list))
+
         
         local_veriport_list = self.vertiport_list.copy()
+        local_uav_list = self.uav_list.copy()
 
         if self.vertiport_pattern == 'circular':
             if self.assignment_type == 'opposite':
                 for i in range(len(local_veriport_list)):
-                    uav = self.uav_list[i]
+                    uav = local_uav_list[i]
                     start = local_veriport_list[i]
                     end = local_veriport_list[(i+coords_list_middle)%coords_list_len]
                     uav.assign_start_end(start, end)
                     local_veriport_list.remove(start)
+                    _ = local_uav_list.pop(0)
+                    if len(local_veriport_list) == 0:
+                        break
                     # this will not work - will need to use some sort of pointer, else the logic for choosing vertiport may not work - test this to see if it works 
                 
             elif self.assignment_type == 'consecutive':
@@ -251,6 +260,7 @@ class Space:
                 pass
         
         elif self.vertiport_pattern == 'random':
+            random.seed(seed = self._seed)
             _start_list = self.vertiport_list.copy()
             _end_list = self.vertiport_list.copy()
 
@@ -263,6 +273,20 @@ class Space:
                 _end_list.remove(end)
 
 
+        return None
+    
+    #TODO: This method needs to be scrutinized 
+    def assign_vertiport_agent(self, agent:UAV_v2_template) -> None:
+        """
+        Assigns a start and end vertiport to the agent UAV.
+
+        Args:
+            agent (UAV_v2_template): The agent AutoUAV.
+        
+        Returns:
+            None
+        """
+        agent.assign_start_end(self.vertiport_list[0], self.vertiport_list[-1])
         return None
 
 

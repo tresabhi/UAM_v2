@@ -1,13 +1,15 @@
 from abc import ABC, abstractmethod
 from typing import Dict, List
+import numpy as np 
 class SensorTemplate(ABC):
 
     '''
     Collect other UAVs state information
     '''
     @abstractmethod
-    def __init__(self, space)->None:
+    def __init__(self, space, max_number_other_agents_observed)->None:
         self.space = space
+        self.max_number_other_agents_observed = max_number_other_agents_observed
         self.data = []
 
 
@@ -15,11 +17,13 @@ class SensorTemplate(ABC):
     @abstractmethod
     def set_data(self)->None:
         '''Collect information about other UAVs in space and save in data'''
-        pass
+        self.detection_radius = None
+        return None
     
     @abstractmethod
-    def get_data(self)->List[Dict]:
-        '''Return observation data about other UAVs in space'''
+    def get_data(self, sorting_criteria)->np.ndarray:
+        '''Return observation data about other UAVs in space based on sorting criteria'''
+        self.data = np.array(self.data)
         return self.data
     
     @abstractmethod

@@ -373,7 +373,7 @@ class UamUavEnv(gym.Env):
 
         # Get observations and compute reward
         obs = self._get_obs()
-        reward = self.get_reward(obs)
+        reward = self.get_reward(obs) #! this reward might be incorrect, the obs 
         info = self._get_info()
 
         # TODO - develop methods for termination and truncation

@@ -7,9 +7,11 @@ from dynamics_point_mass import PointMassDynamics
 from sensor_universal import UniversalSensor
 from space import Space
 import math
+import numpy as np
 from shapely import Point
 from matplotlib import pyplot as plt 
 import gymnasium as gym 
+from gymnasium.spaces import Discrete, Box, Dict
 from gymnasium import spaces
 
 
@@ -24,8 +26,23 @@ class SimpleEnv(gym.Env):
         self._seed = seed
 
 
-        self.observation_space = spaces.Dict({})
-        self.action_space = spaces.Box()
+        self.observation_space = Dict({ #! I think I should add end_vertiport co-ord ??
+                                        'no_other_agents': Discrete(9),
+                                        'dist_goal': Box(low=0, high=250, shape=(), dtype=np.float32),
+                                        'heading_ego_frame': Box(low=-180, high=180, shape=(), dtype=np.float32),
+                                        'pref_speed': Box(low=0, high=25, shape=(), dtype=np.float32),
+                                        'radius': Box(low=0, high=20, shape=(), dtype=np.float32),
+                                        'other_agent_state': Box(
+                                                                    low=np.full((8, 8), -np.inf),  # Use -inf as the lower bound for unspecified dimensions
+                                                                    high=np.full((8, 8), np.inf),  # Use inf as the upper bound for unspecified dimensions
+                                                                    shape=(8, 8),  # Array size 8x8
+                                                                    dtype=np.float32  # Ensure consistent data type
+                                                                )
+                                    })
+        self.action_space = spaces.Box(low=np.array([-1, -math.pi]),  # acceleration, heading_change
+                                       high=np.array([1, math.pi]), 
+                                       shape=(2,))
+        
         
 
     def step(self, action):

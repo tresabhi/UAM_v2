@@ -29,3 +29,31 @@ env desc -
 5) GYM API 
 
 '''
+
+# Required imports
+from stable_baselines3 import PPO
+from stable_baselines3.common.evaluation import evaluate_policy
+from stable_baselines3.common.monitor import Monitor
+import gymnasium as gym
+import matplotlib.pyplot as plt
+
+# Register your custom environment
+#from gymnasium.envs.registration import register #this line () is not required - not a local package 'remove line when confirmed'
+from simple_env import SimpleEnv
+
+import sys
+import os
+from datetime import datetime
+import logging
+
+
+
+env = SimpleEnv(max_uavs=12, max_vertiports=14, seed = 42)
+env.reset()
+
+for i in range(100):
+    action = env.action_space.sample()
+    obs, reward, done, info = env.step(action)
+    print(obs, reward, done, info)
+    if done:
+        break

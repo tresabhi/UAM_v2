@@ -54,7 +54,7 @@ def create_env(max_steps=1000):
         sleep_time=0.01,
         airspace_tag_list=[("building", "hospital"), ("aeroway", "aerodrome")],
     )
-    env.max_episode_steps = max_steps
+    env.max_episode_steps = max_steps #! why do i need to pass in the max steps like this, not pythonic, update/fix this 
     return env
 
 def run_evaluation_episode(env, model, logger, max_steps):

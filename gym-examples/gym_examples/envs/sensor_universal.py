@@ -14,36 +14,47 @@ class UniversalSensor(SensorTemplate):
 
     def set_data(self, self_uav:UAV_v2_template) -> None:
         '''Collect data of other UAVs in space'''
-        
+        # get self_uav detection radius 
         self.detection_radius = self_uav.detection_radius
-        
+        # get UAV list from space
         uav_list:List[UAV_v2_template] = self.space.get_uav_list()
-        self_uav_ref_prll, self_uav_ref_orth = self_uav.get_ref()
+        
 
         for uav in uav_list:
-            # collect information about other UAV
+           
             if uav.id != self_uav.id:
-                relative_distance =  np.array([uav.current_position.x - self_uav.current_position.x, uav.current_position.y - self_uav.current_position.y])
-                p_parallel_ego_frame = np.dot(relative_distance, self_uav_ref_prll)
-                p_orthogonal_ego_frame = np.dot(relative_distance, self_uav_ref_orth)
-                v_parallel_ego_frame = np.dot(np.array([uav.current_speed*np.cos(uav.current_heading), uav.current_speed*np.sin(uav.current_heading)]), self_uav_ref_prll)
-                v_orthogonal_ego_frame = np.dot(np.array([uav.current_speed*np.cos(uav.current_heading), uav.current_speed*np.sin(uav.current_heading)]), self_uav_ref_orth)
-                dist_between_agent_centers = shapely.distance(self_uav.current_position, uav.current_position)
-                dist_to_other = round(dist_between_agent_centers - self_uav.radius - uav.radius, 2)
-                combined_radius = self_uav.radius + uav.radius
-                # relative_heading = self_uav_state['current_heading'] = uav_state['current_heading']
-                time_to_impact = compute_time_to_impact(self_uav, uav)
-                obs_array = np.array([p_parallel_ego_frame,
-                                      p_orthogonal_ego_frame,
-                                      v_parallel_ego_frame,
-                                      v_orthogonal_ego_frame,
-                                      uav.radius,
-                                      combined_radius,
-                                      dist_to_other,
-                                      time_to_impact])
-                # save information in data
-                self.data.append(obs_array)
+                if self_uav.current_position.distance(uav.current_position) <= self.detection_radius:
+                    data = {'other_uav id': uav.id,
+                            'other_uav current_position':uav.current_position,
+                            'other_uav current_speed':uav.current_speed,
+                            'other_uav current_heading':uav.current_heading,
+                            'other_uav radius': uav.radius}
+                    self.data.append(data)
         return None
+    
+
+            # if uav.id != self_uav.id:
+            #     relative_distance =  np.array([uav.current_position.x - self_uav.current_position.x, uav.current_position.y - self_uav.current_position.y])
+            #     p_parallel_ego_frame = np.dot(relative_distance, self_uav_ref_prll)
+            #     p_orthogonal_ego_frame = np.dot(relative_distance, self_uav_ref_orth)
+            #     v_parallel_ego_frame = np.dot(np.array([uav.current_speed*np.cos(uav.current_heading), uav.current_speed*np.sin(uav.current_heading)]), self_uav_ref_prll)
+            #     v_orthogonal_ego_frame = np.dot(np.array([uav.current_speed*np.cos(uav.current_heading), uav.current_speed*np.sin(uav.current_heading)]), self_uav_ref_orth)
+            #     dist_between_agent_centers = shapely.distance(self_uav.current_position, uav.current_position)
+            #     dist_to_other = round(dist_between_agent_centers - self_uav.radius - uav.radius, 2)
+            #     combined_radius = self_uav.radius + uav.radius
+            #     # relative_heading = self_uav_state['current_heading'] = uav_state['current_heading']
+            #     time_to_impact = compute_time_to_impact(self_uav, uav)
+            #     obs_array = np.array([p_parallel_ego_frame,
+            #                           p_orthogonal_ego_frame,
+            #                           v_parallel_ego_frame,
+            #                           v_orthogonal_ego_frame,
+            #                           uav.radius,
+            #                           combined_radius,
+            #                           dist_to_other,
+            #                           time_to_impact])
+            #     # save information in data
+            #     self.data.append(obs_array)
+        
     
     
     def get_data(self, sorting_criteria: str):

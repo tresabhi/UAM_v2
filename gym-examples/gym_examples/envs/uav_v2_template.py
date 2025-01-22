@@ -102,18 +102,20 @@ class UAV_v2_template(ABC):
         Returns:
             Dict: A dictionary containing state information such as distance to goal, current speed, heading, and radius.
         """
-        return {
-            'distance_to_goal': self.start.distance(self.end),
-            'current_speed': self.current_speed,
-            'current_heading': self.current_heading,
-            'radius': self.radius,
-            #! needs implementation to meet MIT_ACL format
-            #'no_other_agent':len(self.space.get_uav_list()) - 1
-
-        }
+        ref_prll, ref_orth = self.get_ref()
+        return {'id':self.id,
+                'current_position':self.current_position,
+                'current_speed': self.current_speed,
+                'current_heading': self.current_heading,
+                'end':self.end,
+                'radius': self.radius,
+                'ref_prll':ref_prll,
+                'ref_orth':ref_orth,
+                'distance_to_goal': self.current_position.distance(self.end),
+                }
 
     @abstractmethod
-    def get_sensor_data(self, sorting_criteria: str) -> List[Dict]:
+    def get_sensor_data(self) -> List[Dict]:
         """
         Collect data from the sensor about other UAVs in the environment.
 
@@ -123,10 +125,10 @@ class UAV_v2_template(ABC):
         Returns:
             List[Dict]: Sensor data about other UAVs, sorted by the given criteria.
         """
-        self.sensor_data = self.sensor.get_data(sorting_criteria)
+        self.sensor_data = self.sensor.get_data()
         return self.sensor_data
 
-    def get_obs(self, sorting_criteria: str) -> List[Dict]:
+    def get_obs(self) -> List[Dict]:  
         """
         Retrieve the observation, combining the UAV's state with sensor data.
 
@@ -137,8 +139,11 @@ class UAV_v2_template(ABC):
             List[Dict]: A list containing the UAV's state and sorted sensor data.
         """
         obs = []
+        # get self information
         obs.append(self.get_state())
-        obs = obs + self.get_sensor_data(sorting_criteria)
+        # add self obs with other_uav obs
+        obs = obs + self.get_sensor_data()
+        
         return obs
 
     def get_action(self, observation):

@@ -17,13 +17,11 @@ class SensorTemplate(ABC):
     @abstractmethod
     def set_data(self)->None:
         '''Collect information about other UAVs in space and save in data'''
-        self.detection_radius = None
         return None
     
     @abstractmethod
-    def get_data(self, sorting_criteria)->np.ndarray:
+    def get_data(self)->List[Dict]:
         '''Return observation data about other UAVs in space based on sorting criteria'''
-        self.data = np.array(self.data)
         return self.data
     
     @abstractmethod

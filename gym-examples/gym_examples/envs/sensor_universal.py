@@ -1,5 +1,5 @@
 from sensor_template import SensorTemplate
-from typing import List
+from typing import List, Dict
 from pandas import DataFrame
 import numpy as np
 import shapely
@@ -25,10 +25,10 @@ class UniversalSensor(SensorTemplate):
             if uav.id != self_uav.id:
                 if self_uav.current_position.distance(uav.current_position) <= self.detection_radius:
                     data = {'other_uav id': uav.id,
-                            'other_uav current_position':uav.current_position,
-                            'other_uav current_speed':uav.current_speed,
-                            'other_uav current_heading':uav.current_heading,
-                            'other_uav radius': uav.radius}
+                            'other_uav_current_position':uav.current_position,
+                            'other_uav_current_speed':uav.current_speed,
+                            'other_uav_current_heading':uav.current_heading,
+                            'other_uav_radius': uav.radius}
                     self.data.append(data)
         return None
     
@@ -57,37 +57,38 @@ class UniversalSensor(SensorTemplate):
         
     
     
-    def get_data(self, sorting_criteria: str):
-        """Return data of other UAVs in space.
+    def get_data(self) -> List[Dict]:
+        return self.data
+        # """Return data of other UAVs in space.
 
-        Args:
-            sorting_criteria (str): Sorting method, one of ['closest first', 'closest last', 'time of impact'].
+        # Args:
+        #     sorting_criteria (str): Sorting method, one of ['closest first', 'closest last', 'time of impact'].
 
-        Returns:
-            np.ndarray: Sorted data with fixed shape (max_number_other_agents_observed, 7).
-        """
-        if sorting_criteria == 'closest first':
-            sorted_data = sorted(self.data, key=lambda x: (x[6], x[1]))
-        elif sorting_criteria == 'closest last':
-            sorted_data = sorted(self.data, key=lambda x: (x[6], x[1]), reverse=True)
-        elif sorting_criteria == 'time of impact':
-            sorted_data = sorted(self.data, key=lambda x: (-x[7], -x[6], x[1]))
-        else:
-            raise RuntimeError('Not a valid sorting_criteria')
+        # Returns:
+        #     np.ndarray: Sorted data with fixed shape (max_number_other_agents_observed, 7).
+        # """
+        # if sorting_criteria == 'closest first':
+        #     sorted_data = sorted(self.data, key=lambda x: (x[6], x[1]))
+        # elif sorting_criteria == 'closest last':
+        #     sorted_data = sorted(self.data, key=lambda x: (x[6], x[1]), reverse=True)
+        # elif sorting_criteria == 'time of impact':
+        #     sorted_data = sorted(self.data, key=lambda x: (-x[7], -x[6], x[1]))
+        # else:
+        #     raise RuntimeError('Not a valid sorting_criteria')
 
-        # Convert to numpy array for consistent shape handling
-        sorted_data = np.array(sorted_data)
+        # # Convert to numpy array for consistent shape handling
+        # sorted_data = np.array(sorted_data)
 
-        # Truncate or pad to ensure fixed shape
-        if len(sorted_data) > self.max_number_other_agents_observed:
-            # Truncate extra rows
-            sorted_data = sorted_data[:self.max_number_other_agents_observed]
-        elif len(sorted_data) < self.max_number_other_agents_observed:
-            # Pad with zeros if there are fewer rows
-            padding = np.zeros((self.max_number_other_agents_observed - len(sorted_data), 7))
-            sorted_data = np.vstack((sorted_data, padding))
+        # # Truncate or pad to ensure fixed shape
+        # if len(sorted_data) > self.max_number_other_agents_observed:
+        #     # Truncate extra rows
+        #     sorted_data = sorted_data[:self.max_number_other_agents_observed]
+        # elif len(sorted_data) < self.max_number_other_agents_observed:
+        #     # Pad with zeros if there are fewer rows
+        #     padding = np.zeros((self.max_number_other_agents_observed - len(sorted_data), 7))
+        #     sorted_data = np.vstack((sorted_data, padding))
 
-        return sorted_data
+        # return sorted_data
     
 
     def get_collision(self, self_uav:UAV_v2_template):

@@ -1,0 +1,126 @@
+2024-12-06 16:50:00,392 - Starting training with parameters:
+2024-12-06 16:50:00,392 - Training timesteps: 25000
+2024-12-06 16:50:00,392 - Max episode steps: 2500
+2024-12-06 16:50:03,788 - Starting training...
+2024-12-06 17:44:21,057 - Training complete!
+2024-12-06 17:44:21,089 - Model saved to trained_models/ppo_uam_25000
+2024-12-06 17:44:21,089 - 
+Evaluation attempt 1/10
+2024-12-06 17:44:21,159 - 
+Starting evaluation episode...
+2024-12-06 17:44:21,160 - Initial observation: {'agent_id': array([140543331423760]), 'agent_speed': array([0.]), 'agent_deviation': array([-87.72590334]), 'intruder_detected': 1, 'intruder_id': array([140542770222224]), 'distance_to_intruder': array([0.1]), 'relative_heading_intruder': array([32.56241359]), 'intruder_current_heading': array([4.64485851])}
+2024-12-06 17:44:21,253 - 
+Dynamic collision detected!
+2024-12-06 17:44:21,253 - 
+Episode truncated - Reason:
+2024-12-06 17:44:21,253 - - Dynamic collision
+2024-12-06 17:44:21,253 - 
+Evaluation attempt 2/10
+2024-12-06 17:44:21,311 - 
+Starting evaluation episode...
+2024-12-06 17:44:21,312 - Initial observation: {'agent_id': array([140541121145296]), 'agent_speed': array([0.]), 'agent_deviation': array([-31.877995]), 'intruder_detected': 1, 'intruder_id': array([140541121109520]), 'distance_to_intruder': array([0.1]), 'relative_heading_intruder': array([-107.31988974]), 'intruder_current_heading': array([-83.26557069])}
+2024-12-06 17:44:21,397 - 
+Dynamic collision detected!
+2024-12-06 17:44:21,397 - 
+Episode truncated - Reason:
+2024-12-06 17:44:21,397 - - Dynamic collision
+2024-12-06 17:44:21,398 - 
+Evaluation attempt 3/10
+2024-12-06 17:44:21,450 - 
+Starting evaluation episode...
+2024-12-06 17:44:21,451 - Initial observation: {'agent_id': array([140541121224144]), 'agent_speed': array([0.]), 'agent_deviation': array([110.44838335]), 'intruder_detected': 1, 'intruder_id': array([140541121178128]), 'distance_to_intruder': array([0.1]), 'relative_heading_intruder': array([144.77846035]), 'intruder_current_heading': array([92.37769762])}
+2024-12-06 17:44:21,533 - 
+Dynamic collision detected!
+2024-12-06 17:44:21,534 - 
+Episode truncated - Reason:
+2024-12-06 17:44:21,534 - - Dynamic collision
+2024-12-06 17:44:21,534 - 
+Evaluation attempt 4/10
+2024-12-06 17:44:21,586 - 
+Starting evaluation episode...
+2024-12-06 17:44:21,587 - Initial observation: {'agent_id': array([140541124116944]), 'agent_speed': array([0.]), 'agent_deviation': array([165.54114838]), 'intruder_detected': 1, 'intruder_id': array([140541121217104]), 'distance_to_intruder': array([0.1]), 'relative_heading_intruder': array([-162.08425752]), 'intruder_current_heading': array([-172.65270836])}
+2024-12-06 17:44:21,670 - 
+Dynamic collision detected!
+2024-12-06 17:44:21,670 - 
+Episode truncated - Reason:
+2024-12-06 17:44:21,670 - - Dynamic collision
+2024-12-06 17:44:21,766 - 
+Evaluation attempt 5/10
+2024-12-06 17:44:21,818 - 
+Starting evaluation episode...
+2024-12-06 17:44:21,943 - Initial observation: {'agent_id': array([140543328483152]), 'agent_speed': array([0.]), 'agent_deviation': array([-27.03917302]), 'intruder_detected': 1, 'intruder_id': array([140541122444496]), 'distance_to_intruder': array([0.1]), 'relative_heading_intruder': array([-119.55223166]), 'intruder_current_heading': array([-30.79219598])}
+2024-12-06 17:44:22,028 - 
+Dynamic collision detected!
+2024-12-06 17:44:22,028 - 
+Episode truncated - Reason:
+2024-12-06 17:44:22,028 - - Dynamic collision
+2024-12-06 17:44:22,029 - 
+Evaluation attempt 6/10
+2024-12-06 17:44:22,082 - 
+Starting evaluation episode...
+2024-12-06 17:44:22,082 - Initial observation: {'agent_id': array([140541121147856]), 'agent_speed': array([0.]), 'agent_deviation': array([163.10418259]), 'intruder_detected': 0, 'intruder_id': array([0]), 'distance_to_intruder': array([550.]), 'relative_heading_intruder': array([0.]), 'intruder_current_heading': array([0.])}
+2024-12-06 17:44:30,016 - 
+Step 100:
+2024-12-06 17:44:30,017 - Distance to goal: 9007.03
+2024-12-06 17:44:30,017 - Current speed: 40.0
+2024-12-06 17:44:30,017 - Current heading: -166.0996286185199
+2024-12-06 17:44:38,093 - 
+Step 200:
+2024-12-06 17:44:38,093 - Distance to goal: 5007.03
+2024-12-06 17:44:38,094 - Current speed: 40.0
+2024-12-06 17:44:38,094 - Current heading: -166.09962861838872
+2024-12-06 17:44:46,093 - 
+Step 300:
+2024-12-06 17:44:46,093 - Distance to goal: 1007.03
+2024-12-06 17:44:46,093 - Current speed: 40.0
+2024-12-06 17:44:46,093 - Current heading: -166.09962861838915
+2024-12-06 17:44:48,004 - 
+Goal reached!
+2024-12-06 17:44:48,004 - 
+Creating animation...
+2024-12-06 17:44:48,026 - Animation.save using <class 'matplotlib.animation.FFMpegWriter'>
+2024-12-06 17:44:48,027 - MovieWriter._run: running command: ffmpeg -f rawvideo -vcodec rawvideo -s 3200x2400 -pix_fmt rgba -framerate 20 -loglevel error -i pipe: -vcodec h264 -pix_fmt yuv420p -b 2000k -y animations/flight_success_324_steps.mp4.mp4
+2024-12-06 17:46:54,692 - Animation saved to animations/flight_success_324_steps.mp4
+2024-12-06 17:46:54,692 - Successful evaluation on attempt 6
+2024-12-06 17:46:54,692 - 
+Evaluation attempt 7/10
+2024-12-06 17:46:54,744 - 
+Starting evaluation episode...
+2024-12-06 17:46:54,745 - Initial observation: {'agent_id': array([140542771720400]), 'agent_speed': array([0.]), 'agent_deviation': array([10.07767118]), 'intruder_detected': 1, 'intruder_id': array([140541121360144]), 'distance_to_intruder': array([0.1]), 'relative_heading_intruder': array([-92.45814376]), 'intruder_current_heading': array([-3.22980316])}
+2024-12-06 17:46:54,827 - 
+Dynamic collision detected!
+2024-12-06 17:46:54,827 - 
+Episode truncated - Reason:
+2024-12-06 17:46:54,827 - - Dynamic collision
+2024-12-06 17:46:54,827 - 
+Evaluation attempt 8/10
+2024-12-06 17:46:54,875 - 
+Starting evaluation episode...
+2024-12-06 17:46:54,876 - Initial observation: {'agent_id': array([140541120053456]), 'agent_speed': array([0.]), 'agent_deviation': array([122.57605401]), 'intruder_detected': 1, 'intruder_id': array([140541121358864]), 'distance_to_intruder': array([0.1]), 'relative_heading_intruder': array([-37.9619987]), 'intruder_current_heading': array([22.88892579])}
+2024-12-06 17:46:54,957 - 
+Dynamic collision detected!
+2024-12-06 17:46:54,957 - 
+Episode truncated - Reason:
+2024-12-06 17:46:54,957 - - Dynamic collision
+2024-12-06 17:46:54,957 - 
+Evaluation attempt 9/10
+2024-12-06 17:46:55,007 - 
+Starting evaluation episode...
+2024-12-06 17:46:55,008 - Initial observation: {'agent_id': array([140541107595408]), 'agent_speed': array([0.]), 'agent_deviation': array([-37.21502338]), 'intruder_detected': 1, 'intruder_id': array([140541121349648]), 'distance_to_intruder': array([0.1]), 'relative_heading_intruder': array([-33.44530684]), 'intruder_current_heading': array([-135.0030332])}
+2024-12-06 17:46:55,090 - 
+Dynamic collision detected!
+2024-12-06 17:46:55,090 - 
+Episode truncated - Reason:
+2024-12-06 17:46:55,090 - - Dynamic collision
+2024-12-06 17:46:55,090 - 
+Evaluation attempt 10/10
+2024-12-06 17:46:55,140 - 
+Starting evaluation episode...
+2024-12-06 17:46:55,140 - Initial observation: {'agent_id': array([140541120172112]), 'agent_speed': array([0.]), 'agent_deviation': array([20.56498232]), 'intruder_detected': 1, 'intruder_id': array([140541121317456]), 'distance_to_intruder': array([0.1]), 'relative_heading_intruder': array([6.41672534]), 'intruder_current_heading': array([139.52589528])}
+2024-12-06 17:46:55,221 - 
+Dynamic collision detected!
+2024-12-06 17:46:55,221 - 
+Episode truncated - Reason:
+2024-12-06 17:46:55,221 - - Dynamic collision
+2024-12-06 17:46:55,222 - 
+Completed evaluation with 1 successful episodes

@@ -1,0 +1,126 @@
+2024-12-06 00:16:46,617 - Starting training with parameters:
+2024-12-06 00:16:46,617 - Training timesteps: 5000
+2024-12-06 00:16:46,617 - Max episode steps: 500
+2024-12-06 00:16:50,173 - Starting training...
+2024-12-06 00:25:04,697 - Training complete!
+2024-12-06 00:25:04,720 - Model saved to trained_models/ppo_uam_5000
+2024-12-06 00:25:04,720 - 
+Evaluation attempt 1/5
+2024-12-06 00:25:04,770 - 
+Starting evaluation episode...
+2024-12-06 00:25:04,771 - Initial observation: {'agent_id': array([140133673144016]), 'agent_speed': array([0.]), 'agent_deviation': array([-147.41985277]), 'intruder_detected': 1, 'intruder_id': array([140131300269648]), 'distance_to_intruder': array([0.1]), 'relative_heading_intruder': array([-68.09817333]), 'intruder_current_heading': array([165.5565257])}
+2024-12-06 00:25:04,852 - 
+Dynamic collision detected!
+2024-12-06 00:25:04,852 - 
+Episode truncated - Reason:
+2024-12-06 00:25:04,852 - - Dynamic collision
+2024-12-06 00:25:04,853 - 
+Evaluation attempt 2/5
+2024-12-06 00:25:04,900 - 
+Starting evaluation episode...
+2024-12-06 00:25:04,901 - Initial observation: {'agent_id': array([140133674516304]), 'agent_speed': array([0.]), 'agent_deviation': array([26.15875566]), 'intruder_detected': 0, 'intruder_id': array([0]), 'distance_to_intruder': array([550.]), 'relative_heading_intruder': array([0.]), 'intruder_current_heading': array([0.])}
+2024-12-06 00:25:12,638 - 
+Step 100:
+2024-12-06 00:25:12,638 - Distance to goal: 9829.71
+2024-12-06 00:25:12,638 - Current speed: 25.567692518234253
+2024-12-06 00:25:12,638 - Current heading: -176.39281230427486
+2024-12-06 00:25:20,424 - 
+Step 200:
+2024-12-06 00:25:20,424 - Distance to goal: 6229.86
+2024-12-06 00:25:20,424 - Current speed: 40.0
+2024-12-06 00:25:20,424 - Current heading: -176.39281579131668
+2024-12-06 00:25:28,071 - 
+Step 300:
+2024-12-06 00:25:28,071 - Distance to goal: 2229.86
+2024-12-06 00:25:28,071 - Current speed: 40.0
+2024-12-06 00:25:28,071 - Current heading: -176.39281579143025
+2024-12-06 00:25:32,281 - 
+Goal reached!
+2024-12-06 00:25:32,281 - 
+Creating animation...
+2024-12-06 00:25:32,310 - Animation.save using <class 'matplotlib.animation.FFMpegWriter'>
+2024-12-06 00:25:32,310 - MovieWriter._run: running command: ffmpeg -f rawvideo -vcodec rawvideo -s 3200x2400 -pix_fmt rgba -framerate 20 -loglevel error -i pipe: -vcodec h264 -pix_fmt yuv420p -b 2000k -y animations/flight_success_355_steps.mp4.mp4
+2024-12-06 00:27:48,597 - Animation saved to animations/flight_success_355_steps.mp4
+2024-12-06 00:27:48,597 - Successful evaluation on attempt 2
+2024-12-06 00:27:48,597 - 
+Evaluation attempt 3/5
+2024-12-06 00:27:48,644 - 
+Starting evaluation episode...
+2024-12-06 00:27:48,644 - Initial observation: {'agent_id': array([140130762929808]), 'agent_speed': array([0.]), 'agent_deviation': array([26.40865031]), 'intruder_detected': 0, 'intruder_id': array([0]), 'distance_to_intruder': array([550.]), 'relative_heading_intruder': array([0.]), 'intruder_current_heading': array([0.])}
+2024-12-06 00:27:56,394 - 
+Step 100:
+2024-12-06 00:27:56,395 - Distance to goal: 22900.01
+2024-12-06 00:27:56,395 - Current speed: 25.567692518234253
+2024-12-06 00:27:56,395 - Current heading: 160.34707410035128
+2024-12-06 00:28:04,174 - 
+Step 200:
+2024-12-06 00:28:04,174 - Distance to goal: 19300.15
+2024-12-06 00:28:04,174 - Current speed: 40.0
+2024-12-06 00:28:04,174 - Current heading: 160.34708102265722
+2024-12-06 00:28:11,938 - 
+Step 300:
+2024-12-06 00:28:11,939 - Distance to goal: 15300.15
+2024-12-06 00:28:11,939 - Current speed: 40.0
+2024-12-06 00:28:11,939 - Current heading: 160.34708102260151
+2024-12-06 00:28:19,711 - 
+Step 400:
+2024-12-06 00:28:19,711 - Distance to goal: 11300.15
+2024-12-06 00:28:19,711 - Current speed: 40.0
+2024-12-06 00:28:19,711 - Current heading: 160.34708102254274
+2024-12-06 00:28:27,495 - 
+Step 500:
+2024-12-06 00:28:27,495 - Distance to goal: 7300.15
+2024-12-06 00:28:27,495 - Current speed: 40.0
+2024-12-06 00:28:27,495 - Current heading: 160.3470810225424
+2024-12-06 00:28:27,495 - 
+Creating animation...
+2024-12-06 00:28:27,504 - Animation.save using <class 'matplotlib.animation.FFMpegWriter'>
+2024-12-06 00:28:27,504 - MovieWriter._run: running command: ffmpeg -f rawvideo -vcodec rawvideo -s 3200x2400 -pix_fmt rgba -framerate 20 -loglevel error -i pipe: -vcodec h264 -pix_fmt yuv420p -b 2000k -y animations/flight_timeout_500_steps.mp4.mp4
+2024-12-06 00:31:39,566 - Animation saved to animations/flight_timeout_500_steps.mp4
+2024-12-06 00:31:39,566 - 
+Evaluation attempt 4/5
+2024-12-06 00:31:39,615 - 
+Starting evaluation episode...
+2024-12-06 00:31:39,616 - Initial observation: {'agent_id': array([140133511170192]), 'agent_speed': array([0.]), 'agent_deviation': array([151.55681626]), 'intruder_detected': 0, 'intruder_id': array([0]), 'distance_to_intruder': array([550.]), 'relative_heading_intruder': array([0.]), 'intruder_current_heading': array([0.])}
+2024-12-06 00:31:47,462 - 
+Step 100:
+2024-12-06 00:31:47,463 - Distance to goal: 22504.91
+2024-12-06 00:31:47,463 - Current speed: 25.567692518234253
+2024-12-06 00:31:47,463 - Current heading: -83.19536772256663
+2024-12-06 00:31:55,255 - 
+Step 200:
+2024-12-06 00:31:55,256 - Distance to goal: 23729.38
+2024-12-06 00:31:55,256 - Current speed: 40.0
+2024-12-06 00:31:55,256 - Current heading: -114.4305941525655
+2024-12-06 00:32:03,131 - 
+Step 300:
+2024-12-06 00:32:03,131 - Distance to goal: 23650.50
+2024-12-06 00:32:03,131 - Current speed: 40.0
+2024-12-06 00:32:03,131 - Current heading: -145.66582058256438
+2024-12-06 00:32:10,960 - 
+Step 400:
+2024-12-06 00:32:10,960 - Distance to goal: 22099.71
+2024-12-06 00:32:10,961 - Current speed: 40.0
+2024-12-06 00:32:10,961 - Current heading: -176.90104701256325
+2024-12-06 00:32:18,764 - 
+Step 500:
+2024-12-06 00:32:18,765 - Distance to goal: 19256.31
+2024-12-06 00:32:18,765 - Current speed: 40.0
+2024-12-06 00:32:18,765 - Current heading: 151.86372655743787
+2024-12-06 00:32:18,765 - 
+Creating animation...
+2024-12-06 00:32:18,774 - Animation.save using <class 'matplotlib.animation.FFMpegWriter'>
+2024-12-06 00:32:18,774 - MovieWriter._run: running command: ffmpeg -f rawvideo -vcodec rawvideo -s 3200x2400 -pix_fmt rgba -framerate 20 -loglevel error -i pipe: -vcodec h264 -pix_fmt yuv420p -b 2000k -y animations/flight_timeout_500_steps.mp4.mp4
+2024-12-06 00:35:31,136 - Animation saved to animations/flight_timeout_500_steps.mp4
+2024-12-06 00:35:31,137 - 
+Evaluation attempt 5/5
+2024-12-06 00:35:31,185 - 
+Starting evaluation episode...
+2024-12-06 00:35:31,185 - Initial observation: {'agent_id': array([140131297018832]), 'agent_speed': array([0.]), 'agent_deviation': array([26.31299118]), 'intruder_detected': 1, 'intruder_id': array([140131832169552]), 'distance_to_intruder': array([0.1]), 'relative_heading_intruder': array([-88.3040581]), 'intruder_current_heading': array([-29.64187478])}
+2024-12-06 00:35:31,265 - 
+Dynamic collision detected!
+2024-12-06 00:35:31,265 - 
+Episode truncated - Reason:
+2024-12-06 00:35:31,265 - - Dynamic collision
+2024-12-06 00:35:31,265 - 
+Completed evaluation with 1 successful episodes

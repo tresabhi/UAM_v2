@@ -1,0 +1,23 @@
+2024-12-03 16:14:49,861 - Starting training with parameters:
+2024-12-03 16:14:49,862 - Training timesteps: 5000
+2024-12-03 16:14:49,862 - Max episode steps: 500
+2024-12-03 16:14:52,690 - Starting training...
+2024-12-03 16:14:52,742 - Error during execution: You must install tqdm and rich in order to use the progress bar callback. It is included if you install stable-baselines with the extra packages: `pip install stable-baselines3[extra]`
+Traceback (most recent call last):
+  File "/work/flemingc/aharoon/UAM/UAM_v2/gym-examples/gym_examples/envs/train_single_agent_uam.py", line 166, in train_and_evaluate
+    model.learn(total_timesteps=training_timesteps, progress_bar=True)
+  File "/work/flemingc/aharoon/anaconda3/envs/AAM_AMOD/lib/python3.11/site-packages/stable_baselines3/ppo/ppo.py", line 315, in learn
+    return super().learn(
+           ^^^^^^^^^^^^^^
+  File "/work/flemingc/aharoon/anaconda3/envs/AAM_AMOD/lib/python3.11/site-packages/stable_baselines3/common/on_policy_algorithm.py", line 287, in learn
+    total_timesteps, callback = self._setup_learn(
+                                ^^^^^^^^^^^^^^^^^^
+  File "/work/flemingc/aharoon/anaconda3/envs/AAM_AMOD/lib/python3.11/site-packages/stable_baselines3/common/base_class.py", line 434, in _setup_learn
+    callback = self._init_callback(callback, progress_bar)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/flemingc/aharoon/anaconda3/envs/AAM_AMOD/lib/python3.11/site-packages/stable_baselines3/common/base_class.py", line 378, in _init_callback
+    callback = CallbackList([callback, ProgressBarCallback()])
+                                       ^^^^^^^^^^^^^^^^^^^^^
+  File "/work/flemingc/aharoon/anaconda3/envs/AAM_AMOD/lib/python3.11/site-packages/stable_baselines3/common/callbacks.py", line 690, in __init__
+    raise ImportError(
+ImportError: You must install tqdm and rich in order to use the progress bar callback. It is included if you install stable-baselines with the extra packages: `pip install stable-baselines3[extra]`

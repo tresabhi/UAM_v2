@@ -1,0 +1,108 @@
+2024-12-04 12:25:10,437 - Starting training with parameters:
+2024-12-04 12:25:10,437 - Training timesteps: 5000
+2024-12-04 12:25:10,437 - Max episode steps: 500
+2024-12-04 12:25:22,721 - Starting training...
+2024-12-04 12:33:42,503 - Training complete!
+2024-12-04 12:33:42,520 - Model saved to trained_models/ppo_uam_5000
+2024-12-04 12:33:42,520 - 
+Evaluation attempt 1/5
+2024-12-04 12:33:42,573 - 
+Starting evaluation episode...
+2024-12-04 12:33:42,574 - Initial observation: {'agent_id': array([140682797577680]), 'agent_speed': array([0.]), 'agent_deviation': array([150.30203565]), 'intruder_detected': 0, 'intruder_id': array([0]), 'distance_to_intruder': array([550.]), 'relative_heading_intruder': array([0.]), 'intruder_current_heading': array([0.])}
+2024-12-04 12:33:50,417 - 
+Step 100:
+2024-12-04 12:33:50,417 - Distance to goal: 23473.19
+2024-12-04 12:33:50,417 - Current speed: 0.0
+2024-12-04 12:33:50,418 - Current heading: 165.5448529391993
+2024-12-04 12:33:58,154 - 
+Step 200:
+2024-12-04 12:33:58,154 - Distance to goal: 23473.19
+2024-12-04 12:33:58,154 - Current speed: 0.0
+2024-12-04 12:33:58,154 - Current heading: 153.12934393877873
+2024-12-04 12:34:05,896 - 
+Step 300:
+2024-12-04 12:34:05,896 - Distance to goal: 23473.19
+2024-12-04 12:34:05,897 - Current speed: 0.0
+2024-12-04 12:34:05,897 - Current heading: 153.12934393877873
+2024-12-04 12:34:13,633 - 
+Step 400:
+2024-12-04 12:34:13,633 - Distance to goal: 23473.19
+2024-12-04 12:34:13,633 - Current speed: 0.0
+2024-12-04 12:34:13,634 - Current heading: 153.12934393877873
+2024-12-04 12:34:21,389 - 
+Step 500:
+2024-12-04 12:34:21,389 - Distance to goal: 23473.19
+2024-12-04 12:34:21,389 - Current speed: 0.0
+2024-12-04 12:34:21,389 - Current heading: 153.12934393877873
+2024-12-04 12:34:21,390 - 
+Creating animation...
+2024-12-04 12:34:21,404 - Animation.save using <class 'matplotlib.animation.FFMpegWriter'>
+2024-12-04 12:34:21,405 - MovieWriter._run: running command: ffmpeg -f rawvideo -vcodec rawvideo -s 3200x2400 -pix_fmt rgba -framerate 20 -loglevel error -i pipe: -vcodec h264 -pix_fmt yuv420p -b 2000k -y animations/flight_timeout_500_steps.mp4.mp4
+2024-12-04 12:37:33,543 - Animation saved to animations/flight_timeout_500_steps.mp4
+2024-12-04 12:37:33,543 - 
+Evaluation attempt 2/5
+2024-12-04 12:37:33,592 - 
+Starting evaluation episode...
+2024-12-04 12:37:33,592 - Initial observation: {'agent_id': array([140679780286288]), 'agent_speed': array([0.]), 'agent_deviation': array([0.35423155]), 'intruder_detected': 0, 'intruder_id': array([0]), 'distance_to_intruder': array([550.]), 'relative_heading_intruder': array([0.]), 'intruder_current_heading': array([0.])}
+2024-12-04 12:37:41,393 - 
+Step 100:
+2024-12-04 12:37:41,394 - Distance to goal: 24538.37
+2024-12-04 12:37:41,394 - Current speed: 0.0
+2024-12-04 12:37:41,394 - Current heading: -158.7299439826017
+2024-12-04 12:37:49,167 - 
+Step 200:
+2024-12-04 12:37:49,167 - Distance to goal: 24538.37
+2024-12-04 12:37:49,167 - Current speed: 0.0
+2024-12-04 12:37:49,167 - Current heading: -158.7299439826017
+2024-12-04 12:37:56,985 - 
+Step 300:
+2024-12-04 12:37:56,985 - Distance to goal: 24538.37
+2024-12-04 12:37:56,985 - Current speed: 0.0
+2024-12-04 12:37:56,985 - Current heading: -158.7299439826017
+2024-12-04 12:38:04,753 - 
+Step 400:
+2024-12-04 12:38:04,753 - Distance to goal: 24538.37
+2024-12-04 12:38:04,754 - Current speed: 0.0
+2024-12-04 12:38:04,754 - Current heading: -158.7299439826017
+2024-12-04 12:38:12,553 - 
+Step 500:
+2024-12-04 12:38:12,553 - Distance to goal: 24538.37
+2024-12-04 12:38:12,553 - Current speed: 0.0
+2024-12-04 12:38:12,553 - Current heading: -158.7299439826017
+2024-12-04 12:38:12,554 - 
+Creating animation...
+2024-12-04 12:38:12,563 - Animation.save using <class 'matplotlib.animation.FFMpegWriter'>
+2024-12-04 12:38:12,563 - MovieWriter._run: running command: ffmpeg -f rawvideo -vcodec rawvideo -s 3200x2400 -pix_fmt rgba -framerate 20 -loglevel error -i pipe: -vcodec h264 -pix_fmt yuv420p -b 2000k -y animations/flight_timeout_500_steps.mp4.mp4
+2024-12-04 12:41:24,940 - Animation saved to animations/flight_timeout_500_steps.mp4
+2024-12-04 12:41:24,940 - 
+Evaluation attempt 3/5
+2024-12-04 12:41:24,988 - 
+Starting evaluation episode...
+2024-12-04 12:41:24,989 - Initial observation: {'agent_id': array([140680716185424]), 'agent_speed': array([0.]), 'agent_deviation': array([-165.00206802]), 'intruder_detected': 1, 'intruder_id': array([140679781142736]), 'distance_to_intruder': array([0.1]), 'relative_heading_intruder': array([-53.88528168]), 'intruder_current_heading': array([24.85620821])}
+2024-12-04 12:41:25,071 - 
+Dynamic collision detected!
+2024-12-04 12:41:25,071 - 
+Episode truncated - Reason:
+2024-12-04 12:41:25,071 - - Dynamic collision
+2024-12-04 12:41:25,071 - 
+Evaluation attempt 4/5
+2024-12-04 12:41:25,119 - 
+Starting evaluation episode...
+2024-12-04 12:41:25,120 - Initial observation: {'agent_id': array([140679777499280]), 'agent_speed': array([0.]), 'agent_deviation': array([13.55417482]), 'intruder_detected': 1, 'intruder_id': array([140679776552336]), 'distance_to_intruder': array([0.1]), 'relative_heading_intruder': array([99.09860643]), 'intruder_current_heading': array([27.66445442])}
+2024-12-04 12:41:25,199 - 
+Dynamic collision detected!
+2024-12-04 12:41:25,199 - 
+Episode truncated - Reason:
+2024-12-04 12:41:25,199 - - Dynamic collision
+2024-12-04 12:41:25,199 - 
+Evaluation attempt 5/5
+2024-12-04 12:41:25,246 - 
+Starting evaluation episode...
+2024-12-04 12:41:25,246 - Initial observation: {'agent_id': array([140679777495248]), 'agent_speed': array([0.]), 'agent_deviation': array([137.24383601]), 'intruder_detected': 1, 'intruder_id': array([140680582738192]), 'distance_to_intruder': array([0.1]), 'relative_heading_intruder': array([-178.39299504]), 'intruder_current_heading': array([151.84654205])}
+2024-12-04 12:41:25,326 - 
+Dynamic collision detected!
+2024-12-04 12:41:25,326 - 
+Episode truncated - Reason:
+2024-12-04 12:41:25,326 - - Dynamic collision
+2024-12-04 12:41:25,326 - 
+Completed evaluation with 0 successful episodes

@@ -1,0 +1,20 @@
+2024-12-03 16:12:06,616 - Starting training with parameters:
+2024-12-03 16:12:06,616 - Training timesteps: 5000
+2024-12-03 16:12:06,616 - Max episode steps: 500
+2024-12-03 16:12:13,977 - Starting training...
+2024-12-03 16:12:14,025 - Error during execution: Trying to log data to tensorboard but tensorboard is not installed.
+Traceback (most recent call last):
+  File "/work/flemingc/aharoon/UAM/UAM_v2/gym-examples/gym_examples/envs/train_single_agent_uam.py", line 166, in train_and_evaluate
+    model.learn(total_timesteps=training_timesteps, progress_bar=True)
+  File "/work/flemingc/aharoon/anaconda3/envs/AAM_AMOD/lib/python3.11/site-packages/stable_baselines3/ppo/ppo.py", line 315, in learn
+    return super().learn(
+           ^^^^^^^^^^^^^^
+  File "/work/flemingc/aharoon/anaconda3/envs/AAM_AMOD/lib/python3.11/site-packages/stable_baselines3/common/on_policy_algorithm.py", line 287, in learn
+    total_timesteps, callback = self._setup_learn(
+                                ^^^^^^^^^^^^^^^^^^
+  File "/work/flemingc/aharoon/anaconda3/envs/AAM_AMOD/lib/python3.11/site-packages/stable_baselines3/common/base_class.py", line 431, in _setup_learn
+    self._logger = utils.configure_logger(self.verbose, self.tensorboard_log, tb_log_name, reset_num_timesteps)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/flemingc/aharoon/anaconda3/envs/AAM_AMOD/lib/python3.11/site-packages/stable_baselines3/common/utils.py", line 201, in configure_logger
+    raise ImportError("Trying to log data to tensorboard but tensorboard is not installed.")
+ImportError: Trying to log data to tensorboard but tensorboard is not installed.

@@ -7,9 +7,8 @@ class SensorTemplate(ABC):
     Collect other UAVs state information
     '''
     @abstractmethod
-    def __init__(self, space, max_number_other_agents_observed)->None:
+    def __init__(self, space)->None:
         self.space = space
-        self.max_number_other_agents_observed = max_number_other_agents_observed
         self.data = []
 
 

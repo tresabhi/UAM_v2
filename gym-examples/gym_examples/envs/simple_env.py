@@ -18,12 +18,17 @@ from utils_data_transform import transform_sensor_data
 
 class SimpleEnv(gym.Env):
 
-
-    max_number_other_agents_observed = 7 #! at max 7 UAV for seq based model, else for graph based model - any number of UAV within detection radius  
+    #! at max 7 UAV for seq based model, else for graph based model - any number of UAV within detection radius  
+    # this variable means that if there are more than 
+    # 'max_number_other_agents_observed' number of other_uav_agents within the detection radius
+    # they will be clipped to this specific number
+    #! I think this should be an input argument to env __init__ 
+    max_number_other_agents_observed = None 
 
     # Local variables 
-    obs_space_seq = Dict({ #! I think I should add end_vertiport co-ord ??
-                                        'no_other_agents': Discrete(max_number_other_agents_observed),
+    obs_space_seq = Dict({ #! Add end_vertiport co-ord
+                            # TWO form of experiment - one with end point, and one without end-point  
+                                        'no_other_agents': Box(low=0, high=max_number_other_agents_observed, shape=()),
                                         'dist_goal': Box(low=0, high=250, shape=(), dtype=np.float32),
                                         'heading_ego_frame': Box(low=-180, high=180, shape=(), dtype=np.float32),
                                         'current_speed': Box(low=0, high=25, shape=(), dtype=np.float32),

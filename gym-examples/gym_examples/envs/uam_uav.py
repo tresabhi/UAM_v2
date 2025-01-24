@@ -200,8 +200,8 @@ class UamUavEnv(gym.Env):
         # Action[0]: Acceleration (-max_acceleration to +max_acceleration)
         # Action[1]: Heading change (-max_heading_change to +max_heading_change)
         self.action_space = spaces.Box(
-            low=np.array([0.0, -1.0]),  # Acceleration must be non-negative # Normalized actions # -1,
-            high=np.array([1.0, 1.0]),  # Scaled in step function # 1,
+            low=np.array([-1.0, -1.0]),  # Normalized actions # -1,
+            high=np.array([1.0, 1.0]),   # Scaled in step function # 1,
             shape=(2,),
             dtype=np.float64,  #! should action choosen form action space be converted back when applied in step()
         )
@@ -565,6 +565,10 @@ class UamUavEnv(gym.Env):
             reward_sum (float): Reward earned by the agent in that time step
         """
 
+        """
+        Reward function based off initial reward function from Aadit
+        """
+
         # # Base time penalty
         # punishment_existing = -0.1
         
@@ -606,45 +610,263 @@ class UamUavEnv(gym.Env):
         """
         Reward function that strongly encourages goal-directed motion
         """
+        # reward = 0.0
+        
+        # # Get current state
+        # current_speed = float(obs["agent_speed"][0])
+        # heading_diff = float(obs["agent_deviation"][0])
+        # current_distance = self.auto_uav.current_position.distance(self.auto_uav.end_point)
+        
+        # # Base movement reward
+        # reward += current_speed * 0.1  # Small reward for any movement
+        
+        # # Strong directional reward
+        # direction_factor = np.cos(np.deg2rad(heading_diff))
+        # effective_speed = current_speed * direction_factor
+        # reward += effective_speed * 0.5  # Reward for movement toward goal
+        
+        # # Progress reward
+        # if hasattr(self, 'previous_distance') and self.previous_distance is not None:
+        #     progress = self.previous_distance - current_distance
+        #     reward += progress * 5.0
+        # self.previous_distance = current_distance
+        
+        # # Heading stability reward
+        # if abs(heading_diff) < 10.0:
+        #     reward += 1.0  # Bonus for good alignment
+        # elif abs(heading_diff) > 90.0 and current_speed > 0.1:
+        #     reward -= 2.0  # Penalty for moving in wrong direction
+        
+        # # Anti-rotation penalties
+        # if hasattr(self, 'previous_heading') and self.previous_heading is not None:
+        #     heading_change = abs(self.auto_uav.current_heading_deg - self.previous_heading)
+        #     if heading_change > 10.0 and abs(heading_diff) < 20.0:
+        #         reward -= heading_change * 0.1  # Penalty for unnecessary rotation
+        # self.previous_heading = self.auto_uav.current_heading_deg
+        
+        # # Terminal rewards
+        # if current_distance < self.auto_uav.landing_proximity:
+        #     reward += 200.0
+        # elif self.collision_with_static_obj() or self.collision_with_dynamic_obj():
+        #     reward -= 100.0
+        
+        # return float(reward)
+
+        """Enhanced reward function with better goal-directed behavior"""
+        # reward = 0.0
+        
+        # # Get current state
+        # current_speed = float(obs["agent_speed"][0])
+        # current_distance = self.auto_uav.current_position.distance(self.auto_uav.end_point)
+        # heading_diff = float(obs["agent_deviation"][0])
+        
+        # # Progressive distance reward
+        # if hasattr(self, 'previous_distance') and self.previous_distance is not None:
+        #     progress = self.previous_distance - current_distance
+        #     # Stronger reward for progress when closer to goal
+        #     distance_factor = 1.0 + (1.0 / (current_distance + 1.0))
+        #     reward += progress * 10.0 * distance_factor
+        # self.previous_distance = current_distance
+        
+        # # Speed efficiency reward
+        # speed_factor = current_speed / self.auto_uav.max_speed
+        # heading_efficiency = np.cos(np.deg2rad(heading_diff))
+        # reward += speed_factor * heading_efficiency * 2.0
+        
+        # # Heading alignment reward
+        # if abs(heading_diff) < 10.0:
+        #     reward += 2.0
+        # elif abs(heading_diff) > 90.0:
+        #     reward -= 5.0
+        
+        # # Collision avoidance rewards
+        # if obs["intruder_detected"] == 1:
+        #     distance_to_intruder = float(obs["distance_to_intruder"][0])
+        #     # Stronger penalty as distance decreases
+        #     collision_risk = 1.0 - (distance_to_intruder / self.auto_uav.detection_radius)
+        #     reward -= collision_risk * 10.0
+        
+        # # Terminal rewards
+        # if current_distance < self.auto_uav.landing_proximity:
+        #     reward += 500.0  # Significant reward for reaching goal
+        # elif self.collision_with_static_obj() or self.collision_with_dynamic_obj():
+        #     reward -= 200.0  # Severe penalty for collisions
+        
+        # return float(reward)
+
+        """Enhanced reward function aligned with improved heading control"""
+        # reward = 0.0
+        
+        # # Get current state
+        # current_speed = float(obs["agent_speed"][0])
+        # current_distance = self.auto_uav.current_position.distance(self.auto_uav.end_point)
+        # heading_diff = float(obs["agent_deviation"][0])
+        
+        # # Base progress reward (weighted more heavily)
+        # if hasattr(self, 'previous_distance') and self.previous_distance is not None:
+        #     progress = self.previous_distance - current_distance
+        #     # Exponential scaling for distance factor to emphasize final approach
+        #     distance_factor = np.exp(-current_distance / 5000)  # Scale factor adjusted for typical distances
+        #     reward += progress * 20.0 * (1.0 + distance_factor)
+        # self.previous_distance = current_distance
+        
+        # # Heading alignment reward (modified to be more strict)
+        # heading_efficiency = np.cos(np.deg2rad(heading_diff))
+        # if abs(heading_diff) < 5.0:  # Tighter threshold for perfect alignment
+        #     reward += 5.0  # Significant reward for perfect alignment
+        # elif abs(heading_diff) < 30.0:  # Good alignment
+        #     reward += heading_efficiency * 3.0
+        # elif abs(heading_diff) > 90.0:  # Severe penalty for wrong direction
+        #     reward -= 10.0
+        
+        # # Speed management reward (modified to encourage appropriate speeds)
+        # target_speed = self.auto_uav.max_speed
+        # if current_distance < 1000:  # Reduce target speed when approaching goal
+        #     target_speed = max(5.0, self.auto_uav.max_speed * (current_distance / 1000))
+        # speed_efficiency = 1.0 - abs(current_speed - target_speed) / self.auto_uav.max_speed
+        # reward += speed_efficiency * 2.0
+        
+        # # Enhanced collision avoidance rewards
+        # if obs["intruder_detected"] == 1:
+        #     distance_to_intruder = float(obs["distance_to_intruder"][0])
+        #     relative_heading = float(obs["relative_heading_intruder"][0])
+            
+        #     # Calculate collision risk based on distance and relative heading
+        #     distance_factor = 1.0 - (distance_to_intruder / self.auto_uav.detection_radius)
+        #     heading_risk = abs(np.cos(np.deg2rad(relative_heading)))  # Higher risk when headings align
+        #     collision_risk = distance_factor * (1.0 + heading_risk)
+            
+        #     # Progressive penalties based on risk levels
+        #     if distance_to_intruder < self.auto_uav.nmac_radius:
+        #         reward -= 50.0 * collision_risk  # Severe penalty for NMAC violations
+        #     elif distance_to_intruder < self.auto_uav.detection_radius * 0.5:
+        #         reward -= 20.0 * collision_risk  # Moderate penalty for close encounters
+        #     else:
+        #         reward -= 5.0 * collision_risk  # Light penalty for potential conflicts
+            
+        #     # Reward for good avoidance behavior
+        #     if distance_to_intruder > self.auto_uav.detection_radius * 0.7:
+        #         reward += 2.0  # Reward for maintaining safe separation
+        
+        # # Terminal rewards (modified to be more significant)
+        # if current_distance < self.auto_uav.landing_proximity:
+        #     # Bonus reward based on efficiency (fewer steps = higher reward)
+        #     if hasattr(self, 'step_count'):
+        #         efficiency_bonus = max(0, 1000 - self.step_count) * 0.5
+        #         reward += 1000.0 + efficiency_bonus  # Base reward + efficiency bonus
+        #     else:
+        #         reward += 1000.0
+        # elif self.collision_with_static_obj() or self.collision_with_dynamic_obj():
+        #     reward -= 500.0  # Increased penalty for collisions
+            
+        # # Consistency penalty - discourage frequent heading changes
+        # if hasattr(self, 'previous_heading') and self.previous_heading is not None:
+        #     heading_change = abs(self.auto_uav.current_heading_deg - self.previous_heading)
+        #     if heading_change > 30.0:  # Penalize large heading changes
+        #         reward -= (heading_change - 30.0) * 0.1
+        # self.previous_heading = self.auto_uav.current_heading_deg
+        
+        # # Step count tracking
+        # if not hasattr(self, 'step_count'):
+        #     self.step_count = 0
+        # self.step_count += 1
+        
+        # return float(reward)
+
+        """Enhanced reward function with prioritized collision avoidance"""
         reward = 0.0
         
         # Get current state
         current_speed = float(obs["agent_speed"][0])
-        heading_diff = float(obs["agent_deviation"][0])
         current_distance = self.auto_uav.current_position.distance(self.auto_uav.end_point)
+        heading_diff = float(obs["agent_deviation"][0])
         
-        # Base movement reward
-        reward += current_speed * 0.1  # Small reward for any movement
+        # Enhanced collision avoidance rewards - Process this first as highest priority
+        if obs["intruder_detected"] == 1:
+            distance_to_intruder = float(obs["distance_to_intruder"][0])
+            relative_heading = float(obs["relative_heading_intruder"][0])
+            
+            # Increased penalties for collision risk
+            distance_factor = 1.0 - (distance_to_intruder / self.auto_uav.detection_radius)
+            heading_risk = abs(np.cos(np.deg2rad(relative_heading)))
+            collision_risk = distance_factor * (1.0 + heading_risk)
+            
+            # Much stronger progressive penalties
+            if distance_to_intruder < self.auto_uav.nmac_radius:
+                reward -= 200.0 * collision_risk  # Severe penalty for NMAC violations
+            elif distance_to_intruder < self.auto_uav.detection_radius * 0.5:
+                reward -= 100.0 * collision_risk  # Strong penalty for close encounters
+            else:
+                reward -= 50.0 * collision_risk   # Moderate penalty for potential conflicts
+            
+            # Stronger rewards for active avoidance
+            if hasattr(self, 'previous_intruder_distance'):
+                if distance_to_intruder > self.previous_intruder_distance:
+                    # Reward for increasing separation
+                    separation_improvement = (distance_to_intruder - self.previous_intruder_distance)
+                    reward += separation_improvement * 5.0
+            self.previous_intruder_distance = distance_to_intruder
+            
+            # Additional reward for maintaining safe separation
+            if distance_to_intruder > self.auto_uav.detection_radius * 0.7:
+                reward += 10.0
         
-        # Strong directional reward
-        direction_factor = np.cos(np.deg2rad(heading_diff))
-        effective_speed = current_speed * direction_factor
-        reward += effective_speed * 0.5  # Reward for movement toward goal
-        
-        # Progress reward
-        if hasattr(self, 'previous_distance') and self.previous_distance is not None:
-            progress = self.previous_distance - current_distance
-            reward += progress * 5.0
+        # Progress rewards - Only if no immediate collision threat
+        if not obs["intruder_detected"] or float(obs["distance_to_intruder"][0]) > self.auto_uav.detection_radius * 0.7:
+            if hasattr(self, 'previous_distance'):
+                progress = self.previous_distance - current_distance
+                distance_factor = np.exp(-current_distance / 5000)
+                reward += progress * 15.0 * (1.0 + distance_factor)
         self.previous_distance = current_distance
         
-        # Heading stability reward
-        if abs(heading_diff) < 10.0:
-            reward += 1.0  # Bonus for good alignment
-        elif abs(heading_diff) > 90.0 and current_speed > 0.1:
-            reward -= 2.0  # Penalty for moving in wrong direction
+        # Heading alignment reward (modified for collision awareness)
+        heading_efficiency = np.cos(np.deg2rad(heading_diff))
+        if obs["intruder_detected"] == 1:
+            # Reduce heading alignment importance when avoiding collisions
+            if abs(heading_diff) < 30.0:
+                reward += heading_efficiency * 1.0  # Reduced reward during avoidance
+        else:
+            # Normal heading rewards when no threats
+            if abs(heading_diff) < 5.0:
+                reward += 5.0
+            elif abs(heading_diff) < 30.0:
+                reward += heading_efficiency * 3.0
+            elif abs(heading_diff) > 90.0:
+                reward -= 10.0
         
-        # Anti-rotation penalties
-        if hasattr(self, 'previous_heading') and self.previous_heading is not None:
-            heading_change = abs(self.auto_uav.current_heading_deg - self.previous_heading)
-            if heading_change > 10.0 and abs(heading_diff) < 20.0:
-                reward -= heading_change * 0.1  # Penalty for unnecessary rotation
-        self.previous_heading = self.auto_uav.current_heading_deg
+        # Speed management (context-aware)
+        target_speed = self.auto_uav.max_speed
+        if obs["intruder_detected"] == 1:
+            # Reduce target speed when near intruders
+            distance_to_intruder = float(obs["distance_to_intruder"][0])
+            target_speed *= max(0.3, distance_to_intruder / self.auto_uav.detection_radius)
+        elif current_distance < 1000:
+            # Normal approach speed reduction
+            target_speed = max(5.0, self.auto_uav.max_speed * (current_distance / 1000))
+        
+        speed_efficiency = 1.0 - abs(current_speed - target_speed) / self.auto_uav.max_speed
+        reward += speed_efficiency * 2.0
         
         # Terminal rewards
         if current_distance < self.auto_uav.landing_proximity:
-            reward += 200.0
+            reward += 1000.0
+            if hasattr(self, 'step_count'):
+                efficiency_bonus = max(0, 1000 - self.step_count) * 0.5
+                reward += efficiency_bonus
         elif self.collision_with_static_obj() or self.collision_with_dynamic_obj():
-            reward -= 100.0
+            reward -= 1000.0  # Much stronger collision penalty
+        
+        # Consistency tracking
+        if hasattr(self, 'previous_heading'):
+            heading_change = abs(self.auto_uav.current_heading_deg - self.previous_heading)
+            if heading_change > 30.0 and not obs["intruder_detected"]:
+                # Only penalize large heading changes when not avoiding collisions
+                reward -= (heading_change - 30.0) * 0.1
+        self.previous_heading = self.auto_uav.current_heading_deg
+        
+        if not hasattr(self, 'step_count'):
+            self.step_count = 0
+        self.step_count += 1
         
         return float(reward)
 

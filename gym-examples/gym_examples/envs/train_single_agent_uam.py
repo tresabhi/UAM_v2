@@ -79,12 +79,23 @@ def run_evaluation_episode(env, model, logger, max_steps):
         episode_reward += reward
         steps += 1
         
-        # Detailed logging every 100 steps
-        if steps % 100 == 0:
+        # Log periodic state updates or intruder detection
+        should_log = (steps % 100 == 0) or (obs["intruder_detected"] == 1)
+        
+        if should_log:
+            # Detailed logging every 100 steps
             logger.info(f"\nStep {steps}:")
             logger.info(f"Distance to goal: {info['distance_to_end_vertiport']:.2f}")
             logger.info(f"Current speed: {info.get('current_speed', 'N/A')}")
             logger.info(f"Current heading: {info.get('current_heading', 'N/A')}")
+            
+            # Intruder information logging
+            if obs["intruder_detected"] == 1:
+                logger.info("\nINTRUDER DETECTED:")
+                logger.info(f"Distance to intruder: {obs['distance_to_intruder'][0]:.2f}")
+                logger.info(f"Relative heading to intruder: {obs['relative_heading_intruder'][0]:.2f}")
+                logger.info(f"Intruder current heading: {obs['intruder_current_heading'][0]:.2f}")
+                logger.info(f"Agent deviation from goal: {obs['agent_deviation'][0]:.2f}")
             
         # Log important flags
         if info.get('collision_static', False):
@@ -159,7 +170,8 @@ def train_and_evaluate(training_timesteps=5000, max_episode_steps=500):
             ent_coef=0.01,
             clip_range=0.2,
             max_grad_norm=0.5,
-            tensorboard_log="./logs/"
+            tensorboard_log="./logs/",
+            device="cuda"
         )
 
         logger.info("Starting training...")
@@ -173,7 +185,7 @@ def train_and_evaluate(training_timesteps=5000, max_episode_steps=500):
         logger.info(f"Model saved to {model_path}")
 
         # Run evaluation episodes
-        max_eval_attempts = 5
+        max_eval_attempts = 10
         successful_episodes = 0
         
         for attempt in range(max_eval_attempts):
@@ -198,4 +210,4 @@ def train_and_evaluate(training_timesteps=5000, max_episode_steps=500):
 
 if __name__ == "__main__":
     # Start at 5000, 500 and scale accordingly by constant
-    train_and_evaluate(25000, 2500)
+    train_and_evaluate(5000, 500)

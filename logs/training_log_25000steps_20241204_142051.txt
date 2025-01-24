@@ -1,0 +1,4 @@
+2024-12-04 14:20:51,006 - Starting training with parameters:
+2024-12-04 14:20:51,006 - Training timesteps: 25000
+2024-12-04 14:20:51,006 - Max episode steps: 2500
+2024-12-04 14:21:00,575 - Starting training...

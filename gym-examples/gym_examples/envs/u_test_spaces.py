@@ -39,12 +39,12 @@ def test_spaces():
             print(f"{key}: {value}")
     
     # Test multiple steps
-    for i in range(1000):
+    for i in range(10):
         action = env.action_space.sample()
         obs, reward, terminated, truncated, info = env.step(action)
         env.render(fig,ax)
 
-        if (i % 50 == 0):
+        if (i % 5 == 0):
             print(f"\nStep {i+1}:")
             print(f"Action taken: {action}")
             print(f"Reward: {reward}")

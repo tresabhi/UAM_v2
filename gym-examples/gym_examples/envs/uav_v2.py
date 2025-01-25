@@ -21,8 +21,8 @@ class UAV_v2(UAV_v2_template):
     def get_sensor_data(self):
         return super().get_sensor_data()
     
-    def get_obs(self, sorting_criteria):
-        return super().get_obs(sorting_criteria)
+    def get_obs(self):
+        return super().get_obs()
 
     def get_action(self, observation):
         action = self.controller(observation)

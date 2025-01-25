@@ -51,6 +51,7 @@ class UAV_v2_template(ABC):
         self.controller: ControllerTemplate = controller
         self.mission_complete_distance = 10
         self.current_speed = 0
+        self.max_acceleration = 1 
 
     @abstractmethod
     def assign_start_end(self, start: Point, end: Point):
@@ -131,9 +132,6 @@ class UAV_v2_template(ABC):
     def get_obs(self) -> List[Dict]:  
         """
         Retrieve the observation, combining the UAV's state with sensor data.
-
-        Args:
-            sorting_criteria (str): The criteria for sorting sensor data.
 
         Returns:
             List[Dict]: A list containing the UAV's state and sorted sensor data.

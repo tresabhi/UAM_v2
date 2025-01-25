@@ -6,11 +6,17 @@ from uav_v2_template import UAV_v2_template
 
 class PointMassDynamics(DynamicsTemplate):
 
-    def __init__(self, dt=0.1):
-        super().__init__(dt)
+    def __init__(self, dt=0.1, is_learning=False):
+        super().__init__(dt, is_learning)
 
 
     def update(self,uav:UAV_v2_template, action):
+        # action[0] -> acceleration
+        # action[1] -> heading_change 
+
+        if self.is_learning:
+            action[0] = 1 * action[0] # some_re_normalization
+            action[1] = 1 * action[1] # some_re_normalization
 
         if uav.mission_complete_status:
 

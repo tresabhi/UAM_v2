@@ -24,12 +24,12 @@ class UniversalSensor(SensorTemplate):
            
             if uav.id != self_uav.id:
                 if self_uav.current_position.distance(uav.current_position) <= self.detection_radius:
-                    data = {'other_uav id': uav.id,
+                    other_uav_data = {'other_uav id': uav.id,
                             'other_uav_current_position':uav.current_position,
                             'other_uav_current_speed':uav.current_speed,
                             'other_uav_current_heading':uav.current_heading,
                             'other_uav_radius': uav.radius}
-                    self.data.append(data)
+                    self.data.append(other_uav_data)
         return None
     
 

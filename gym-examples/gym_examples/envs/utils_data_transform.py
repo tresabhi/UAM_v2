@@ -28,7 +28,7 @@ def transform_sensor_data(data,
     
     
 
-def transform_for_sequence(data: List[Dict], max_number_other_agents_observed: int, sorting_criteria: str) -> Dict:
+def transform_for_sequence(data: List[Dict], sorting_criteria: str, max_number_other_agents_observed: int) -> Dict:
     """
     Transform UAV data into a fixed-size array with relative states for each UAV, with padding and masking.
 

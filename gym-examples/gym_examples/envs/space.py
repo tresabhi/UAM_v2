@@ -14,7 +14,7 @@ class Space:
         Initializes the Space object with empty lists for UAVs and vertiports.
         number of vertiports has to be even.
         """
-
+        self.max_vertiports = max_vertiports
         if max_vertiports % 2 != 0:
             self.max_vertiports = max_vertiports - 1
 
@@ -158,7 +158,7 @@ class Space:
         return None
 
 
-    def create_uavs(self, number_uavs, uav_type, has_agent ,controller, dynamics,sensor, radius, nmac_radius) -> None:
+    def create_uavs(self, number_uavs, uav_type, has_agent ,controller, dynamics,sensor, radius, nmac_radius, detection_radius) -> None:
         # my space can have a max amount of agents
         # as UAVs are added, the space will keep track of the number of UAVs added 
         """
@@ -191,7 +191,7 @@ class Space:
         
         
         for _ in range(self.number_of_uavs):
-            uav = uav_type(controller, dynamics, sensor, radius, nmac_radius)
+            uav = uav_type(controller, dynamics, sensor, radius, nmac_radius, detection_radius)
             self.set_uav(uav)
         
         return None
@@ -232,16 +232,13 @@ class Space:
 
         if self.vertiport_pattern == 'circular':
             if self.assignment_type == 'opposite':
-                for i in range(len(local_veriport_list)):
-                    uav = local_uav_list[i]
-                    start = local_veriport_list[i]
-                    end = local_veriport_list[(i+coords_list_middle)%coords_list_len]
+                for i in range(len(self.uav_list)):
+                    uav = self.uav_list[i]
+                    start_idx = i % len(self.vertiport_list)
+                    end_idx = (start_idx + coords_list_middle) % coords_list_len
+                    start = self.vertiport_list[start_idx]
+                    end = self.vertiport_list[end_idx]
                     uav.assign_start_end(start, end)
-                    local_veriport_list.remove(start)
-                    _ = local_uav_list.pop(0)
-                    if len(local_veriport_list) == 0:
-                        break
-                    # this will not work - will need to use some sort of pointer, else the logic for choosing vertiport may not work - test this to see if it works 
                 
             elif self.assignment_type == 'consecutive':
                 pass

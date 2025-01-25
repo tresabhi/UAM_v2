@@ -23,7 +23,7 @@ class SimpleEnv(gym.Env):
     # 'max_number_other_agents_observed' number of other_uav_agents within the detection radius
     # they will be clipped to this specific number
     #! I think this should be an input argument to env __init__ 
-    max_number_other_agents_observed = None 
+    max_number_other_agents_observed = 7 
 
     # Local variables 
     obs_space_seq = Dict({ #! Add end_vertiport co-ord
@@ -211,14 +211,14 @@ class SimpleEnv(gym.Env):
         # self.space.create_random_pattern_vertiports(8,300)
         
         # --- UAV construction ---
-        self.space.create_uavs(4, UAV_v2, has_agent=True, controller=self.non_coop_smooth_controller, dynamics=self.pm_dynamics, sensor=self.universal_sensor, radius=5, nmac_radius=20)
+        self.space.create_uavs(4, UAV_v2, has_agent=True, controller=self.non_coop_smooth_controller, dynamics=self.pm_dynamics, sensor=self.universal_sensor, radius=5, nmac_radius=20, detection_radius=50)
 
         # --- UAV start-end assignment ---
         self.space.assign_vertiports('opposite')
 
 
         # --- create Agent (auto UAV) ---
-        self.agent  = Auto_UAV_v2(dynamics=self.pm_dynamics, sensor=self.universal_sensor, radius=5, nmac_radius=20)
+        self.agent  = Auto_UAV_v2(dynamics=self.pm_dynamics, sensor=self.universal_sensor, radius=5, nmac_radius=20, detection_radius=50)
 
         # ---Agent (Auto UAV) start-end assignment ---
         self.space.set_uav(self.agent)

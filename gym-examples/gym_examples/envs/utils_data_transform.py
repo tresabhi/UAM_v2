@@ -52,61 +52,66 @@ def transform_for_sequence(data: List[Dict], max_number_other_agents_observed: i
     host_ref_prll = np.array([host_data['ref_prll']])
     host_ref_orth = np.array([host_data['ref_orth']])
 
-    other_uav_data = data[1:]  # Skip host agent
+    if len(data) > 1:
+        other_uav_data = data[1:]  # Skip host agent
 
-    # List to store relative states of other UAVs
-    other_uav_states = []
-    # Other UAV data
-    for other_uav in other_uav_data:
-        other_position = np.array(other_uav['other_uav_current_position'].x, 
-                                  other_uav['other_uav_current_position'].y)
-        other_velocity = np.array(other_uav['other_uav_current_speed']*np.cos(other_uav['other_uav_current_heading']), 
-                                  other_uav['other_uav_current_speed']*np.sin(other_uav['other_uav_current_heading']))
-        other_radius = other_uav['other_uav_radius']
+        # List to store relative states of other UAVs
+        other_uav_states = []
+        # Other UAV data
+        for other_uav in other_uav_data:
+            other_position = np.array(other_uav['other_uav_current_position'].x, 
+                                    other_uav['other_uav_current_position'].y)
+            other_velocity = np.array(other_uav['other_uav_current_speed']*np.cos(other_uav['other_uav_current_heading']), 
+                                    other_uav['other_uav_current_speed']*np.sin(other_uav['other_uav_current_heading']))
+            other_radius = other_uav['other_uav_radius']
 
-        # Relative position and velocity
-        rel_pos = other_position - host_position
-        p_parallel_ego_frame = np.dot(rel_pos, host_ref_prll)
-        p_orthog_ego_frame = np.dot(rel_pos, host_ref_orth)
-        dist_between_centers = np.linalg.norm(rel_pos)
-        dist_to_other = dist_between_centers - host_radius - other_radius
+            # Relative position and velocity
+            rel_pos = other_position - host_position
+            p_parallel_ego_frame = np.dot(rel_pos, host_ref_prll)
+            p_orthog_ego_frame = np.dot(rel_pos, host_ref_orth)
+            dist_between_centers = np.linalg.norm(rel_pos)
+            dist_to_other = dist_between_centers - host_radius - other_radius
 
-        # Velocity projection
-        v_parallel_ego_frame = np.dot(other_velocity, host_ref_prll)
-        v_orthog_ego_frame = np.dot(other_velocity, host_ref_orth)
+            # Velocity projection
+            v_parallel_ego_frame = np.dot(other_velocity, host_ref_prll)
+            v_orthog_ego_frame = np.dot(other_velocity, host_ref_orth)
 
-        # Calculate time to impact if required
-        time_to_impact = None
-        if sorting_criteria == "time of impact":
-            combined_radius = host_radius + other_radius
-            time_to_impact = compute_time_to_impact(
-                host_position, other_position, host_velocity, other_velocity, combined_radius
-            )
+            # Calculate time to impact if required
+            time_to_impact = None
+            if sorting_criteria == "time of impact":
+                combined_radius = host_radius + other_radius
+                time_to_impact = compute_time_to_impact(
+                    host_position, other_position, host_velocity, other_velocity, combined_radius
+                )
 
-        # Append to the list
-        other_uav_states.append([
-            p_parallel_ego_frame,
-            p_orthog_ego_frame,
-            v_parallel_ego_frame,
-            v_orthog_ego_frame,
-            other_radius,
-            host_radius + other_radius,
-            dist_to_other,
-            time_to_impact
-        ])
+            # Append to the list
+            other_uav_states.append([
+                p_parallel_ego_frame,
+                p_orthog_ego_frame,
+                v_parallel_ego_frame,
+                v_orthog_ego_frame,
+                other_radius,
+                host_radius + other_radius,
+                dist_to_other,
+                time_to_impact
+            ])
 
-    # Sort based on criteria
-    if sorting_criteria == 'closest first':
-        other_uav_states = sorted(other_uav_states, key=lambda x: x[6])  # Sort by distance
-        other_uav_states = [uav_state[:7] for uav_state in other_uav_states]
-        
-    elif sorting_criteria == 'closest last':
-        other_uav_states = sorted(other_uav_states, key=lambda x: x[6], reverse=True)  # Reverse sort
-        other_uav_states = [uav_state[:7] for uav_state in other_uav_states]
-        
-    elif sorting_criteria == 'time of impact':
-        other_uav_states = sorted(other_uav_states, key=lambda x: (x[7] or float('inf'), x[6]))
-        other_uav_states = [uav_state[:7] for uav_state in other_uav_states]
+        # Sort based on criteria
+        if sorting_criteria == 'closest first':
+            other_uav_states = sorted(other_uav_states, key=lambda x: x[6])  # Sort by distance
+            other_uav_states = [uav_state[:7] for uav_state in other_uav_states]
+            
+        elif sorting_criteria == 'closest last':
+            other_uav_states = sorted(other_uav_states, key=lambda x: x[6], reverse=True)  # Reverse sort
+            other_uav_states = [uav_state[:7] for uav_state in other_uav_states]
+            
+        elif sorting_criteria == 'time of impact':
+            other_uav_states = sorted(other_uav_states, key=lambda x: (x[7] or float('inf'), x[6]))
+            other_uav_states = [uav_state[:7] for uav_state in other_uav_states]
+    else:
+        other_uav_states = []
+    
+    
         
 
     # Generate a mask for valid entries

@@ -22,7 +22,7 @@ class Airspace:
         """
         self.location_name = location_name  #'Austin, Texas, USA'
         self.buffer_radius = buffer_radius
-        self.airspace_tag_list = airspace_tag_list
+        self.airspace_tag_list = airspace_tag_list #! add meaningful comment - use osmnx for definition of tag
 
         # location - this is the airspace where we are working 
         location_gdf = geocode_to_gdf(location_name)  # converts named geocode - 'Austin,Texas' location to gdf

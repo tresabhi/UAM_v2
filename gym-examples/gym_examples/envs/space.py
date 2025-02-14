@@ -273,18 +273,56 @@ class Space:
         return None
     
     #TODO: This method needs to be scrutinized 
-    def assign_vertiport_agent(self, agent:UAV_v2_template) -> None:
-        """
-        Assigns a start and end vertiport to the agent UAV.
+    # def assign_vertiport_agent(self, agent:UAV_v2_template) -> None:
+    #     """
+    #     Assigns a start and end vertiport to the agent UAV.
 
+    #     Args:
+    #         agent (UAV_v2_template): The agent AutoUAV.
+        
+    #     Returns:
+    #         None
+    #     """
+    #     agent.assign_start_end(self.vertiport_list[0], self.vertiport_list[-1])
+    #     return None
+    def assign_vertiport_agent(self, agent: UAV_v2_template) -> None:
+        """
+        Assigns a start and end vertiport to the agent UAV in a way that avoids
+        conflicts with other UAVs.
+        
         Args:
             agent (UAV_v2_template): The agent AutoUAV.
         
         Returns:
             None
         """
-        agent.assign_start_end(self.vertiport_list[0], self.vertiport_list[-1])
-        return None
+        coords_list_middle = int(len(self.vertiport_list)/2)
+        coords_list_len = int(len(self.vertiport_list))
+        
+        # Instead of checking UAV start attributes, track assigned vertiports
+        assigned_vertiports = set()
+        for uav in self.uav_list:
+            if hasattr(uav, 'start'):  # Check if start has been assigned
+                assigned_vertiports.add(uav.start)
+        
+        # Find first unassigned vertiport
+        for i in range(len(self.vertiport_list)):
+            potential_start = self.vertiport_list[i]
+            if potential_start not in assigned_vertiports:
+                if self.vertiport_pattern == 'circular':
+                    # Use the opposite point pattern
+                    end_idx = (i + coords_list_middle) % coords_list_len
+                    end = self.vertiport_list[end_idx]
+                else:  # random pattern
+                    # Choose from remaining vertiports
+                    remaining = [v for v in self.vertiport_list 
+                            if v != potential_start]
+                    end = random.choice(remaining)
+                    
+                agent.assign_start_end(potential_start, end)
+                return None
+                
+        raise RuntimeError("No available vertiports for agent - all are assigned")
 
 
 

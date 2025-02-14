@@ -43,10 +43,12 @@ def transform_for_sequence(data: List[Dict], sorting_criteria: str, max_number_o
     transformed_data = {}
     # Auto UAV aka Host data 
     host_data = data[0]
-    host_position = np.array(host_data['current_position'].x, 
-                             host_data['current_position'].y)
-    host_velocity = np.array(host_data['current_speed']*np.cos(host_data['current_heading']), 
-                             host_data['current_speed']*np.sin(host_data['current_heading']))
+    # Create numpy array from Point coordinates correctly
+    host_position = np.array([host_data['current_position'].x, 
+                              host_data['current_position'].y])
+    # Create numpy array from current speed and current heading correctly
+    host_velocity = np.array([host_data['current_speed'] * np.cos(host_data['current_heading']),
+                            host_data['current_speed'] * np.sin(host_data['current_heading'])])
     host_heading = np.array(host_data['current_heading'])
     host_radius = host_data['radius']
     host_ref_prll = np.array([host_data['ref_prll']])

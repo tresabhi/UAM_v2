@@ -10,11 +10,11 @@ import math
 import numpy as np
 from shapely import Point
 from matplotlib import pyplot as plt
+from matplotlib.patches import Circle, FancyArrowPatch
 import gymnasium as gym
 from gymnasium.spaces import Discrete, Box, Dict
 from gymnasium import spaces
 from utils_data_transform import transform_sensor_data
-
 
 class SimpleEnv(gym.Env):
 
@@ -130,6 +130,11 @@ class SimpleEnv(gym.Env):
         self.obs_space_str = obs_space_str
         self.sorting_criteria = sorting_criteria
 
+        # Initialize rendering variables
+        self.fig = None
+        self.ax = None
+        self.render_history = []  # Store positions for trajectory visualization
+
         if self.obs_space_str == "seq":
             self.observation_space = SimpleEnv.obs_space_seq
         elif self.obs_space_str == "graph":
@@ -146,68 +151,80 @@ class SimpleEnv(gym.Env):
         )
 
     def step(self, action):
-        # this method will accept action from model, and apply it to agent
-        # this will update dynamics of agent, and return observation, reward, done, info
-        # this will also update dynamics of other agents, and check for collision, and update info
+        """
+        Execute one time step within the environment.
+        
+        Args:
+            action: Action provided by the learning agent
+            
+        Returns:
+            obs: Observation of the learning agent's state
+            reward: Reward signal
+            done: Whether the episode has ended
+            info: Additional information
+        """
+        if __debug__:  # Debug printing for action sampling verification
+            # print(f"\nBefore update - Agent position: {self.agent.current_position}")
+            # print(f"Action applied: {action}")
+            pass
+        self.agent.dynamics.update(self.agent, action)
+        if __debug__:  # Debug printing for action application verification
+            # print(f"After update - Agent position: {self.agent.current_position}")
+            pass
+        
+        # Check NMAC and collision for learning agent
+        is_nmac, nmac_list = self.agent.sensor.get_nmac(self.agent)
+        if is_nmac:
+            print("--- NMAC ---")
+            print(f"NMAC detected:{is_nmac}, and NMAC with {nmac_list}\n")
+        
+        is_collision, collision_uav_ids = self.agent.sensor.get_collision(self.agent)
+        if is_collision:
+            print("---COLLISION---")
+            print(f"Collision detected:{is_collision}, and collision with {collision_uav_ids}\n")
+            self.space.remove_uavs_by_id(collision_uav_ids)
+            if len(self.space.uav_list) == 0:
+                print("NO more uavs in space")
+                return self._get_obs(), -100, True, {"collision": True}
+        
+        # Now update all non-learning UAVs
         for uav in self.space.get_uav_list():
-            if isinstance(
-                uav, UAV_v2
-            ):  #! RECCOMENDATION: checking using class type, is this a good way to check this?
-                # get_state only returns UAVs personal state
-                uav_state = uav.get_state()  #! this is not required
-
-                # NMAC
+            if not isinstance(uav, Auto_UAV_v2):  # Only process non-learning UAVs
+                # Get non-learning UAV's observations and check for collisions
                 is_nmac, nmac_list = uav.sensor.get_nmac(uav)
                 if is_nmac:
                     print("--- NMAC ---")
                     print(f"NMAC detected:{is_nmac}, and NMAC with {nmac_list}\n")
 
-                # Collision
                 is_collision, collision_uav_ids = uav.sensor.get_collision(uav)
                 if is_collision:
                     print("---COLLISION---")
-                    print(
-                        f"Collision detected:{is_collision}, and collision with {collision_uav_ids}\n"
-                    )
+                    print(f"Collision detected:{is_collision}, and collision with {collision_uav_ids}\n")
                     self.space.remove_uavs_by_id(collision_uav_ids)
                     if len(self.space.uav_list) == 0:
                         print("NO more uavs in space")
-                        end_sim = True
-                        break
-
-                print(
-                    f"Observation\n{uav_state}\n"
-                )  #! this will need to be updated if uav_state is deleted
-                # place inside step of gym.env
-
-                # get_observation returns a list of dicts - first one is self state,
-                # and the rest are other UAVs state.
-                observation = (
-                    uav.get_obs() #! check and see if raw_data is what the non-coop controllers use
-                )  #! this method will accept an argument - obs_space_str, this observation should have the same format as the agent/env - this will be used for supervised training
+                        return self._get_obs(), -100, True, {"collision": True}
+                
+                # Get observation and update non-learning UAV's state
+                observation = uav.get_obs()  # Raw observation data for non-learning controllers
                 uav_mission_complete_status = uav.get_mission_status()
                 uav.set_mission_complete_status(uav_mission_complete_status)
-                #! need to update get_action method, so that, it transforms the observations into gym_space observation for supervised training
+                
+                # Get and apply non-learning UAV's action based on its controller
                 uav_action = uav.get_action(observation=observation)
-                #! need a way to store observation and action pair for supervised training
                 uav.dynamics.update(uav, uav_action)
-
-            else:
-                # the structure of the code is same as above, but the agent is different.
-                # the agent will go throguh the same process of performing -
-                # get_nmac, get_collision, update_dynamics(action), get_obs, get_mission_status.
-                self.agent.dynamic.update(self.agent, action)
-
-            #! the obs, reward, info needs to be of the correct format, based on env - seq or graph
-            #! _get_obs() is for agent, which will accept obs_str and pass it to all relevant methods of agent that will create its obs.
-            obs = (
-                self._get_obs()
-            )  # once the agent has updated its dynamics, get the observation
-            reward = self._get_reward()  #
-            done = None  # this signal comes from get_mission_status
-            info = self._get_info()
-
-            return obs, reward, done, info
+                
+                if __debug__:  # Debug printing for state verification
+                    # print(f"Non-learning UAV State:\n{uav.get_state()}\n")
+                    pass
+        
+        # Get learning agent's observation and status
+        obs = self._get_obs()  # This transforms raw observation into the correct format (seq/graph)
+        reward = self._get_reward()
+        done = self.agent.get_mission_status()  # Get completion status from agent
+        info = self._get_info()
+        
+        return obs, reward, done, info
 
     def _get_reward(self):
         pass
@@ -313,10 +330,121 @@ class SimpleEnv(gym.Env):
         pass
 
     def render(self):
-        pass
-
+        if self.fig is None or self.ax is None:
+            self.fig, self.ax = plt.subplots(figsize=(10, 10))
+            plt.ion()
+            
+        self.ax.clear()
+        self.ax.set_aspect('equal')
+        self.ax.grid(True)
+        
+        # Draw vertiports
+        for vertiport in self.space.get_vertiport_list():
+            self.ax.plot(vertiport.x, vertiport.y, 'gs', markersize=10)
+        
+        # Initialize position history with learning agent first
+        current_positions = [(self.agent.current_position.x, self.agent.current_position.y)]
+        
+        # Draw learning agent first
+        agent_pos = self.agent.current_position
+        
+        # Agent detection and NMAC radius
+        agent_detection = Circle((agent_pos.x, agent_pos.y),
+                            self.agent.detection_radius,
+                            fill=False, color='#4A90E2', alpha=0.3)
+        self.ax.add_patch(agent_detection)
+        
+        agent_nmac = Circle((agent_pos.x, agent_pos.y),
+                        self.agent.nmac_radius,
+                        fill=False, color='#FF7F50', alpha=0.4)
+        self.ax.add_patch(agent_nmac)
+        
+        # Agent body (dark blue)
+        agent_body = Circle((agent_pos.x, agent_pos.y),
+                        self.agent.radius,
+                        fill=True, color='#0000A0', alpha=0.9)
+        self.ax.add_patch(agent_body)
+        
+        # Agent heading indicator
+        heading_length = self.agent.radius * 4
+        dx = heading_length * np.cos(self.agent.current_heading)
+        dy = heading_length * np.sin(self.agent.current_heading)
+        agent_arrow = FancyArrowPatch((agent_pos.x, agent_pos.y),
+                                (agent_pos.x + dx, agent_pos.y + dy),
+                                color='black',
+                                arrowstyle='->',
+                                mutation_scale=15)
+        self.ax.add_patch(agent_arrow)
+        
+        # Agent start-end connection
+        self.ax.plot([self.agent.start.x, self.agent.end.x],
+                    [self.agent.start.y, self.agent.end.y],
+                    'b--', alpha=0.3)
+        
+        # Draw non-learning UAVs
+        for uav in self.space.get_uav_list():
+            if isinstance(uav, Auto_UAV_v2):
+                continue
+                
+            pos = uav.current_position
+            current_positions.append((pos.x, pos.y))
+            
+            detection = Circle((pos.x, pos.y), uav.detection_radius, 
+                        fill=False, color='#4A90E2', alpha=0.3)
+            self.ax.add_patch(detection)
+            
+            nmac = Circle((pos.x, pos.y), uav.nmac_radius, 
+                    fill=False, color='#FF7F50', alpha=0.4)
+            self.ax.add_patch(nmac)
+            
+            body = Circle((pos.x, pos.y), uav.radius, 
+                    fill=True, color='red', alpha=0.7)
+            self.ax.add_patch(body)
+            
+            heading_length = uav.radius * 4
+            dx = heading_length * np.cos(uav.current_heading)
+            dy = heading_length * np.sin(uav.current_heading)
+            arrow = FancyArrowPatch((pos.x, pos.y),
+                                (pos.x + dx, pos.y + dy),
+                                color='black',
+                                arrowstyle='->',
+                                mutation_scale=15)
+            self.ax.add_patch(arrow)
+            
+            self.ax.plot([uav.start.x, uav.end.x],
+                        [uav.start.y, uav.end.y],
+                        'g--', alpha=0.3)
+        
+        # Store and draw trajectories with consistent ordering
+        self.render_history.append(current_positions)
+        if len(self.render_history) > 1:
+            for i in range(len(current_positions)):
+                trajectory = []
+                for step in self.render_history:
+                    if i < len(step):  # Only add point if it exists (handles UAV removals)
+                        trajectory.append(step[i])
+                if trajectory:
+                    xs, ys = zip(*trajectory)
+                    self.ax.plot(xs, ys, '-o', markersize=2, alpha=0.5)
+        
+        # Set plot limits and title
+        x_coords = [v.x for v in self.space.get_vertiport_list()]
+        y_coords = [v.y for v in self.space.get_vertiport_list()]
+        margin = 50
+        self.ax.set_xlim(min(x_coords) - margin, max(x_coords) + margin)
+        self.ax.set_ylim(min(y_coords) - margin, max(y_coords) + margin)
+        self.ax.set_title('UAM Simulation Environment')
+        
+        plt.draw()
+        plt.pause(0.01)
+        
     def close(self):
-        pass
+        """Close the rendering window."""
+        if self.fig is not None:
+            plt.close(self.fig)
+            self.fig = None
+            self.ax = None
+            self.render_history = []
 
     def seed(self, seed=None):
         pass

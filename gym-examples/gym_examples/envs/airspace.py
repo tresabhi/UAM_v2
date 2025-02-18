@@ -53,3 +53,11 @@ class Airspace:
     def __repr__(self) -> str:
         return "Airspace({location_name})".format(location_name=self.location_name)
 
+
+
+if __name__ == 'main':
+    airspace = Airspace("Austin, Texas, USA", airspace_tag_list=[("building", "hospital"),("aeroway", "aerodrome")])
+    print('Restricted airspace geoseries: ')
+    print(airspace.restricted_airspace_geo_series)
+    print('Restricted airspace geoseries-geometry: ')
+    print(airspace.restricted_airspace_geo_series.geometry)

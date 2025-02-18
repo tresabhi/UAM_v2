@@ -63,7 +63,7 @@ class UamUavEnv(gym.Env):
         location_name: str,
         num_vertiport: int,
         num_basic_uav: int,
-        airspace_tag_list: List[tuple], 
+        airspace_tag_list: List[tuple], # Airspace init requirement  
         sleep_time: float = 0.005,  # sleep time between render frames
         render_mode: str = None,  #! check where this argument is used
     ) -> None:
@@ -74,6 +74,7 @@ class UamUavEnv(gym.Env):
             location_name (str): Location of the simulation ie. Austin, Texas, USA
             num_vertiports(int): Number of vertiports to generate
             num_basic_uav (int): Number of UAVs to put in the simulation
+            airspace_tag_list: 
             sleep_time (float): Time to sleep in between render frames
             render_mode (str): The render mode of the simulation
         """
@@ -105,7 +106,7 @@ class UamUavEnv(gym.Env):
 
         # Environment data
         vertiports_point_array = [
-            vertiport.location for vertiport in self.atc.vertiports_in_airspace
+            vertiport.location for vertiport in self.atc.vertiports_in_airspace #! why am I feeding data from this variable to -> self.sim_vertiports_point_array  
         ]
         self.sim_vertiports_point_array = vertiports_point_array
         self.uav_basic_list: List[UAVBasic] = self.atc.basic_uav_list
@@ -181,17 +182,27 @@ class UamUavEnv(gym.Env):
                     dtype=np.float64
                 ),  # Intruder's heading
                 
-                # restricted airspace
-                # "restricted_airspace_detected":spaces.Discrete(
-                #     2 
-                # ),
-                # # distance to airspace 
-                # "distance_to_restricted_airspace": spaces.Box(
-                #     low=0,
-                #     high=1000,
-                #     shape=(1,),
-                #     dtype=np.float64,
-                # ),
+
+                ##### WORK START - ADD THESE TWO OBS TO AUTOUAV AND GYM ENV #####
+                #restricted airspace
+                "restricted_airspace_detected":spaces.Discrete(
+                    2 
+                ),
+                # distance to airspace 
+                "distance_to_restricted_airspace": spaces.Box(
+                    low=0,
+                    high=1000,
+                    shape=(1,),
+                    dtype=np.float64,
+                ),
+                # Relative heading of restricted airspace #!should this be corrected to -180 to 180,
+                "relative_heading_restricted_airspace": spaces.Box(
+                    low=-180, # -360
+                    high=180, # 360
+                    shape=(1,), 
+                    dtype=np.float64
+                ),
+                #####  WORK END  - ADD THESE TWO OBS TO AUTOUAV AND GYM ENV #####
             }
         )
 
@@ -324,7 +335,8 @@ class UamUavEnv(gym.Env):
 
         return observation, info
 
-    def step(self, action: tuple) -> tuple[dict, float, bool, bool, dict]:
+    def step(self, action: tuple) -> tuple[dict, float,  bool,       bool,      dict]:
+        #                                  obs,  reward, terminated, truncated, info
         """
         This method is used to step the environment, it will step the environment by one timestep.
 
@@ -399,6 +411,7 @@ class UamUavEnv(gym.Env):
             terminated = False
 
         # check collision with static object
+        #! move collision detection to a new method - return of that method should be assigned to variable  truncation
         collision_static_obj, _ = self.auto_uav.get_state_static_obj(
             # self.airspace.location_utm_hospital.geometry,
             self.airspace.restricted_airspace_geo_series.geometry,
@@ -1039,12 +1052,6 @@ class UamUavEnv(gym.Env):
         })
 
     def _get_obs(self) -> dict:
-        agent_id = np.array([self.auto_uav.id], dtype=np.int64)
-        agent_speed = self.get_agent_speed()
-        agent_deviation = self.get_agent_deviation()
-        intruder_info = self.auto_uav.get_state_dynamic_obj(
-            self.uav_basic_list, "nmac"
-        )  # self.nmac_with_dynamic_obj()
         """
         Gets the observation space of the agent
 
@@ -1062,6 +1069,14 @@ class UamUavEnv(gym.Env):
                 relative_heading_intruder
                 intruder_heading
         """
+        agent_id = np.array([self.auto_uav.id], dtype=np.int64)
+        agent_speed = self.get_agent_speed()
+        agent_deviation = self.get_agent_deviation()
+        
+        # CLOSEST INTRUDER UAV
+        intruder_info = self.auto_uav.get_state_dynamic_obj(
+            self.uav_basic_list, "nmac"
+        )  # self.nmac_with_dynamic_obj()
 
         # TODO #9 - create simple logging to check all observations are in correct format and range- use print()
         if intruder_info:
@@ -1090,13 +1105,16 @@ class UamUavEnv(gym.Env):
             relative_heading_intruder = np.array([relative_heading], dtype=np.float64)
             intruder_heading = np.array([intruder_heading_val], dtype=np.float64)
         else:
+            #! since there is no intruder these observations should be masked as they enter policy network
             intruder_detected = 0
             intruder_id = np.array([0], dtype=np.int64)
             # distance_to_intruder = np.array([0])
             distance_to_intruder = np.array([self.auto_uav.detection_radius], dtype=np.float64)  # Max distance when no intruder
             relative_heading_intruder = np.array([0], dtype=np.float64)
             intruder_heading = np.array([0], dtype=np.float64)
-
+        
+        
+        ##### ----- START ----- STATIC OBJ - OBSERVATION - CURRENT WORK #####
         restricted_airspace, _ = self.auto_uav.get_state_static_obj(
             self.airspace.restricted_airspace_geo_series.geometry,
             "detection",  # the collision string represents that we are using detection as indicator
@@ -1123,7 +1141,10 @@ class UamUavEnv(gym.Env):
             distance_to_static_obj_polygon = None
         else:
             distance_to_static_obj_polygon = 0
+        
+        ##### -----  END ----- STATIC OBJ - OBSERVATION - CURRENT WORK #####
 
+        ##### UPDATE - ONCEE STATIC OBSERVATION IS FIXED #####
         observation = {
             "agent_id": agent_id,
             "agent_speed": agent_speed,
@@ -1134,6 +1155,7 @@ class UamUavEnv(gym.Env):
             "relative_heading_intruder": relative_heading_intruder,
             "intruder_current_heading": intruder_heading,
         }
+        ##### UPDATE - ONCEE STATIC OBSERVATION IS FIXED #####
 
         return observation
 

@@ -180,7 +180,7 @@ class UAV:
     def get_state_dynamic_obj(self, uav_list: list["UAV"], radius_str: str = 'detection') -> None | dict:
         '''
         Get state of UAV based on radius string argument.
-        Return intruder UAVs info that have been detected. 
+        Return closest intruder UAV's info that have been detected. 
         Return None if no UAV is detected.
         '''
 
@@ -224,7 +224,7 @@ class UAV:
             raise RuntimeError('Unknown radius string passed.')
 
         building_polygon_count = len(building_gdf)
-        intersection_list = []
+        intersection_list = [] # a list of True/False, True if there was an intersection of UAV with a building, else False
 
         for i in range(building_polygon_count):
             '''Loop through all buildings in the 
@@ -232,9 +232,18 @@ class UAV:
             intersection_list.append(self.uav_polygon(own_radius).intersection(building_gdf.iloc[i]))
 
         intersection_with_building = any(intersection_list)
-        own_state_info = self.current_heading_deg
+        # find which restircted airspace is intersecting with UAV
 
-        return intersection_with_building , own_state_info
+        # find distance from restricted airspace to UAV
+        # find distance from closest point on polygon to UAV 
+        # find own heading 
+        direction_restricted_airspace = self.current_heading_deg
+        # find centeroid location of polygon 
+        # find distance from centeroid of polygon to UAV current position 
+        # find relative heading to restricted airspace
+
+
+        return intersection_with_building , direction_restricted_airspace
 
     def refresh_uav(
         self,

@@ -23,14 +23,17 @@ class SARSALogger:
         self.timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         
     def _serialize_array(self, arr):
-        """Convert numpy arrays to lists for JSON serialization"""
+        """Convert numpy arrays and other types to JSON-serializable format"""
         if isinstance(arr, np.ndarray):
             return arr.tolist()
         elif isinstance(arr, dict):
             return {k: self._serialize_array(v) for k, v in arr.items()}
         elif isinstance(arr, (list, tuple)):
-            return [self._serialize_array(item) for item in item]
-        return arr
+            return [self._serialize_array(x) for x in arr]
+        elif isinstance(arr, (bool, int, float, str, type(None))):
+            return arr
+        else:
+            return str(arr)  # Convert other types to string representation
     
     def log_transition(self, state, action, reward, next_state, next_action, info=None):
         """Log a single SARSA transition

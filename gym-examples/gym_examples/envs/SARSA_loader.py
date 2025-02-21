@@ -159,6 +159,7 @@ class TrajectoryAnalyzer:
         
         print(f"\nNext Action: {transition['next_action']}")
 
+# Example usage
 if __name__ == "__main__":
     analyzer = TrajectoryAnalyzer()
     
@@ -182,9 +183,10 @@ if __name__ == "__main__":
         analyzer.print_transition_details(first_transition)
         
         # Get and display a specified range of steps
-        start_range = 10, end_range = 15
+        start_range = 10
+        end_range = 15
         print(f"\nGetting steps {start_range}-{end_range}:")
-        transitions = analyzer.get_transition_range(filename, 10, 15)
+        transitions = analyzer.get_transition_range(filename, start_range, end_range)
         print(f"Retrieved {len(transitions)} transitions")
         print(f"\nDetailed view of transitions {start_range}-{end_range}:")
         for i, trans in enumerate(transitions):
@@ -208,24 +210,9 @@ if __name__ == "__main__":
         for i, reward in enumerate(rewards[:3]):
             print(f"Step {i} reward: {reward}")
 
-    ###################################################################
-    # Example usage with a speceific file to access trajectory arrays #
-    ###################################################################
-
-    # analyzer = TrajectoryAnalyzer()
-
-    # # Get specific range of transitions
-    # transitions = analyzer.get_transition_range("episode_0_20250214_142128.json", 10, 15)
-    # for trans in transitions:
-    #     print(f"Distance to goal: {trans['state']['dist_to_goal']}")
-    #     print(f"Action taken: {trans['action']}")
-
-    # # Get full trajectory data
-    # states, actions, rewards, next_states, next_actions = analyzer.get_full_trajectory("episode_0_20250214_142128.json")
-
-    # # Access specific timestep
-    # timestep = 5
-    # print(f"State at timestep {timestep}:")
-    # print(f"Distance to goal: {states[timestep]['dist_to_goal']}")
-    # print(f"Action taken: {actions[timestep]}")
-    # print(f"Reward received: {rewards[timestep]}")
+        # Access specific timestep
+        timestep = 5
+        print(f"\nStates at timestep {timestep}")
+        print(f"Distance to goal: {states[timestep]['dist_to_goal']}")
+        print(f"Action taken: {actions[timestep]}")
+        print(f"Reward received: {rewards[timestep]}")

@@ -16,7 +16,7 @@ class PointMassDynamics(DynamicsTemplate):
 
         if self.is_learning:
             action[0] = 1 * action[0] # some_re_normalization
-            action[1] = 1 * action[1] # some_re_normalization
+            action[1] = math.pi * action[1] # some_re_normalization
 
         if uav.mission_complete_status:
 

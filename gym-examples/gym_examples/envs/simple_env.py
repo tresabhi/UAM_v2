@@ -15,6 +15,7 @@ import gymnasium as gym
 from gymnasium.spaces import Discrete, Box, Dict
 from gymnasium import spaces
 from utils_data_transform import transform_sensor_data
+from UAV_logger import NonLearningLogger
 
 class SimpleEnv(gym.Env):
 
@@ -25,8 +26,7 @@ class SimpleEnv(gym.Env):
     #! I think this should be an input argument to env __init__
     max_number_other_agents_observed = 7
 
-    # Local variables
-
+    # Define sequential observation space for LSTM
     obs_space_seq = Dict(
         {
             # TWO form of experiment - one with end point, and one without end-point
@@ -54,6 +54,7 @@ class SimpleEnv(gym.Env):
         }
     )
 
+    # Define graph observsation space for GNN
     obs_space_graph = spaces.Dict(
         {
             "num_other_agents": spaces.Box(low=0, high=100, shape=(), dtype=np.int64),
@@ -115,6 +116,9 @@ class SimpleEnv(gym.Env):
     ):  
         super().__init__()
 
+        # Initialize the non-learning agent logger
+        self.non_learning_logger = NonLearningLogger()
+
         # env obs chech
         if obs_space_str == "seq" and sorting_criteria == None:
             raise RuntimeError(
@@ -145,8 +149,8 @@ class SimpleEnv(gym.Env):
             )
 
         self.action_space = spaces.Box(
-            low=np.array([-1, -math.pi]),  # acceleration, heading_change
-            high=np.array([1, math.pi]),
+            low=np.array([-1, -1]),  # acceleration, heading_change
+            high=np.array([1, 1]),
             shape=(2,),
         )
 
@@ -191,6 +195,8 @@ class SimpleEnv(gym.Env):
         for uav in self.space.get_uav_list():
             if not isinstance(uav, Auto_UAV_v2):  # Only process non-learning UAVs
                 # Get non-learning UAV's observations and check for collisions
+                observation = uav.get_obs() # Raw observation data for non-learning controllers
+
                 is_nmac, nmac_list = uav.sensor.get_nmac(uav)
                 if is_nmac:
                     print("--- NMAC ---")
@@ -200,19 +206,27 @@ class SimpleEnv(gym.Env):
                 if is_collision:
                     print("---COLLISION---")
                     print(f"Collision detected:{is_collision}, and collision with {collision_uav_ids}\n")
+                    # Log final state before collision and end episode
+                    self.non_learning_logger.record_collision(collision_uav_ids, 'dynamic')
                     self.space.remove_uavs_by_id(collision_uav_ids)
                     if len(self.space.uav_list) == 0:
                         print("NO more uavs in space")
                         return self._get_obs(), -100, True, {"collision": True}
                 
-                # Get observation and update non-learning UAV's state
-                observation = uav.get_obs()  # Raw observation data for non-learning controllers
+                # Update non-learning UAV's state
                 uav_mission_complete_status = uav.get_mission_status()
                 uav.set_mission_complete_status(uav_mission_complete_status)
                 
                 # Get and apply non-learning UAV's action based on its controller
                 uav_action = uav.get_action(observation=observation)
                 uav.dynamics.update(uav, uav_action)
+
+                # Log the state-action pair for this non-learning UAV
+                self.non_learning_logger.log_step(uav.id, observation, uav_action)
+
+                # If UAV completed its mission, log it
+                if uav_mission_complete_status:
+                    self.non_learning_logger.mark_agent_complete(uav.id)
                 
                 if __debug__:  # Debug printing for state verification
                     # print(f"Non-learning UAV State:\n{uav.get_state()}\n")
@@ -262,6 +276,9 @@ class SimpleEnv(gym.Env):
         pass
 
     def reset(self):
+        # Reset logger for new episode
+        self.non_learning_logger.reset()
+
         # if agent has collision, call reset.
         # if agent reaches goal, call reset.
         # if agent reaches max steps, call reset.
@@ -312,6 +329,13 @@ class SimpleEnv(gym.Env):
         #! _get_obs() is for agent, which will accept obs_str and pass it to all relevant methods of agent that will create its obs.
         obs = self._get_obs()  # self.agent.get_obs()
         info = self._get_info()  # self.agent.get_info()
+
+        # Log initial states of non-learning UAVs
+        for uav in self.space.get_uav_list():
+            if not isinstance(uav, Auto_UAV_v2):
+                observation = uav.get_obs()
+                action = uav.get_action(observation=observation)
+                self.non_learning_logger.log_step(uav.id, observation, action)
 
         ##### check UAV and start - end points ######
 
@@ -439,12 +463,15 @@ class SimpleEnv(gym.Env):
         plt.pause(0.01)
         
     def close(self):
-        """Close the rendering window."""
+        """Close the rendering window and logger."""
         if self.fig is not None:
             plt.close(self.fig)
             self.fig = None
             self.ax = None
             self.render_history = []
+
+        # Close the non-learning logger
+        self.non_learning_logger.close()
 
     def seed(self, seed=None):
         pass

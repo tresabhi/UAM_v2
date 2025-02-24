@@ -29,10 +29,10 @@ class PointMassDynamics(DynamicsTemplate):
             new_speed = uav.current_speed + action[0] * self.dt
             new_heading = uav.current_heading + action[1]
 
-            v_x = uav.current_speed * math.cos(new_heading)
+            v_x = new_speed * math.cos(new_heading)
             a_x = action[0] * math.cos(new_heading)
             
-            v_y = uav.current_speed * math.sin(new_heading)
+            v_y = new_speed * math.sin(new_heading)
             a_y = action[0] * math.sin(new_heading)
 
             _x = uav.current_position.x + (v_x * self.dt) + (0.5 * a_x * self.dt**2)

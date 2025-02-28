@@ -3,6 +3,8 @@ from auto_uav_v2 import Auto_UAV_v2
 from controller_static import StaticController
 from controller_non_coop import NonCoopController
 from controller_non_coop_smooth import NonCoopControllerSmooth
+from controller_non_coop_ORCA import ORCA_controller
+from dynamics_orca import ORCA_Dynamics
 from dynamics_point_mass import PointMassDynamics
 from sensor_universal import UniversalSensor
 from space import Space
@@ -288,7 +290,10 @@ class SimpleEnv(gym.Env):
         self.universal_sensor = UniversalSensor(space=self.space)
         self.static_controller = StaticController(0, 0)
         self.non_coop_smooth_controller = NonCoopControllerSmooth(10, 2)
+        self.non_coop_controller_orca = ORCA_controller(10,150, 5, 0.1)
         self.non_coop_controller = NonCoopController(10, 1)
+        
+        self.orca_dynamics = ORCA_Dynamics()
         self.pm_dynamics = PointMassDynamics()
         self.agent_pm_dynamics = PointMassDynamics(is_learning=True)
         self.universal_sensor = UniversalSensor(space=self.space)

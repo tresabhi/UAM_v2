@@ -1,0 +1,250 @@
+from sensor_template import SensorTemplate
+from typing import List, Dict, Tuple, Any
+import numpy as np
+import shapely
+from uav_v2_template import UAV_v2_template
+from auto_uav_v2 import Auto_UAV_v2
+from airspace import Airspace
+import geopandas as gpd
+
+class MapSensor(SensorTemplate):
+    """
+    Sensor for UAVs in a mapped environment with restricted airspace.
+    Handles both dynamic (other UAVs) and static (restricted airspace) collision detection.
+    """
+    
+    def __init__(self, space):
+        """
+        Initialize the MapSensor.
+        
+        Args:
+            space: The space containing UAVs, vertiports, and airspace information
+        """
+        super().__init__(space)
+        self.airspace = space.airspace
+    
+    def set_data(self, self_uav: UAV_v2_template) -> None:
+        """
+        Collect data of other UAVs in space within detection radius.
+        
+        Args:
+            self_uav: The UAV using this sensor
+        """
+        # Clear previous data
+        self.data = []
+        
+        # Get self_uav detection radius
+        self.detection_radius = self_uav.detection_radius
+        
+        # Get UAV list from space
+        uav_list: List[UAV_v2_template] = self.space.get_uav_list()
+        
+        # Collect data for each UAV within detection radius
+        for uav in uav_list:
+            if uav.id != self_uav.id:
+                if self_uav.current_position.distance(uav.current_position) <= self.detection_radius:
+                    other_uav_data = {
+                        'other_uav_id': uav.id,
+                        'other_uav_current_position': uav.current_position,
+                        'other_uav_current_speed': uav.current_speed,
+                        'other_uav_current_heading': uav.current_heading,
+                        'other_uav_radius': uav.radius
+                    }
+                    self.data.append(other_uav_data)
+        
+        return None
+    
+    def get_data(self) -> List[Dict]:
+        """
+        Get the collected sensor data.
+        
+        Returns:
+            List of dictionaries containing data about other UAVs
+        """
+        return self.data
+    
+    def get_collision(self, self_uav: UAV_v2_template) -> Tuple[bool, Any]:
+        """
+        Check if there is a collision with another UAV.
+        
+        Args:
+            self_uav: The UAV checking for collisions
+            
+        Returns:
+            Tuple of (collision_detected, collision_info)
+        """
+        uav_list = self.space.get_uav_list()
+        
+        for uav in uav_list:
+            if uav.id == self_uav.id:
+                continue
+            
+            # Check if UAV bodies intersect
+            if self_uav.current_position.buffer(self_uav.radius).intersects(
+                uav.current_position.buffer(uav.radius)
+            ):
+                return True, (self_uav.id, uav.id)
+                
+        return False, None
+    
+    def get_nmac(self, self_uav: UAV_v2_template) -> Tuple[bool, List]:
+        """
+        Check for Near Mid-Air Collision (NMAC) with other UAVs.
+        
+        Args:
+            self_uav: The UAV checking for NMAC
+            
+        Returns:
+            Tuple of (nmac_detected, nmac_uav_list)
+        """
+        nmac_list = []
+        uav_list = self.space.get_uav_list()
+        
+        for uav in uav_list:
+            if uav.id == self_uav.id:
+                continue
+            
+            # Check if NMAC radii intersect
+            if self_uav.current_position.buffer(self_uav.nmac_radius).intersects(
+                uav.current_position.buffer(uav.nmac_radius)
+            ):
+                nmac_list.append(uav)
+                
+        if len(nmac_list) > 0:
+            return True, nmac_list
+        return False, nmac_list
+    
+    def get_static_detection(self, self_uav: UAV_v2_template) -> Tuple[bool, Dict]:
+        """
+        Check if the UAV's detection radius intersects with restricted airspace.
+        
+        Args:
+            self_uav: The UAV checking for static object detection
+            
+        Returns:
+            Tuple of (detection, detection_info)
+        """
+        # Get the buffer around the UAV's detection radius
+        uav_detection_area = self_uav.current_position.buffer(self_uav.detection_radius)
+        
+        # Check intersection with each restricted area
+        for tag_value in self.airspace.location_tags.keys():
+            # Get restricted area buffers (hospitals, airports, etc)
+            restricted_areas_buffer = self.airspace.location_utm_buffer[tag_value]
+            
+            # Check for intersection with any restricted area buffer
+            for i in range(len(restricted_areas_buffer)):
+                restricted_area = restricted_areas_buffer.iloc[i]
+                # Extract geometry object from GeoSeries/GeoDataFrame
+                if hasattr(restricted_area, 'geometry'):
+                    restricted_geometry = restricted_area.geometry
+                else:
+                    restricted_geometry = restricted_area
+                
+                if uav_detection_area.intersects(restricted_geometry):
+                    # Calculate distance to the restricted area
+                    distance = self_uav.current_position.distance(restricted_geometry.boundary)
+                    
+                    # Return detection info
+                    return True, {
+                        'type': tag_value,
+                        'distance': distance,
+                        'area': restricted_geometry
+                    }
+        
+        return False, {}
+    
+    def get_static_collision(self, self_uav: UAV_v2_template) -> Tuple[bool, Dict]:
+        """
+        Check if the UAV's body intersects with restricted airspace.
+        
+        Args:
+            self_uav: The UAV checking for static object collision
+            
+        Returns:
+            Tuple of (collision, collision_info)
+        """
+        # Get the buffer around the UAV's physical radius
+        uav_body = self_uav.current_position.buffer(self_uav.radius)
+        
+        # Check intersection with each restricted area
+        for tag_value in self.airspace.location_tags.keys():
+            # Get actual restricted areas (not buffers)
+            restricted_areas = self.airspace.location_utm[tag_value]
+            
+            # Check for intersection with any restricted area
+            for i in range(len(restricted_areas)):
+                # Get the actual geometry from the GeoDataFrame/GeoSeries
+                restricted_area = restricted_areas.iloc[i]
+                if hasattr(restricted_area, 'geometry'):
+                    restricted_geometry = restricted_area.geometry
+                else:
+                    restricted_geometry = restricted_area
+                
+                try:
+                    if uav_body.intersects(restricted_geometry):
+                        return True, {
+                            'type': tag_value,
+                            'area': restricted_geometry
+                        }
+                except TypeError:
+                    # If an error occurs, log detailed info for debugging
+                    print(f"Type error with: {type(restricted_area)}, {type(restricted_geometry)}")
+                    print(f"UAV body type: {type(uav_body)}")
+                    continue
+        
+        return False, {}
+    
+    def get_closest_restricted_area(self, self_uav: UAV_v2_template) -> Tuple[bool, Dict]:
+        """
+        Find the closest restricted area to the UAV within detection radius.
+        
+        Args:
+            self_uav: The UAV checking for nearby restricted areas
+            
+        Returns:
+            Tuple of (area_detected, area_info)
+        """
+        min_distance = float('inf')
+        closest_area = None
+        closest_type = None
+        
+        # Get the buffer around the UAV's detection radius
+        uav_detection_area = self_uav.current_position.buffer(self_uav.detection_radius)
+        
+        # Check distance to each restricted area
+        for tag_value in self.airspace.location_tags.keys():
+            # Get restricted areas
+            restricted_areas = self.airspace.location_utm[tag_value]
+            
+            # Check distance to each area
+            for i in range(len(restricted_areas)):
+                # Get the actual geometry
+                restricted_area = restricted_areas.iloc[i]
+                if hasattr(restricted_area, 'geometry'):
+                    restricted_geometry = restricted_area.geometry
+                else:
+                    restricted_geometry = restricted_area
+                
+                # If within detection range
+                try:
+                    if uav_detection_area.intersects(restricted_geometry):
+                        # Calculate distance
+                        distance = self_uav.current_position.distance(restricted_geometry.boundary)
+                        
+                        # Update if closer than current closest
+                        if distance < min_distance:
+                            min_distance = distance
+                            closest_area = restricted_geometry
+                            closest_type = tag_value
+                except TypeError:
+                    continue
+        
+        if closest_area is not None:
+            return True, {
+                'type': closest_type,
+                'distance': min_distance,
+                'area': closest_area
+            }
+        
+        return False, {}

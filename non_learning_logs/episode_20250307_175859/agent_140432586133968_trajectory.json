@@ -1,0 +1,58 @@
+{
+  "agent_id": 140432586133968,
+  "trajectory_length": 2,
+  "terminated_by_collision": null,
+  "completed_successfully": false,
+  "trajectory": [
+    {
+      "state": [
+        {
+          "id": 140432586133968,
+          "current_position": "POINT (612397.5654419238 3365368.155956366)",
+          "current_speed": 0,
+          "current_heading": -1.0918830488774884,
+          "end": "POINT (624572.4207821654 3341920.268029266)",
+          "radius": 17,
+          "ref_prll": [
+            0.4608149860890086,
+            -0.8874962245529762
+          ],
+          "ref_orth": [
+            0.8874962245529762,
+            0.4608149860890086
+          ],
+          "distance_to_goal": 26420.267803291317
+        }
+      ],
+      "action": [
+        10,
+        -0.0
+      ]
+    },
+    {
+      "state": [
+        {
+          "id": 140432586133968,
+          "current_position": "POINT (612397.5654419238 3365368.155956366)",
+          "current_speed": 0,
+          "current_heading": -1.0918830488774884,
+          "end": "POINT (624572.4207821654 3341920.268029266)",
+          "radius": 17,
+          "ref_prll": [
+            0.4608149860890086,
+            -0.8874962245529762
+          ],
+          "ref_orth": [
+            0.8874962245529762,
+            0.4608149860890086
+          ],
+          "distance_to_goal": 26420.267803291317
+        }
+      ],
+      "action": [
+        10,
+        -0.0
+      ]
+    }
+  ]
+}

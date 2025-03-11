@@ -1,0 +1,12 @@
+{
+  "timestamp": "20250311_004923",
+  "collision_occurred": true,
+  "collision_agents": [
+    139913815198608
+  ],
+  "collision_type": "static",
+  "num_agents": 2,
+  "completed_agents": [
+    139913815210576
+  ]
+}

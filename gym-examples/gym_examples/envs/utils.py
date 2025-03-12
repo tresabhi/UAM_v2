@@ -73,10 +73,6 @@ def compute_time_to_impact(host_uav:UAV_v2, other_uav:UAV_v2):
         else:
             return np.inf
 
-
-
-
-
 def tangent_vecs_from_external_pt(xp, yp, a, b, r):
     # http://www.ambrsoft.com/TrigoCalc/Circles2/CirclePoint/CirclePointDistance.htm
     # (xp, yp) is coords of pt outside of circle

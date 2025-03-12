@@ -1,0 +1,18 @@
+{
+  "timestamp": "20250311_215442",
+  "collision_occurred": false,
+  "collision_agents": null,
+  "collision_type": null,
+  "non_learning_agents": [
+    139863509959824,
+    139863519601168
+  ],
+  "learning_agents": [
+    139863519599568
+  ],
+  "completed_agents": [
+    139863519601168
+  ],
+  "num_non_learning_agents": 2,
+  "num_learning_agents": 1
+}

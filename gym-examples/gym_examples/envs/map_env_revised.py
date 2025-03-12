@@ -17,7 +17,8 @@ import gymnasium as gym
 from gymnasium.spaces import Discrete, Box, Dict
 from gymnasium import spaces
 from utils_data_transform import transform_sensor_data
-from UAV_logger import NonLearningLogger
+# from UAV_logger import NonLearningLogger
+from map_logger import MapLogger
 import time
 import pandas as pd
 import geopandas as gpd
@@ -146,7 +147,7 @@ class MapEnv(gym.Env):
         self.render_history = []  # Store positions for trajectory visualization
 
         # Initialize logger for non-learning agents
-        self.non_learning_logger = NonLearningLogger()
+        self.logger = MapLogger(base_log_dir="logs")
 
         # Animation data structure
         self.df = pd.DataFrame({
@@ -208,7 +209,7 @@ class MapEnv(gym.Env):
         if static_collision:
             print("--- STATIC COLLISION ---")
             print(f"Collision with restricted airspace: {static_collision_info}")
-            self.non_learning_logger.record_collision([self.agent.id], 'static')
+            self.logger.record_collision([self.agent.id], 'static')
 
             # Clean up trajectory data for collided agent
             if hasattr(self, 'trajectory_by_id') and self.agent.id in self.trajectory_by_id:
@@ -226,7 +227,7 @@ class MapEnv(gym.Env):
         if is_collision:
             print("--- COLLISION ---")
             print(f"Collision detected: {is_collision}, and collision with {collision_uav_ids}\n")
-            self.non_learning_logger.record_collision(collision_uav_ids, 'dynamic')
+            self.logger.record_collision(collision_uav_ids, 'dynamic')
 
             # Clean up trajectory data for collided agents
             if hasattr(self, 'trajectory_by_id'):
@@ -252,7 +253,7 @@ class MapEnv(gym.Env):
                 static_collision, static_info = uav.sensor.get_static_collision(uav)
                 if static_collision:
                     print(f"--- UAV {uav.id} STATIC COLLISION ---")
-                    self.non_learning_logger.record_collision([uav.id], 'static')
+                    self.logger.record_collision([uav.id], 'static')
 
                     # Clean up trajectory for this UAV
                     if hasattr(self, 'trajectory_by_id') and uav.id in self.trajectory_by_id:
@@ -269,7 +270,7 @@ class MapEnv(gym.Env):
                 is_collision, collision_uav_ids = uav.sensor.get_collision(uav)
                 if is_collision:
                     print(f"--- UAV {uav.id} COLLISION ---")
-                    self.non_learning_logger.record_collision(collision_uav_ids, 'dynamic')
+                    self.logger.record_collision(collision_uav_ids, 'dynamic')
 
                     # Clean up trajectory for collided UAVs
                     if hasattr(self, 'trajectory_by_id'):
@@ -286,7 +287,7 @@ class MapEnv(gym.Env):
 
                 # If UAV completed its mission, log it and clean up its trajectory
                 if uav_mission_complete_status:
-                    self.non_learning_logger.mark_agent_complete(uav.id)
+                    self.logger.mark_agent_complete(uav.id)
                     if hasattr(self, 'trajectory_by_id') and uav.id in self.trajectory_by_id:
                         del self.trajectory_by_id[uav.id]
                     self.space.remove_uavs_by_id([uav.id])
@@ -297,20 +298,39 @@ class MapEnv(gym.Env):
                 uav.dynamics.update(uav, uav_action)
 
                 # Log the state-action pair for this non-learning UAV
-                self.non_learning_logger.log_step(uav.id, observation, uav_action)
+                self.logger.log_non_learning_step(uav.id, observation, uav_action)
         
         # Get learning agent's observation, reward, and status
         obs = self._get_obs()
         reward = self._get_reward()
-        agent_mission_complete = self.agent.get_mission_status()
+
+        # Log the full transition for the learning agent
+        if hasattr(self, 'previous_obs') and hasattr(self, 'previous_action'):
+            self.logger.log_learning_transition(
+                self.agent.id,
+                self.previous_obs,
+                self.previous_action,
+                reward,
+                obs,  # Current obs becomes next_state
+                action  # Current action becomes next_action
+            )
+        else:
+            # First step in episode, can't log transition yet
+            pass
+            
+        # Store current state and action for next transition
+        self.previous_obs = obs
+        self.previous_action = action
         
-        # Set termination and truncation flags
+        # Get mission status and set termination and truncation flags
+        agent_mission_complete = self.agent.get_mission_status()
         terminated = agent_mission_complete
         timeout = self.current_time_step >= self.max_episode_steps
         truncated = timeout
 
-        # If agent completed mission, clean up its trajectory
+        # If agent completed mission, log ut and clean up its trajectory
         if agent_mission_complete:
+            self.logger.mark_agent_complete(self.agent.id)
             if hasattr(self, 'trajectory_by_id') and self.agent.id in self.trajectory_by_id:
                 del self.trajectory_by_id[self.agent.id]
         
@@ -460,7 +480,12 @@ class MapEnv(gym.Env):
             np.random.seed(seed)
             
         # Reset logger for new episode
-        self.non_learning_logger.reset()
+        self.logger.reset()
+        # Reset tracking for learning agent logging
+        self.previous_obs = None
+        self.previous_action = None
+
+        # Reset animation information for new episode
         self.current_time_step = 0
         self.df = pd.DataFrame({
             "current_time_step": [],
@@ -470,11 +495,10 @@ class MapEnv(gym.Env):
             "current_heading": [],
             "final_heading": [],
         })
+        # Reset render history
         self.render_history = []
-        
         # Reset trajectory tracking
         self.trajectory_by_id = {}
-        
         # Clean up animation data if present
         if hasattr(self, 'animation_data'):
             del self.animation_data
@@ -545,13 +569,6 @@ class MapEnv(gym.Env):
         obs = self._get_obs()
         info = {}
 
-        # Log initial states of non-learning UAVs
-        for uav in self.space.get_uav_list():
-            if not isinstance(uav, Auto_UAV_v2):
-                observation = uav.get_obs()
-                action = uav.get_action(observation=observation)
-                self.non_learning_logger.log_step(uav.id, observation, action)
-
         # Print debug info for vertiport assignments
         print("--- Vertiport Assignments ---")
         for uav in self.space.get_uav_list():
@@ -591,7 +608,7 @@ class MapEnv(gym.Env):
         # Agent detection radius
         agent_detection = Circle((agent_pos.x, agent_pos.y),
                             self.agent.detection_radius,
-                            fill=False, color='#4A90E2', alpha=0.3, linewidth=2)
+                            fill=False, color='#0278c2', alpha=0.3, linewidth=2)
         self.ax.add_patch(agent_detection)
         
         # Agent NMAC radius
@@ -621,7 +638,7 @@ class MapEnv(gym.Env):
         # Agent start-end connection with thicker line
         self.ax.plot([self.agent.start.x, self.agent.end.x],
                     [self.agent.start.y, self.agent.end.y],
-                    'b--', alpha=0.6, linewidth=2.5)
+                    'b--', alpha=0.6, linewidth=2.0)
         
         # Draw non-learning UAVs
         for uav in self.space.get_uav_list():
@@ -662,7 +679,7 @@ class MapEnv(gym.Env):
             # UAV start-end connection with thicker line
             self.ax.plot([uav.start.x, uav.end.x],
                         [uav.start.y, uav.end.y],
-                        'g--', alpha=0.6, linewidth=2.5)
+                        'g--', alpha=0.6, linewidth=2.0)
         
         # Update trajectory history - maintaining correct UAV ID mapping
         # Create a dictionary of ID to position if it doesn't exist
@@ -797,7 +814,7 @@ class MapEnv(gym.Env):
                     current_uav_ids.append(uav_id)
                     
                     # Set colors based on UAV type
-                    detection_color = '#4A90E2' if is_auto else 'green'
+                    detection_color = '#0278c2' if is_auto else 'green'
                     nmac_color = '#FF7F50' if is_auto else 'orange'
                     body_color = '#0000A0' if is_auto else 'blue'
                     
@@ -835,12 +852,12 @@ class MapEnv(gym.Env):
                     ref_length = uav_obj.radius * 4
                     dx_ref = ref_length * np.cos(final_heading)
                     dy_ref = ref_length * np.sin(final_heading)
-                    ref_color = 'red' if is_auto else 'green'
+                    ref_color = 'purple' if is_auto else 'red'
                     ref_arrow = FancyArrowPatch((pos.x, pos.y),
                                         (pos.x + dx_ref, pos.y + dy_ref),
                                         color=ref_color,
                                         arrowstyle='->',
-                                        mutation_scale=5,
+                                        mutation_scale=7.5,
                                         linewidth=2,
                                         alpha=0.6)
                     ax.add_patch(ref_arrow)
@@ -850,7 +867,7 @@ class MapEnv(gym.Env):
                         line_color = 'blue' if is_auto else 'green'
                         ax.plot([uav_obj.start.x, uav_obj.end.x],
                             [uav_obj.start.y, uav_obj.end.y],
-                            '--', color=line_color, alpha=0.6, linewidth=2.5)
+                            '--', color=line_color, alpha=0.6, linewidth=2.0)
                 
                 # Draw trajectories up to this time step
                 # This ensures we don't show trajectories for removed UAVs
@@ -948,12 +965,9 @@ class MapEnv(gym.Env):
                     fps=10,  # Higher fps for smoother playback
                     metadata=dict(title='UAM Simulation'),
                     bitrate=5000,  # Higher bitrate for better quality
-                    extra_args=['-vcodec', 'libx264', 
+                    extra_args=['-vcodec', 'mpeg4', 
                             '-pix_fmt', 'yuv420p',
-                            '-profile:v', 'high', 
-                            '-level', '4.0',
-                            '-preset', 'slow',  # Slower preset = better compression
-                            '-crf', '17']  # Lower CRF = higher quality (15-25 is good)
+                            '-q:v', '3']  # Quality value - lower is better quality (1-31)
                 )
                 
                 # First attempt with quality settings
@@ -987,8 +1001,7 @@ class MapEnv(gym.Env):
                                 f"{file_name}.mp4",
                                 writer='ffmpeg',
                                 fps=5,
-                                dpi=100,
-                                codec='mpeg4'
+                                dpi=100
                             )
                             print("MP4 saved successfully with minimal settings!")
                         except Exception as e:
@@ -1062,6 +1075,9 @@ class MapEnv(gym.Env):
 
     def close(self):
         """Close the environment and clean up resources."""
+        # close any ongoing animations 
+        plt.close('all')
+
         if self.fig is not None:
             plt.close(self.fig)
             self.fig = None
@@ -1092,5 +1108,5 @@ class MapEnv(gym.Env):
                 "final_heading": [],
             })
 
-        # Close the non-learning logger
-        self.non_learning_logger.close()
+        # Close the logger
+        self.logger.close()

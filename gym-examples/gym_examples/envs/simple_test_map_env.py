@@ -17,6 +17,7 @@ import traceback
 import sys
 import shutil
 import random
+from map_logging_loader import MapLoader
 
 # Ensure no global randomness affects our tests
 random.seed(0)
@@ -219,6 +220,36 @@ def test_map_env_with_random_actions(episodes=2, max_steps_per_episode=50, rende
         
         # Close environment
         env.close()
+        print("\nEnvironment closed!")
+        
+        # Analyze the generated logs using the integrated loader
+        print("\n=== Analyzing Generated Logs ===")
+        loader = MapLoader(base_log_dir="logs")
+        
+        episodes = loader.list_episodes()
+        if episodes:
+            print(f"Found {len(episodes)} episode(s) in logs")
+            
+            # Analyze each episode
+            for episode_dir in episodes:
+                print(f"\nAnalyzing episode: {episode_dir}")
+                
+                # Print episode summary
+                loader.print_episode_summary(episode_dir)
+                
+                # Get all agents
+                non_learning_agents = loader.get_non_learning_agents(episode_dir)
+                learning_agents = loader.get_learning_agents(episode_dir)
+                
+                print(f"\nNon-learning agents: {non_learning_agents}")
+                print(f"Learning agents: {learning_agents}")
+                
+                # Print details for each agent
+                for agent_id in non_learning_agents + learning_agents:
+                    loader.print_agent_details(episode_dir, agent_id)
+        else:
+            print("No episodes found in logs!")
+                
         print("\nTest completed!")
     
     except Exception as e:

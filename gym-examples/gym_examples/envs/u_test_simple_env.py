@@ -5,12 +5,12 @@ import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 
-# Create the environment and logger
+# CREATE the environment and logger
 env = SimpleEnv(12, 14, 7, 42, 'seq', 'closest first')
 logger = SARSALogger()
 print("Environment and logger created successfully")
 
-# Reset the environment and get initial observation
+# RESET the environment and get initial observation
 current_obs, _ = env.reset()
 print("\nInitial Observation:")
 print(current_obs)
@@ -19,7 +19,7 @@ print(current_obs)
 current_action = env.action_space.sample()
 
 # Run simulation for multiple steps
-num_steps = 200
+num_steps = 20000
 step_delay = 0.1
 
 print("\nStarting simulation...")
@@ -32,6 +32,7 @@ try:
         env.render()
         
         # Take a step in the environment
+        print(f'\n current time step: {step}')
         next_obs, reward, done, info = env.step(current_action)
         
         # Sample next action (for SARSA)

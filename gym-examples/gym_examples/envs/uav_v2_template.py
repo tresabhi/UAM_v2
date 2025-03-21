@@ -51,7 +51,8 @@ class UAV_v2_template(ABC):
         self.controller: ControllerTemplate = controller
         self.mission_complete_distance = 10
         self.current_speed = 0
-        self.max_acceleration = 1 
+        self.max_acceleration = 0.1 
+        self.max_speed = 5
 
     @abstractmethod
     def assign_start_end(self, start: Point, end: Point):
@@ -113,6 +114,7 @@ class UAV_v2_template(ABC):
                 'ref_prll':ref_prll,
                 'ref_orth':ref_orth,
                 'distance_to_goal': self.current_position.distance(self.end),
+                'max_speed': self.max_speed
                 }
 
     @abstractmethod

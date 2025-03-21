@@ -221,6 +221,7 @@ class SimpleEnv(gym.Env):
                 
                 # Get and apply non-learning UAV's action based on its controller
                 uav_action = uav.get_action(observation=observation)
+                print(f'uav action: {uav_action}')
                 uav.dynamics.update(uav, uav_action)
 
                 # Log the state-action pair for this non-learning UAV
@@ -303,12 +304,13 @@ class SimpleEnv(gym.Env):
         # self.space.create_random_pattern_vertiports(8,300)
 
         # --- UAV construction ---
+        #! create_UAVs method returns 1 less than no. uav 
         self.space.create_uavs(
-            4,
+            3,
             UAV_v2,
             has_agent=True,
-            controller=self.non_coop_smooth_controller,
-            dynamics=self.pm_dynamics,
+            controller=self.non_coop_controller_orca,
+            dynamics=self.orca_dynamics,
             sensor=self.universal_sensor,
             radius=5,
             nmac_radius=20,

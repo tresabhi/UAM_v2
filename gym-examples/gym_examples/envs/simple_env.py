@@ -291,7 +291,7 @@ class SimpleEnv(gym.Env):
         self.universal_sensor = UniversalSensor(space=self.space)
         self.static_controller = StaticController(0, 0)
         self.non_coop_smooth_controller = NonCoopControllerSmooth(10, 2)
-        self.non_coop_controller_orca = ORCA_controller(10,150, 5, 0.1)
+        self.non_coop_controller_orca = ORCA_controller(10,np.pi, 5, 0.1)
         self.non_coop_controller = NonCoopController(10, 1)
         
         self.orca_dynamics = ORCA_Dynamics()

@@ -3,3 +3,5 @@ cache
 __pycache__
 scratch*.*
 .DS_Store
+sarsa_logs
+non_learning_logs

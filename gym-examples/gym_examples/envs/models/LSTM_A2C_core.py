@@ -174,7 +174,7 @@ class LSTM_A2C(nn.Module):
         self.fc_network = FC(combined_state_input_size= lstm_hidden_size + learning_agent_state_size, output_size=FC_output_size)
         self.a2c = ContinuousActorCritic(obs_size= FC_output_size, action_size=action_size)
     
-    def forward(self, other_agent_states, learning_agent_state):
+    def forward(self, learning_agent_state, other_agent_states):
         # LSTM out dim: 64
         lstm_out, (h_out, c_out) = self.lstm_net(other_agent_states)
         # combined dim: 64 + 9 = 73
@@ -220,7 +220,7 @@ if __name__ == '__main__':
     other_agent_states = torch.randn((1,4,7))
     learning_agent_state = torch.randn((9))
 
-    action, value, logp = lstm_a2c(other_agent_states, learning_agent_state)
+    action, value, logp = lstm_a2c(learning_agent_state, other_agent_states)
     print(action, value, logp)
 
     

@@ -21,7 +21,7 @@ class UniversalSensor(SensorTemplate):
         
 
         for uav in uav_list:
-           
+            #! when there is no agent within the detection radius, other_uav_states are NONE
             if uav.id != self_uav.id:
                 if self_uav.current_position.distance(uav.current_position) <= self.detection_radius:
                     other_uav_data = {'other_uav id': uav.id,

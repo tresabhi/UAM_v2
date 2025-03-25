@@ -308,7 +308,7 @@ class SimpleEnv(gym.Env):
         self.space.create_uavs(
             3,
             UAV_v2,
-            has_agent=True,
+            has_agent=True, #! this attribute reduces the non_leanring agent count by 1 
             controller=self.non_coop_controller_orca,
             dynamics=self.orca_dynamics,
             sensor=self.universal_sensor,
@@ -354,11 +354,6 @@ class SimpleEnv(gym.Env):
         ##### check UAV and start - end points ######
 
         return obs, info
-
-        # this method will recreate the environment and return initial observation,
-        # where every other agent is at their start point,
-        # no collision has happend, and no agent has reached the goal.
-        pass
 
     def render(self):
         if self.fig is None or self.ax is None:

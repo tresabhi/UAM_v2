@@ -3,12 +3,20 @@ import torch
 from torch.optim import Adam
 import gymnasium 
 import time
+
 from LSTM_A2C_core import LSTM_A2C as core
 
+from utils.mpi_tools import mpi_fork, mpi_avg, proc_id, mpi_statistics_scalar
 
 #! COST FUNCTION - VALUE NETWORK:
 #! cost_v = 0.5 * tf.reduce_sum(tf.square(self.y_r - self.logits_v), axis=0) 
 
+
+#### TESTING MPI ####
+x = np.array([1,2,3])
+mean, std = mpi_statistics_scalar(x)
+print(mean, std)
+####    END    ####
 
 class VPGBuffer:
     """

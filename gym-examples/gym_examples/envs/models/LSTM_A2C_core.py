@@ -7,11 +7,6 @@ import torch.nn as nn
 from torch.distributions.normal import Normal
 from torch.distributions.categorical import Categorical
 
-# This model will accept an array
-# where each datapoint contains data about one other_UAV(intruder)
-# LSTM works on sequence of data, each datapoint will be passed,
-# according to the sequence its stored in the array.
-# The LSTM will output one vector.  
 
 
 class LSTM_embedding_Network(nn.Module):
@@ -58,7 +53,7 @@ class FC(nn.Module):
 # parent class for discrete actor, and continuous actor
 class Actor(nn.Module):
 
-    def _distribution(self, obs):
+    def _distribution_function(self, obs):
         raise NotImplementedError
 
     def _log_prob_from_distribution(self, pi, act):
@@ -68,7 +63,7 @@ class Actor(nn.Module):
         # Produce action distributions for given observations, and 
         # optionally compute the log likelihood of given actions under
         # those distributions.
-        pi = self._distribution(obs)
+        pi = self._distribution_function(obs)
         logp_a = None
         if act is not None:
             logp_a = self._log_prob_from_distribution(pi, act)
@@ -80,7 +75,7 @@ class DiscreteActor(Actor):
         super().__init__()
         self.logits_net = nn.Linear(obs_size, discrete_action_size) #check rl_collision implementation - NetworkVPCore, no activation
     
-    def _distribution(self, obs):
+    def _distribution_function(self, obs):
         logits = self.logits_net(obs)
         return torch.distributions.Categorical(logits=logits)
     
@@ -96,18 +91,18 @@ class GausiannActor(Actor):
                                     nn.ReLU(),
                                     nn.Linear(256, continuous_action_size))
     
-    def _distribution(self, obs):
+    def _distribution_function(self, obs):
         mu = self.mu_net(obs)
         std = torch.exp(self.log_std)
         return Normal(mu, std)
 
     def _log_prob_from_distribution(self, pi, act):
         return pi.log_prob(act).sum(axis=-1)    # Last axis sum needed for Torch Normal distribution
-        # REASON FOR SUMMING THE LOG_PROBS: the action is a multivariate random variables which 
-        #                                   is modeled as distinct Normal random variable,
-        #                                   so to find the probability of the multivariate normal rv,
-        #                                   we need to multiply the distinct probabilities, or in this case 
-        #                                   sum of log probabilities. Log operation changes multiplication to sum.
+                                                # REASON FOR SUMMING THE LOG_PROBS: the action is a multivariate random variables which 
+                                                #                                   is modeled as distinct Normal random variable,
+                                                #                                   so to find the probability of the multivariate normal rv,
+                                                #                                   we need to multiply the distinct probabilities, or in this case 
+                                                #                                   sum of log probabilities. Log operation changes multiplication to sum.
         
 #TODO: rename obs_size -> obs_shape, and action_size to action_shape
 class Critic(nn.Module):
@@ -135,7 +130,7 @@ class ActorCritic(nn.Module):
     
     def step(self, obs):
         with torch.no_grad():
-            pi = self.pi._distribution(obs)
+            pi = self.pi._distribution_function(obs)
             a = pi.sample()
             logp_a = self.pi._log_prob_from_distribution(pi, a)
             v = self.v(obs)
@@ -154,7 +149,7 @@ class ContinuousActorCritic(nn.Module):
     def step(self, obs):
             with torch.no_grad():
                 # distribution
-                pi = self.pi._distribution(obs)
+                pi = self.pi._distribution_function(obs)
                 # action sample from distribution
                 a = pi.sample()
                 # lop_probability of action,a using distribution pi
@@ -188,11 +183,7 @@ class LSTM_A2C(nn.Module):
 
 
     
-    # some points to think about, 
-    # 1) is there a way to test this model by itself to make sure its working as intended
-    # 2) for ablation study, do we need to perform ablation study for this work
-    #   if yes
-    #           how to perform ablation study for LSTM-RL   
+
 if __name__ == '__main__':
     # other agent state: 7 [other_agent_x, y, vx, vx, distance_to_other_agent, other_agent_size, combined_size]
     other_agent_state_size = 7
@@ -200,8 +191,8 @@ if __name__ == '__main__':
     learning_agent_state_size = 9
 
     lstm_hidden_size = 64
-    FC_output_size = 256#check gym_collision paper
-    action_size = 2 # or use actions list from MIT_ACL for discrete action 
+    FC_output_size = 256 # check gym_collision paper
+    action_size = 2      # or use actions list from MIT_ACL for discrete action 
     value_size = 1
     
     # Learning model 
@@ -211,8 +202,6 @@ if __name__ == '__main__':
                         FC_output_size=FC_output_size,
                         action_size=action_size
                         )
-    
-
     print(lstm_a2c)
     
     ### TESTING MODEL ### 
@@ -224,31 +213,3 @@ if __name__ == '__main__':
     print(action, value, logp)
 
     
-
-
-    #### LSTM test START ####
-    
-    # x = torch.rand((4,7)) #other state vector 
-    
-    # out, hn,cn = lstm_net(x)
-
-
-    # # create input vector for RL ALGO 
-    # rl_in = [uav_state, hn]
-    # # insert RL ALGO 
-
-    # # use RL_ALGO and pass input vector to it 
-    # pred_action = RL_algo(rl_in)
-
-    # # define loss function for action
-    # loss_fn = torch.nn.MSELoss()
-    # loss = loss_fn(pred_action, action)
-
-    # #perform back prop on the whole model, RL_ALGO+LSTM
-    # loss.backward()
-
-    # print(out)
-    # print()
-    # print(hn)
-
-    #### LSTM test END ####

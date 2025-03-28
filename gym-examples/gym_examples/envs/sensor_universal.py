@@ -1,5 +1,5 @@
 from sensor_template import SensorTemplate
-from typing import List, Dict
+from typing import List, Dict, Tuple
 from pandas import DataFrame
 import numpy as np
 import shapely
@@ -49,7 +49,7 @@ class UniversalSensor(SensorTemplate):
                     return True, (self_uav.id, uav.id)
         return False, None
 
-    def get_nmac(self, self_uav:UAV_v2_template):
+    def get_nmac(self, self_uav:UAV_v2_template) -> Tuple[bool, List]:
         nmac_list = []
         uav_list = self.space.get_uav_list()
 

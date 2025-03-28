@@ -105,6 +105,7 @@ class UAV_v2_template(ABC):
             Dict: A dictionary containing state information such as distance to goal, current speed, heading, and radius.
         """
         ref_prll, ref_orth = self.get_ref()
+        dest_heading = self.get_dest_heading()
         return {'id':self.id,
                 'current_position':self.current_position,
                 'current_speed': self.current_speed,
@@ -114,7 +115,8 @@ class UAV_v2_template(ABC):
                 'ref_prll':ref_prll,
                 'ref_orth':ref_orth,
                 'distance_to_goal': self.current_position.distance(self.end),
-                'max_speed': self.max_speed
+                'max_speed': self.max_speed,
+                'dest_heading': dest_heading
                 }
 
     @abstractmethod
@@ -180,3 +182,8 @@ class UAV_v2_template(ABC):
         ref_orth = np.array([-ref_prll[1], ref_prll[0]])
 
         return ref_prll, ref_orth
+    
+    def get_dest_heading(self):
+        dest_vector = self.end - self.current_position 
+        dest_heading = math.atan2(dest_vector.y, dest_vector.x)
+        return dest_heading

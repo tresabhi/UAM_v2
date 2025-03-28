@@ -27,7 +27,7 @@ class PointMassDynamics(DynamicsTemplate):
         else:
             
             new_speed = uav.current_speed + action[0] * self.dt
-            new_heading = uav.current_heading + action[1]
+            new_heading = uav.current_heading + action[1] #instantaneous heading change 
 
             v_x = new_speed * math.cos(new_heading)
             a_x = action[0] * math.cos(new_heading)

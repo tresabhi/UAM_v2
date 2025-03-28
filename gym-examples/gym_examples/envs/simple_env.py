@@ -11,112 +11,121 @@ from space import Space
 import math
 import numpy as np
 from shapely import Point
+import shapely
 from matplotlib import pyplot as plt
 from matplotlib.patches import Circle, FancyArrowPatch
 import gymnasium as gym
-from gymnasium.spaces import Discrete, Box, Dict
+from gymnasium.spaces import Box
 from gymnasium import spaces
 from utils_data_transform import transform_sensor_data
 from UAV_logger import NonLearningLogger
 
 class SimpleEnv(gym.Env):
-
-    #! at max 7 UAV for seq based model, else for graph based model - any number of UAV within detection radius
-    # this variable means that if there are more than
-    # 'max_number_other_agents_observed' number of other_uav_agents within the detection radius
-    # they will be clipped to this specific number
-    #! I think this should be an input argument to env __init__
-    max_number_other_agents_observed = 7
-
-    # Define sequential observation space for LSTM
-    obs_space_seq = Dict(
-        {
-            # TWO form of experiment - one with end point, and one without end-point
-            "no_other_agents": Box(
-                low=0, high=max_number_other_agents_observed, shape=()
-            ),
-            #! SUGGESTION: Add end_vertiport co-ord !#
-            "dist_goal": Box(low=0, high=250, shape=(), dtype=np.float32),
-            "heading_ego_frame": Box(low=-180, high=180, shape=(), dtype=np.float32),
-            "current_speed": Box(low=0, high=25, shape=(), dtype=np.float32),
-            "radius": Box(low=0, high=20, shape=(), dtype=np.float32),  # UAV size
-            "other_agent_state": Box(  # p_parall, p_orth, v_parall, v_orth, other_agent_radius, combined_radius, dist_2_other
-                low=np.full(
-                    (max_number_other_agents_observed, 7), -np.inf
-                ),  # Use -inf as the lower bound for unspecified dimensions
-                high=np.full(
-                    (max_number_other_agents_observed, 7), np.inf
-                ),  # Use inf as the upper bound for unspecified dimensions
-                shape=(
-                    max_number_other_agents_observed,
-                    7,
-                ),  # Array size (other_observed_uav, 7)
-                dtype=np.float32,  # Ensure consistent data type
-            ),
-        }
-    )
-
-    # Define graph observsation space for GNN
-    obs_space_graph = spaces.Dict(
-        {
-            "num_other_agents": spaces.Box(low=0, high=100, shape=(), dtype=np.int64),
-            "agent_dist_to_goal": spaces.Box(
-                low=0, high=np.inf, shape=(), dtype=np.float32
-            ),
-            "agent_end_point": spaces.Box(
-                low=np.array([-np.inf, -np.inf]),
-                high=np.array([np.inf, np.inf]),
-                shape=(2,),
-                dtype=np.float32,
-            ),
-            "agent_current_position": spaces.Box(
-                low=np.array([-np.inf, -np.inf]),
-                high=np.array([np.inf, np.inf]),
-                shape=(2,),
-                dtype=np.float32,
-            ),
-            "graph_feat_matrix": spaces.Box(
-                low=np.full(
-                    (max_number_other_agents_observed + 1, 5), -np.inf
-                ),  # +1 for the host UAV
-                high=np.full((max_number_other_agents_observed + 1, 5), np.inf),
-                shape=(max_number_other_agents_observed + 1, 5),
-                dtype=np.float32,
-            ),
-            "edge_index": spaces.Box(
-                low=0,
-                high=max_number_other_agents_observed,
-                shape=(2, max_number_other_agents_observed),
-                dtype=np.int64,
-            ),
-            "edge_attr": spaces.Box(
-                low=0,
-                high=np.inf,
-                shape=(
-                    max_number_other_agents_observed,
-                    1,
-                ),  # Assuming 1 feature per edge (e.g., distance)
-                dtype=np.float32,
-            ),
-            "mask": spaces.Box(
-                low=0,
-                high=1,
-                shape=(max_number_other_agents_observed + 1,),  # +1 for the host UAV
-                dtype=np.float32,
-            ),
-        }
-    )
-
+ 
     def __init__(
         self,
+        non_learning_uav_count=1,
+        obs_space_str=None,
+        sorting_criteria=None,
         max_uavs=12,
         max_vertiports=14,
         max_number_other_agents_observed=7,
         seed=42,
-        obs_space_str=None,
-        sorting_criteria=None,
     ):  
+        '''
+        A simple gymnasium env for UAVs in 2D space.
+        Includes learning and non-learning agents. 
+        Primary goal of this environment is to test collision avoidance models.
+
+        Args: 
+            non_learning_uav_count: int - number of non_leanring UAV for this instance of SimpleEnv
+            max_uavs: int - total UAVs in the env, 
+            max_vertiports: int - vertiports in env, 
+            max_number_other_agents_observed: int - for sequence model(LSTM) max number of other_agents in sequence,
+            obs_space_str: str - defines the observation space type either sequence(for LSTM) or graph(for GNN variants),
+            sorting_criteria: str - used for sorting other_agents' sequence used by model(LSTM)
+        Returns: 
+            None
+        '''
         super().__init__()
+        # Define sequential observation space for LSTM
+        self._obs_space_seq = spaces.Dict(
+            {
+                # TWO form of experiment - one with end point, and one without end-point
+                "no_other_agents": Box(
+                    low=0, high=max_number_other_agents_observed, shape=(1,)
+                ),
+                #! SUGGESTION: Add end_vertiport co-ord !#
+                "dist_goal": Box(low=0, high=250, shape=(1,), dtype=np.float32),
+                "heading_ego_frame": Box(low=-180, high=180, shape=(1,), dtype=np.float32),
+                "current_speed": Box(low=0, high=25, shape=(1,), dtype=np.float32),
+                "radius": Box(low=0, high=20, shape=(1,), dtype=np.float32),  # UAV size
+                "other_agents_states": Box(  # p_parall, p_orth, v_parall, v_orth, other_agent_radius, combined_radius, dist_2_other
+                    low=np.full(
+                        (max_number_other_agents_observed, 7), -np.inf 
+                    ),  # Use -inf as the lower bound for unspecified dimensions
+                    high=np.full(
+                        (max_number_other_agents_observed, 7), np.inf
+                    ),  # Use inf as the upper bound for unspecified dimensions
+                    shape=(
+                        max_number_other_agents_observed,
+                        7,
+                    ),  # Array size (other_observed_uav, 7)
+                    dtype=np.float32,  # Ensure consistent data type
+                ),
+            }
+        )
+
+        # Define graph observsation space for GNN
+        self._obs_space_graph = spaces.Dict(
+            {
+                "num_other_agents": spaces.Box(low=0, high=100, shape=(), dtype=np.int64),
+                "agent_dist_to_goal": spaces.Box(
+                    low=0, high=np.inf, shape=(), dtype=np.float32
+                ),
+                "agent_end_point": spaces.Box(
+                    low=np.array([-np.inf, -np.inf]),
+                    high=np.array([np.inf, np.inf]),
+                    shape=(2,),
+                    dtype=np.float32,
+                ),
+                "agent_current_position": spaces.Box(
+                    low=np.array([-np.inf, -np.inf]),
+                    high=np.array([np.inf, np.inf]),
+                    shape=(2,),
+                    dtype=np.float32,
+                ),
+                "graph_feat_matrix": spaces.Box(
+                    low=np.full(
+                        (max_number_other_agents_observed + 1, 5), -np.inf
+                    ),  # +1 for the host UAV
+                    high=np.full((max_number_other_agents_observed + 1, 5), np.inf),
+                    shape=(max_number_other_agents_observed + 1, 5),
+                    dtype=np.float32,
+                ),
+                "edge_index": spaces.Box(
+                    low=0,
+                    high=max_number_other_agents_observed,
+                    shape=(2, max_number_other_agents_observed),
+                    dtype=np.int64,
+                ),
+                "edge_attr": spaces.Box(
+                    low=0,
+                    high=np.inf,
+                    shape=(
+                        max_number_other_agents_observed,
+                        1,
+                    ),  # Assuming 1 feature per edge (e.g., distance)
+                    dtype=np.float32,
+                ),
+                "mask": spaces.Box(
+                    low=0,
+                    high=1,
+                    shape=(max_number_other_agents_observed + 1,),  # +1 for the host UAV
+                    dtype=np.float32,
+                ),
+            }
+        )
 
         # Initialize the non-learning agent logger
         self.non_learning_logger = NonLearningLogger()
@@ -129,6 +138,7 @@ class SimpleEnv(gym.Env):
 
         # env needs to initialzed with number of UAVs, vertiports, and some parameters that are needed for space.
         # The parameters will be used by methods from space to create UAVs, vertiports, assign start-end points, etc.
+        self.non_learning_uav_count = non_learning_uav_count
         self.max_uavs = max_uavs
         self.max_vertiports = max_vertiports
         self.max_number_other_agents_observed = max_number_other_agents_observed
@@ -142,9 +152,9 @@ class SimpleEnv(gym.Env):
         self.render_history = []  # Store positions for trajectory visualization
 
         if self.obs_space_str == "seq":
-            self.observation_space = SimpleEnv.obs_space_seq
+            self.observation_space = self._obs_space_seq
         elif self.obs_space_str == "graph":
-            self.observation_space = SimpleEnv.obs_space_graph
+            self.observation_space = self._obs_space_graph
         else:
             raise RuntimeError(
                 "Choose correct format of obs space and provide correct string to init"
@@ -169,6 +179,8 @@ class SimpleEnv(gym.Env):
             done: Whether the episode has ended
             info: Additional information
         """
+        
+        #### LEARNING AGENT BLOCK ####
         if __debug__:  # Debug printing for action sampling verification
             # print(f"\nBefore update - Agent position: {self.agent.current_position}")
             # print(f"Action applied: {action}")
@@ -193,6 +205,7 @@ class SimpleEnv(gym.Env):
                 print("NO more uavs in space")
                 return self._get_obs(), -100, True, {"collision": True}
         
+        #### NON-LEARNING AGENT BLOCK ####
         # Now update all non-learning UAVs
         for uav in self.space.get_uav_list():
             if not isinstance(uav, Auto_UAV_v2):  # Only process non-learning UAVs
@@ -237,16 +250,44 @@ class SimpleEnv(gym.Env):
         
         # Get learning agent's observation and status
         obs = self._get_obs()  # This transforms raw observation into the correct format (seq/graph)
-        reward = self._get_reward()
+        reward = self._get_reward(action)
         done = self.agent.get_mission_status()  # Get completion status from agent
         info = self._get_info()
         
         return obs, reward, done, info
 
-    def _get_reward(self):
-        pass
+    def _get_reward(self, action):
+        '''
+        Reward function for the environment
 
-    #! _get_obs() is for agent, which will accept obs_str and pass it to all relevant methods of agent that will create its obs.
+        Args:
+            None #Fix: I think this method should use info from step/reset to determine the reward
+        
+        Returns:
+            None
+        '''
+        digression = self.agent.dist_to_goal #shapely.distance(self.agent.end, self.agent.current_position) # penalty distance digression
+        
+        deviation =   self.agent.current_heading - self.agent.get_state()['dest_heading'] # penalty deviation between current_heading, and destination_heading
+        
+        dest = None       # reward for reaching destination
+        
+        some_turn_rate = 10
+        if action[1] > some_turn_rate:
+            turn_rate = None  # penalty for high turn rate 
+        else:
+            turn_rate = 0
+        
+        if self.agent.sensor.get_nmac(self.agent)[0]:
+            nmac_incidence = True       # penalty for nmac incidence 
+            #! how to calculate closeness for multiple other_agents 
+            closeness = None  # penalty for closeness to intruder/other_agent
+        else: 
+            nmac_incidence = False
+
+
+
+
     def _get_obs(self) -> spaces.Dict:
         """Returns observation of the agent in a specific format"""
         if self.obs_space_str == "seq":
@@ -261,22 +302,50 @@ class SimpleEnv(gym.Env):
             )
             # return transformed obs_data
             return transformed_data
+        
         elif self.obs_space_str == "graph":
             # get Auto-UAV observation data
             raw_obs = self.agent.get_obs()
             # pass observation to transform_data
             transformed_data = transform_sensor_data(
-                raw_obs, self.max_number_other_agents_observed, "graph"
+                raw_obs, 
+                self.max_number_other_agents_observed, 
+                "graph"
             )
             # return transformed obs_data
             return transformed_data
+        
         else:
             raise RuntimeError(
                 "_get_obs \n incorrect self.obs_space_str, check __init__ and self.obs_space_str"
             )
-
+    
+    
     def _get_info(self):
-        pass
+    #FIX: what should be an ideal return of this method
+    # should contain auxilary diagnostic information
+    # debugging, logging, analysis
+    #  
+    # def _get_info(self):
+    #     agent_state = self.agent.get_state()
+    #     info = {
+    #         "agent_position": [agent_state["position"].x, agent_state["position"].y],
+    #         "agent_heading": agent_state["heading"],
+    #         "agent_speed": agent_state["speed"],
+    #         "agent_distance_to_goal": agent_state["distance_to_goal"],
+    #         "agent_goal_reached": self.agent.get_mission_status(),
+    #         "nmac_occurred": self.agent.sensor.nmac_flag,
+    #         "nmac_with_ids": self.agent.sensor.nmac_ids,
+    #         "collision_occurred": self.agent.sensor.collision_flag,
+    #         "collision_with_ids": self.agent.sensor.collision_ids,
+    #         "num_uavs_remaining": len(self.space.get_uav_list()),
+    #         "num_vertiports": len(self.space.get_vertiport_list()),
+    #         "mission_complete": self.agent.get_mission_status()
+    #     }
+    #     return info  
+        return self.agent.get_state() 
+
+     
 
     def reset(self):
         # Reset logger for new episode
@@ -306,11 +375,11 @@ class SimpleEnv(gym.Env):
         # --- UAV construction ---
         #! create_UAVs method returns 1 less than no. uav 
         self.space.create_uavs(
-            3,
+            self.non_learning_uav_count, #FIX: fix this method so that 
             UAV_v2,
             has_agent=True, #! this attribute reduces the non_leanring agent count by 1 
-            controller=self.non_coop_controller_orca,
-            dynamics=self.orca_dynamics,
+            controller=self.non_coop_smooth_controller,
+            dynamics=self.pm_dynamics,
             sensor=self.universal_sensor,
             radius=5,
             nmac_radius=20,
@@ -477,3 +546,17 @@ class SimpleEnv(gym.Env):
 
     def seed(self, seed=None):
         pass
+    
+
+    def get_obs_shape(self):
+        learning_agent_state_shape = 0
+        for k in self.observation_space.keys():
+            if k != 'other_agents_states':
+                obs_shape = self.observation_space[k].shape
+                learning_agent_state_shape += obs_shape[0]
+            else: 
+                other_agents_states_shape = self.observation_space[k].shape[1]
+        
+        shape_dict = dict(learning_agent_state_shape = learning_agent_state_shape, other_agents_states_shape=other_agents_states_shape)
+        
+        return shape_dict

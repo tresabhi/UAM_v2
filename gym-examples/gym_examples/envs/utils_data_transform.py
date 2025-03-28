@@ -111,6 +111,7 @@ def transform_for_sequence(data: List[Dict], sorting_criteria: str, max_number_o
             other_uav_states = sorted(other_uav_states, key=lambda x: (x[7] or float('inf'), x[6]))
             other_uav_states = [uav_state[:7] for uav_state in other_uav_states]
     else:
+        #FIX: make a other_agents_states matrix with zeros, i know there should be 6 features, but how many other_agents ie datapoints should I include 
         other_uav_states = []
     
     
@@ -233,3 +234,19 @@ def transform_for_graph(data, max_number_other_agents_observed) -> Dict:
     }
     
     return transformed_data
+
+
+
+def process_obs(obs:Dict): 
+    # obs -> dict('learning_agent_attribute'........,
+    #             'other_agents_states':[[1,2,3],[4,5,6], ....])
+
+    learning_agent_states = []
+
+    for obs_keys, obs_value in obs.items():
+        if obs_keys != 'other_agents_states':
+            learning_agent_states.append(obs_value)
+        else:
+            other_agents_states = obs_value
+    
+    return learning_agent_states, other_agents_states

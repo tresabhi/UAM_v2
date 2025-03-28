@@ -3,7 +3,7 @@ import random
 from typing import List
 from uav_v2_template import UAV_v2_template
 from shapely import Point
-
+from warnings import warn
 
 
 class Space:
@@ -14,10 +14,17 @@ class Space:
         Initializes the Space object with empty lists for UAVs and vertiports.
         number of vertiports has to be even.
         """
+        #! why am i doing this - why am i forcing the max_vertiports to be odd ??
         self.max_vertiports = max_vertiports
         if max_vertiports % 2 != 0:
             self.max_vertiports = max_vertiports - 1
-
+        
+        #! what is the logic behind this - this conditional block is weird
+        #FIX: 
+        # if uav count and vertiport count is the same then, 
+        # each UAV is assigned its mirror opposite vertiport
+        # if uav_count is less than vertiport, some vertiports will be empty
+        # if uav_count is greater than vertiport, match UAV count to vertiport count 
         if max_uavs <= max_vertiports:
             if max_uavs % 2 == 0:
                 self.max_uavs = max_uavs - 1
@@ -186,7 +193,10 @@ class Space:
             print(f'creating UAVs equal to the number of vertiports, {number_uavs}')
         
         if has_agent:
-            number_uavs = number_uavs - 1
+            if number_uavs + 1 > self.max_uavs:
+                warn('Dropping one non-learning agent to make space for learning_agent')
+                number_uavs = number_uavs - 1
+        
         self.number_of_uavs = number_uavs
         
         

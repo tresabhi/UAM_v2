@@ -244,9 +244,15 @@ def process_obs(obs:Dict):
     learning_agent_states = []
 
     for obs_keys, obs_value in obs.items():
-        if obs_keys != 'other_agents_states':
+        if obs_keys != 'other_agents_states' and obs_keys != 'mask':
             learning_agent_states.append(obs_value)
-        else:
+        elif obs_keys == 'other_agents_states':
             other_agents_states = obs_value
+        else:
+            mask = obs_value
     
-    return learning_agent_states, other_agents_states
+    return learning_agent_states, other_agents_states, mask 
+
+
+
+

@@ -6,7 +6,7 @@ import time
 
 from LSTM_A2C_core import LSTM_A2C as core
 
-from utils.mpi_tools import mpi_fork, mpi_avg, proc_id, mpi_statistics_scalar
+from mpi_tools import mpi_fork, mpi_avg, proc_id, mpi_statistics_scalar
 
 #! COST FUNCTION - VALUE NETWORK:
 #! cost_v = 0.5 * tf.reduce_sum(tf.square(self.y_r - self.logits_v), axis=0) 
@@ -27,8 +27,8 @@ class VPGBuffer:
                                     # what is gamma, and lam
                                     # gamma - discount factor, lambda ???
     def __init__(self, obs_dim, act_dim, size, gamma=0.99, lam=0.95):
-        self.obs_buf = np.zeros(core.combined_shape(size, obs_dim), dtype=np.float32)
-        self.act_buf = np.zeros(core.combined_shape(size, act_dim), dtype=np.float32)
+        self.obs_buf = np.zeros(combined_shape(size, obs_dim), dtype=np.float32)
+        self.act_buf = np.zeros(combined_shape(size, act_dim), dtype=np.float32)
         self.adv_buf = np.zeros(size, dtype=np.float32)
         self.rew_buf = np.zeros(size, dtype=np.float32)
         self.ret_buf = np.zeros(size, dtype=np.float32)
@@ -79,10 +79,10 @@ class VPGBuffer:
         deltas = rews[:-1] + self.gamma * vals[1:] - vals[:-1] # r(t+1) + v(s+1) - v(s), v(s)= E(R)
             # what is lambda ???
             # g = grad_log_pi * (RTG - A)
-        self.adv_buf[path_slice] = core.discount_cumsum(deltas, self.gamma * self.lam) 
+        self.adv_buf[path_slice] = discount_cumsum(deltas, self.gamma * self.lam) 
         
         # the next line computes rewards-to-go(RTG), to be targets for the value function
-        self.ret_buf[path_slice] = core.discount_cumsum(rews, self.gamma)[:-1]
+        self.ret_buf[path_slice] = discount_cumsum(rews, self.gamma)[:-1]
         
         self.path_start_idx = self.ptr
 
@@ -163,6 +163,9 @@ def vf_optimizer(optim_str, ac, v_lr):
         raise RuntimeError('Invalid str for value optimizer choice')
 
 
+# call to this method will update the policy network once, 
+# and update the value network train_v_iters times.
+# During training this method will need to be called iteratively.  
 def update_actor_critic(buf, logger,train_v_iters):
         '''
         Use collected data to update the parameters of pi and v network.
@@ -206,4 +209,31 @@ def update_actor_critic(buf, logger,train_v_iters):
                      DeltaLossV=(loss_v.item() - v_l_old))
 
 
-        #### END update() ####
+
+def combined_shape(length, shape=None):
+    if shape is None:
+        return (length,)
+    return (length, shape) if np.isscalar(shape) else (length, *shape)
+
+
+
+def count_vars(module):
+    return sum([np.prod(p.shape) for p in module.parameters()])
+
+
+def discount_cumsum(x, discount):
+    """
+    magic from rllab for computing discounted cumulative sums of vectors.
+
+    input: 
+        vector x, 
+        [x0, 
+         x1, 
+         x2]
+
+    output:
+        [x0 + discount * x1 + discount^2 * x2,  
+         x1 + discount * x2,
+         x2]
+    """
+    return scipy.signal.lfilter([1], [1, float(-discount)], x[::-1], axis=0)[::-1]

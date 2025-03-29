@@ -22,6 +22,7 @@ class LSTM_embedding_Network(nn.Module):
     # N:batch size
     # L:sequence length
     # H_in: input size
+    # x is OTHER_AGENTS_STATES
     def forward(self, x: torch.Tensor):
         # INPUT - dtype - torch.Tensor
         # define the flow of input data x
@@ -189,6 +190,14 @@ class LSTM_A2C(nn.Module):
         FC_output_size,
         action_size,
     ):
+        #FIX: 
+        # LSTM_A2C needs to accept obs 
+        # it will perform some data pre-processing step to 
+        # convert obs into
+        # 1. other agent state
+        # 2. learning agent state   
+
+
         super().__init__()
         self.lstm_net = LSTM_embedding_Network(
             other_agent_states_size, lstm_hidden_size
@@ -203,6 +212,7 @@ class LSTM_A2C(nn.Module):
 
     def forward(self, learning_agent_state, other_agent_states):
         # LSTM out dim: 64
+        #! Find what is the input data-type here 
         lstm_out, (h_out, c_out) = self.lstm_net(other_agent_states)
         # combined dim: 64 + 9 = 73
         combined_state = torch.cat((learning_agent_state, torch.squeeze(h_out)))
@@ -240,5 +250,8 @@ if __name__ == "__main__":
     other_agent_states = torch.randn((1, 4, 7))
     learning_agent_state = torch.randn((9))
 
-    action, value, logp = lstm_a2c(learning_agent_state, other_agent_states)
-    print(action, value, logp)
+    print(f'learn shape: {learning_agent_state.shape}')
+    print(f'other shape: {other_agent_states.shape}')
+
+    # action, value, logp = lstm_a2c(learning_agent_state, other_agent_states)
+    # print(action, value, logp)

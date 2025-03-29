@@ -551,7 +551,7 @@ class SimpleEnv(gym.Env):
     def get_obs_shape(self):
         learning_agent_state_shape = 0
         for k in self.observation_space.keys():
-            if k != 'other_agents_states':
+            if k != 'other_agents_states' and k != 'mask':
                 obs_shape = self.observation_space[k].shape
                 learning_agent_state_shape += obs_shape[0]
             else: 

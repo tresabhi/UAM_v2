@@ -110,6 +110,11 @@ class MapEnv(gym.Env):
         self.ax = None
 
     def step(self, action):
+        #FUTURE: 
+        # there needs to be two lists, one for learning_agents, and another for non-learning agents
+        # if there is a collision we remove items from respective lists
+        # collect information from the removed items
+        # and continue until episode ends or agent list is empty  
         """
         Execute one time step within the environment.
         
@@ -163,6 +168,7 @@ class MapEnv(gym.Env):
             self.space.remove_uavs_by_id(collision_uav_ids)
             if len(self.space.uav_list) == 0:
                 print("No more UAVs in space")
+                #       obs, reward, terminated, truncated, info
                 return self._get_obs(), -100, False, True, {"collision": True, "type": "dynamic"}
         
         # Now update all non-learning UAVs
@@ -278,6 +284,11 @@ class MapEnv(gym.Env):
         return obs, reward, terminated, truncated, info
 
     def _get_reward(self):
+        #FIX: 
+        # Depending on the type of obs_constructor used,
+        # this method will need to choose the correct reward function
+        # reward functions should be defined in mapped_env_utils 
+
         # """Calculate the reward for the learning agent."""
         # reward = 0.0
         
@@ -345,6 +356,9 @@ class MapEnv(gym.Env):
         pass
 
     def _get_obs(self):
+        #FIX: 
+        # Depending on the type of constructor used,
+        # this method will need to return the correct format of obs data
         """Returns observation of the agent in a specific format (sequential or graph)"""
         if self.obs_space_str == "seq":
             # Get Auto-UAV observation data

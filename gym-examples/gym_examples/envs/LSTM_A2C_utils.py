@@ -3,6 +3,7 @@ import torch
 from torch.optim import Adam
 import gymnasium 
 import time
+import scipy
 
 from LSTM_A2C_core import LSTM_A2C as core
 

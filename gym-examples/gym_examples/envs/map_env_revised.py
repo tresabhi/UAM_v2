@@ -37,7 +37,11 @@ class MapEnv(gym.Env):
    
 
    
-
+    #FIX: max_uavs, and max_vertiports should be 'CONSTANTS' in the code,
+    #     we should train/test using those max numbers. 
+    #     when the env is used by anyone else they should provide the init 
+    #     with some number less than the max 
+    #     which will be used to create that many UAVs and vertiports 
     def __init__(
         self,
         location_name="Austin, Texas, USA",
@@ -404,6 +408,27 @@ class MapEnv(gym.Env):
             )
             
             return transformed_data
+        elif self.obs_space == obs_uam_uav:
+            agent_id = None
+            agent_speed = None
+            agent_deviation = None
+            intruder_info:bool = None
+
+            if intruder_info:
+                intruder_detected = 1
+                intruder_id = None
+                intruder_pos = None
+                intruder_heading = None
+                distance_to_intruder = None
+                relative_heading_intruder = None
+            else:
+                intruder_detected = 1
+                intruder_id = None
+                intruder_pos = None
+                intruder_heading = None
+                distance_to_intruder = None
+                relative_heading_intruder = None
+
         else:
             raise RuntimeError(
                 "_get_obs \n incorrect self.obs_space_str, check __init__ and self.obs_space_str"

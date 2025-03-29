@@ -2,3 +2,5 @@
 cache
 __pycache__
 scratch*.*
+sarsa_logs
+non_learning_logs

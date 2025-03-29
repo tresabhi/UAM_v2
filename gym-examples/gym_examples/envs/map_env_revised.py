@@ -1,3 +1,10 @@
+import math
+import random
+import numpy as np
+import time
+import pandas as pd
+import geopandas as gpd
+
 from uav_v2 import UAV_v2
 from auto_uav_v2 import Auto_UAV_v2
 from controller_static import StaticController
@@ -7,21 +14,16 @@ from dynamics_point_mass import PointMassDynamics
 from map_sensor import MapSensor
 from map_space import MapSpace
 from airspace import Airspace
-import math
-import random
-import numpy as np
+from utils_data_transform import transform_sensor_data
+
 from shapely import Point
 from matplotlib import pyplot as plt
 from matplotlib.patches import Circle, FancyArrowPatch
 import gymnasium as gym
 from gymnasium.spaces import Discrete, Box, Dict
 from gymnasium import spaces
-from utils_data_transform import transform_sensor_data
 # from UAV_logger import NonLearningLogger
 from map_logger import MapLogger
-import time
-import pandas as pd
-import geopandas as gpd
 
 class MapEnv(gym.Env):
     """
@@ -32,88 +34,9 @@ class MapEnv(gym.Env):
     # Maximum number of other agents that can be observed by the learning agent
     max_number_other_agents_observed = 7
 
-    # Define sequential observation space for LSTM
-    obs_space_seq = Dict(
-        {
-            "no_other_agents": Box(
-                low=0, high=max_number_other_agents_observed, shape=()
-            ),
-            "dist_goal": Box(low=0, high=10000, shape=(), dtype=np.float32),
-            "heading_ego_frame": Box(low=-180, high=180, shape=(), dtype=np.float32),
-            "current_speed": Box(low=0, high=50, shape=(), dtype=np.float32),
-            "radius": Box(low=0, high=20, shape=(), dtype=np.float32),  # UAV size
-            # Static object detection
-            "static_collision_detected": Box(low=0, high=1, shape=(), dtype=np.int32),
-            "distance_to_restricted": Box(low=0, high=10000, shape=(), dtype=np.float32),
-            # Other agent data
-            "other_agent_state": Box(  # p_parall, p_orth, v_parall, v_orth, other_agent_radius, combined_radius, dist_2_other
-                low=np.full(
-                    (max_number_other_agents_observed, 7), -np.inf
-                ),
-                high=np.full(
-                    (max_number_other_agents_observed, 7), np.inf
-                ),
-                shape=(
-                    max_number_other_agents_observed,
-                    7,
-                ),
-                dtype=np.float32,
-            ),
-        }
-    )
+   
 
-    # Define graph observation space for GNN
-    obs_space_graph = spaces.Dict(
-        {
-            "num_other_agents": spaces.Box(low=0, high=100, shape=(), dtype=np.int64),
-            "agent_dist_to_goal": spaces.Box(
-                low=0, high=np.inf, shape=(), dtype=np.float32
-            ),
-            "agent_end_point": spaces.Box(
-                low=np.array([-np.inf, -np.inf]),
-                high=np.array([np.inf, np.inf]),
-                shape=(2,),
-                dtype=np.float32,
-            ),
-            "agent_current_position": spaces.Box(
-                low=np.array([-np.inf, -np.inf]),
-                high=np.array([np.inf, np.inf]),
-                shape=(2,),
-                dtype=np.float32,
-            ),
-            "static_collision_detected": spaces.Box(low=0, high=1, shape=(), dtype=np.int32),
-            "distance_to_restricted": spaces.Box(low=0, high=10000, shape=(), dtype=np.float32),
-            "graph_feat_matrix": spaces.Box(
-                low=np.full(
-                    (max_number_other_agents_observed + 1, 5), -np.inf
-                ),
-                high=np.full((max_number_other_agents_observed + 1, 5), np.inf),
-                shape=(max_number_other_agents_observed + 1, 5),
-                dtype=np.float32,
-            ),
-            "edge_index": spaces.Box(
-                low=0,
-                high=max_number_other_agents_observed,
-                shape=(2, max_number_other_agents_observed),
-                dtype=np.int64,
-            ),
-            "edge_attr": spaces.Box(
-                low=0,
-                high=np.inf,
-                shape=(
-                    max_number_other_agents_observed,
-                    1,
-                ),
-                dtype=np.float32,
-            ),
-            "mask": spaces.Box(
-                low=0,
-                high=1,
-                shape=(max_number_other_agents_observed + 1,),
-                dtype=np.float32,
-            ),
-        }
-    )
+   
 
     def __init__(
         self,
@@ -125,6 +48,7 @@ class MapEnv(gym.Env):
         max_number_other_agents_observed=7,
         sleep_time=0.005,
         seed=70,
+        obs_space_constructor = None,
         obs_space_str=None,
         sorting_criteria=None,
         render_mode=None,
@@ -166,6 +90,7 @@ class MapEnv(gym.Env):
             )
 
         # Set observation and action spaces
+        #FIX: assign the obs_space_constructor here 
         if self.obs_space_str == "seq":
             self.observation_space = MapEnv.obs_space_seq
         elif self.obs_space_str == "graph":

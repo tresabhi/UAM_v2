@@ -1,5 +1,5 @@
 #mapped_env_util.py
-from gymnasium.spaces import Dict, Box
+from gymnasium.spaces import Dict, Box, Discrete
 import numpy as np
 
 # Define sequential observation space for LSTM
@@ -87,5 +87,70 @@ def obs_space_graph(max_number_other_agents_observed):
         }
     )
 
+
+
+def obs_space_uam(auto_uav):
+    return Dict(
+            {
+                # agent ID as integer
+                "agent_id": Box(
+                    low=0,
+                    high=np.iinfo(np.int64).max,
+                    shape=(1,),
+                    dtype=np.int64,  #! find if it is possible to create ids that take less space
+                ),
+                # agent speed
+                "agent_speed": Box(  #!need to rename velocity -> speed
+                    low=-auto_uav.max_speed,  # agent's speed #! need to check why this is negative
+                    high=auto_uav.max_speed,
+                    shape=(1,),
+                    dtype=np.float64,
+                ),
+                # agent deviation
+                "agent_deviation": Box(
+                    low=-360,
+                    high=360,
+                    shape=(1,),
+                    dtype=np.float64,  # agent's heading deviation #!should this be -180 to 180, if yes then this needs to be corrected to -180 to 180
+                ),
+                # intruder detection
+                "intruder_detected": Discrete(
+                    2  # 0 for no intruder, 1 for intruder detected
+                ),
+                # intruder id
+                "intruder_id": Box(
+                    low=0,
+                    high=np.iinfo(np.int64).max,
+                    shape=(1,),
+                    dtype=np.int64,  #! find if it is possible to create ids that take less space
+                ),
+                # distance to intruder
+                "distance_to_intruder": Box(
+                    low=0,
+                    high=auto_uav.detection_radius,
+                    shape=(1,),
+                    dtype=np.float64,
+                ),
+                # Relative heading of intruder #!should this be corrected to -180 to 180,
+                "relative_heading_intruder": Box(
+                    low=-360, high=360, shape=(1,), dtype=np.float64
+                ),
+                "intruder_current_heading": Box(
+                    low=-180, high=180, shape=(1,), dtype=np.float64
+                ),  # Intruder's heading
+                
+                # restricted airspace
+                "restricted_airspace_detected":Discrete(
+                    2 
+                ),
+                # distance to airspace 
+                "distance_to_restricted_airspace": Box(
+                    low=0,
+                    high=1000,
+                    shape=(1,),
+                    dtype=np.float64,
+                ),
+            }
+        )
 
 

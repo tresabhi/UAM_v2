@@ -8,6 +8,7 @@ from shapely.geometry import Polygon
 from airspace import Airspace
 from uav_v2_template import UAV_v2_template
 
+#FIX: rename to ATC and update all other scripts that use this class 
 class MapSpace(Space):
     """
     Extension of Space class that handles a real-world map with restricted airspace.

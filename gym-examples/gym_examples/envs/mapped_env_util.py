@@ -1,7 +1,15 @@
 #mapped_env_util.py
 from gymnasium.spaces import Dict, Box, Discrete
 import numpy as np
+import math 
+import geopandas as gpd
+from matplotlib import pyplot as plt 
+from matplotlib.patches import Circle, FancyArrowPatch
+from auto_uav_v2 import Auto_UAV_v2
 
+
+
+#### REMOVE BLOCK START ####
 def choose_obs_space_constructor(obs_space_string:str):
     '''This helper method uses the argument to return correct obs_space constructor for gym env
         Args:
@@ -15,11 +23,6 @@ def choose_obs_space_constructor(obs_space_string:str):
         return obs_space_graph
     elif obs_space_string == 'UAM_UAV':
         return obs_space_uam
-
-
-
-
-
 
 
 # Define sequential observation space for LSTM
@@ -179,7 +182,7 @@ def obs_space_uam(auto_uav):
         )
 
 
-def get_obs_uam_uav(self):
+def get_obs_uam_uav(self):  
     '''
     Internal method to collect observation for the agent/auto_uav
     Return: dict(observation dictionary)
@@ -276,3 +279,345 @@ def get_obs_uam_uav(self):
     }
 
     return observation
+
+
+#TODO: remove the code above and rename script to utils_render_mapped_env.py
+#### REMOVE BLOCK END ####
+
+
+#### RENDERING UTILS ####
+
+def create_animation(self, env_time_step):
+    """Create an animation of the environment."""
+    # Ensure data exists
+    if len(self.df) == 0:
+        print("No animation data available")
+        return None
+    
+    try:
+        from matplotlib.animation import FuncAnimation
+        
+        # Pre-process data for animation to avoid df lookups during animation
+        self.animation_data = {}
+        self.animation_time_steps = sorted(self.df['current_time_step'].unique())
+        
+        # Group data by time step
+        for time_step in self.animation_time_steps:
+            step_data = self.df[self.df['current_time_step'] == time_step]
+            self.animation_data[time_step] = []
+            
+            # Extract and store UAV data for this time step
+            for _, row in step_data.iterrows():
+                uav_data = {
+                    'id': row['uav_id'],
+                    'position': row['current_position'],
+                    'heading': row['current_heading'],
+                    'final_heading': row['final_heading'],
+                    'is_auto': isinstance(row['uav'], Auto_UAV_v2),
+                    'uav': row['uav']
+                }
+                self.animation_data[time_step].append(uav_data)
+        
+        # Create trajectories by UAV ID
+        self.animation_trajectories = {}
+        for time_step in self.animation_time_steps:
+            for uav_data in self.animation_data[time_step]:
+                uav_id = uav_data['id']
+                position = uav_data['position']
+                
+                if uav_id not in self.animation_trajectories:
+                    self.animation_trajectories[uav_id] = []
+                
+                # Store time step and position
+                self.animation_trajectories[uav_id].append((time_step, position))
+                
+        # Create a new figure specifically for animation
+        fig, ax = plt.subplots(figsize=(12, 10))
+        
+        # Function to update animation frame
+        def animate(frame_index):
+            if frame_index >= len(self.animation_time_steps):
+                return []
+                
+            time_step = self.animation_time_steps[frame_index]
+            ax.clear()
+            
+            # Draw static assets
+            self.render_static_assets(ax)
+            
+            # Draw vertiports with larger markers
+            for vertiport in self.space.get_vertiport_list():
+                ax.plot(vertiport.x, vertiport.y, 'gs', markersize=12)
+            
+            # Draw UAVs at this time step
+            current_uav_ids = []
+            for uav_data in self.animation_data[time_step]:
+                pos = uav_data['position']
+                heading = uav_data['heading']
+                final_heading = uav_data['final_heading']
+                is_auto = uav_data['is_auto']
+                uav_id = uav_data['id']
+                uav_obj = uav_data['uav']
+                
+                current_uav_ids.append(uav_id)
+                
+                # Set colors based on UAV type
+                detection_color = '#0278c2' if is_auto else 'green'
+                nmac_color = '#FF7F50' if is_auto else 'orange'
+                body_color = '#0000A0' if is_auto else 'blue'
+                
+                # Draw detection radius
+                detection_circle = Circle((pos.x, pos.y),
+                                    uav_obj.detection_radius,
+                                    fill=False, color=detection_color, alpha=0.3, linewidth=2)
+                ax.add_patch(detection_circle)
+                
+                # Draw NMAC radius
+                nmac_circle = Circle((pos.x, pos.y),
+                                uav_obj.nmac_radius,
+                                fill=False, color=nmac_color, alpha=0.4, linewidth=2)
+                ax.add_patch(nmac_circle)
+                
+                # Draw UAV body
+                body_circle = Circle((pos.x, pos.y),
+                                uav_obj.radius,
+                                fill=True, color=body_color, alpha=0.7)
+                ax.add_patch(body_circle)
+                
+                # Draw current heading arrow
+                heading_length = uav_obj.radius * 5  # Make longer for visibility
+                dx = heading_length * np.cos(heading)
+                dy = heading_length * np.sin(heading)
+                arrow = FancyArrowPatch((pos.x, pos.y),
+                                (pos.x + dx, pos.y + dy),
+                                color='black',
+                                arrowstyle='->',
+                                mutation_scale=10,
+                                linewidth=2.5)
+                ax.add_patch(arrow)
+                
+                # Draw final heading (reference direction) with thicker line
+                ref_length = uav_obj.radius * 4
+                dx_ref = ref_length * np.cos(final_heading)
+                dy_ref = ref_length * np.sin(final_heading)
+                ref_color = 'purple' if is_auto else 'red'
+                ref_arrow = FancyArrowPatch((pos.x, pos.y),
+                                    (pos.x + dx_ref, pos.y + dy_ref),
+                                    color=ref_color,
+                                    arrowstyle='->',
+                                    mutation_scale=7.5,
+                                    linewidth=2,
+                                    alpha=0.6)
+                ax.add_patch(ref_arrow)
+                
+                # Draw start-end connection with thicker line
+                if hasattr(uav_obj, 'start') and hasattr(uav_obj, 'end'):
+                    line_color = 'blue' if is_auto else 'green'
+                    ax.plot([uav_obj.start.x, uav_obj.end.x],
+                        [uav_obj.start.y, uav_obj.end.y],
+                        '--', color=line_color, alpha=0.6, linewidth=2.0)
+            
+            # Draw trajectories up to this time step
+            # This ensures we don't show trajectories for removed UAVs
+            for uav_id in current_uav_ids:
+                if uav_id in self.animation_trajectories:
+                    # Get trajectory points up to current time step
+                    traj_points = [(t, p) for t, p in self.animation_trajectories[uav_id] if t <= time_step]
+                    
+                    if len(traj_points) > 1:
+                        # Extract positions
+                        positions = [p for _, p in traj_points]
+                        xs = [p.x for p in positions]
+                        ys = [p.y for p in positions]
+                        
+                        # Determine color based on UAV type
+                        is_auto = any(d['is_auto'] for d in self.animation_data[time_step] if d['id'] == uav_id)
+                        line_color = '#0000A0' if is_auto else 'blue'
+                        
+                        # Draw trajectory line with thicker width
+                        ax.plot(xs, ys, '-', linewidth=2.5, alpha=0.6, color=line_color)
+            
+            # Calculate proper plot limits to see the whole map
+            vp_x_coords = [v.x for v in self.space.get_vertiport_list()]
+            vp_y_coords = [v.y for v in self.space.get_vertiport_list()]
+            
+            # Add UAV positions
+            uav_x_coords = [uav_data['position'].x for uav_data in self.animation_data[time_step]]
+            uav_y_coords = [uav_data['position'].y for uav_data in self.animation_data[time_step]]
+            
+            # Combine for full area
+            all_x_coords = vp_x_coords + uav_x_coords
+            all_y_coords = vp_y_coords + uav_y_coords
+            
+            # Add restricted areas dimensions
+            for tag_value in self.airspace.location_tags.keys():
+                # Get bounds of restricted areas
+                restricted_bounds = self.airspace.location_utm[tag_value].bounds
+                if len(restricted_bounds) > 0:
+                    for bound in restricted_bounds.values:
+                        if len(bound) >= 4:  # minx, miny, maxx, maxy
+                            all_x_coords.extend([bound[0], bound[2]])
+                            all_y_coords.extend([bound[1], bound[3]])
+            
+            # Set limits with margin
+            if all_x_coords and all_y_coords:
+                x_min, x_max = min(all_x_coords), max(all_x_coords)
+                y_min, y_max = min(all_y_coords), max(all_y_coords)
+                
+                # Add margin to ensure all elements are visible
+                margin = max(500, (x_max - x_min) * 0.1)
+                ax.set_xlim(x_min - margin, x_max + margin)
+                ax.set_ylim(y_min - margin, y_max + margin)
+            
+            ax.set_title(f'UAM Simulation - Step {time_step}')
+            ax.set_aspect('equal')
+            
+            return []
+        
+        # Create animation object
+        frames = min(env_time_step, len(self.animation_time_steps))
+        if frames == 0:
+            print("No frames to animate")
+            return None
+            
+        ani = FuncAnimation(
+            fig, 
+            animate, 
+            frames=frames,
+            interval=200,
+            blit=False
+        )
+        
+        return ani
+        
+    except Exception as e:
+        print(f"Error creating animation: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+def save_animation(self, animation_obj, file_name):
+    """Save animation to a file with optimized quality and compatibility."""
+    if animation_obj is None:
+        print("No animation to save")
+        return
+        
+    try:
+        # Save as MP4 first with optimized settings
+        try:
+            print(f"Saving animation to {file_name}.mp4...")
+            from matplotlib.animation import FFMpegWriter
+            
+            # Try to use a writer with optimized settings
+            writer = FFMpegWriter(
+                fps=10,  # Higher fps for smoother playback
+                metadata=dict(title='UAM Simulation'),
+                bitrate=5000,  # Higher bitrate for better quality
+                extra_args=['-vcodec', 'mpeg4', 
+                        '-pix_fmt', 'yuv420p',
+                        '-q:v', '3']  # Quality value - lower is better quality (1-31)
+            )
+            
+            # First attempt with quality settings
+            try:
+                animation_obj.save(
+                    f"{file_name}.mp4",
+                    writer=writer,
+                    dpi=200  # Higher DPI for better quality
+                )
+                print("MP4 saved successfully with high quality settings!")
+            except Exception as e:
+                print(f"High quality MP4 save failed: {e}")
+                
+                # Fallback to simpler settings
+                try:
+                    print("Trying with simpler MP4 settings...")
+                    animation_obj.save(
+                        f"{file_name}.mp4",
+                        writer='ffmpeg',
+                        fps=8,
+                        dpi=150
+                    )
+                    print("MP4 saved successfully with basic settings!")
+                except Exception as e:
+                    print(f"Basic MP4 save failed: {e}")
+                    
+                    # Try with minimal settings
+                    try:
+                        print("Trying with minimal MP4 settings...")
+                        animation_obj.save(
+                            f"{file_name}.mp4",
+                            writer='ffmpeg',
+                            fps=5,
+                            dpi=100
+                        )
+                        print("MP4 saved successfully with minimal settings!")
+                    except Exception as e:
+                        print(f"Minimal MP4 save failed: {e}")
+        except Exception as mp4_error:
+            print(f"MP4 saving failed completely: {mp4_error}")
+            
+        # Save as GIF (as backup)
+        try:
+            print(f"Saving animation to {file_name}.gif...")
+            from matplotlib.animation import PillowWriter
+            
+            # Use higher quality settings for GIF
+            animation_obj.save(
+                f"{file_name}.gif",
+                writer=PillowWriter(fps=8),
+                dpi=150  # Higher DPI for better quality
+            )
+            print("GIF saved successfully!")
+        except Exception as gif_error:
+            print(f"GIF save failed: {gif_error}")
+            
+            # Try with minimal settings
+            try:
+                print("Trying with minimal GIF settings...")
+                animation_obj.save(
+                    f"{file_name}.gif",
+                    writer=PillowWriter(fps=5),
+                    dpi=100
+                )
+                print("GIF saved successfully with minimal settings!")
+            except Exception as e:
+                print(f"Minimal GIF save failed: {e}")
+                
+    except Exception as e:
+        print(f"Error in animation saving: {e}")
+        import traceback
+        traceback.print_exc()
+
+
+def add_data(self, uav):
+    """Add UAV data to animation dataframe."""
+    self.df = self.df._append(
+        {
+            "current_time_step": self.current_time_step,
+            "uav_id": uav.id,
+            "uav": uav,
+            "current_position": uav.current_position,
+            "current_heading": uav.current_heading,
+            "final_heading": math.atan2(uav.end.y - uav.current_position.y, 
+                                    uav.end.x - uav.current_position.x),
+        },
+        ignore_index=True,
+    )
+
+def render_static_assets(self, ax):
+    """Render the static assets of the environment (map, restricted areas)."""
+    # Draw map boundaries
+    self.airspace.location_utm_gdf.plot(ax=ax, color="gray", linewidth=0.6)
+    
+    # Draw restricted areas
+    for tag_value in self.airspace.location_tags.keys():
+        # Draw actual restricted areas
+        self.airspace.location_utm[tag_value].plot(ax=ax, color="red", alpha=0.7)
+        # Draw buffer zones
+        self.airspace.location_utm_buffer[tag_value].plot(ax=ax, color="orange", alpha=0.3)
+    
+    # Draw vertiports
+    vertiport_points = [v for v in self.space.get_vertiport_list()]
+    if vertiport_points:
+        gpd.GeoSeries(vertiport_points).plot(ax=ax, color="black", markersize=10)

@@ -14,7 +14,7 @@ from dynamics_point_mass import PointMassDynamics
 from map_sensor import MapSensor
 from atc import ATC
 from airspace import Airspace
-from utils_data_transform import transform_sensor_data, choose_obs_space_constructor
+from utils_data_transform import transform_sensor_data, choose_obs_space_constructor, transform_for_uam
 from mapped_env_util import *
 
 from shapely import Point
@@ -360,12 +360,12 @@ class MapEnv(gym.Env):
         # Depending on the type of constructor used,
         # this method will need to return the correct format of obs data
         """Returns observation of the agent in a specific format (sequential or graph)"""
-        if self.obs_space_str == "seq":
+        if self.obs_space_str == "LSTM-A2C":
             # Get Auto-UAV observation data
             raw_obs = self.agent.get_obs()
 
             #FIX: transform_sensor_data does not accept static_detection
-            static_detection, static_info = self.agent.sensor.get_static_detection(self.agent)
+            static_detection, static_info = self.agent.sensor.get_ra_detection(self.agent)
             if static_detection:
                 raw_obs[0]['static_collision_detected'] = 1
                 raw_obs[0]['distance_to_restricted'] = static_info.get('distance', float('inf'))
@@ -383,12 +383,12 @@ class MapEnv(gym.Env):
             
             return transformed_data
             
-        elif self.obs_space_str == "graph":
+        elif self.obs_space_str == "GNN-A2C":
             # Get Auto-UAV observation data
             raw_obs = self.agent.get_obs()
             
             # Add static object detection data
-            static_detection, static_info = self.agent.sensor.get_static_detection(self.agent)
+            static_detection, static_info = self.agent.sensor.get_ra_detection(self.agent)
             if static_detection:
                 raw_obs[0]['static_collision_detected'] = 1
                 raw_obs[0]['distance_to_restricted'] = static_info.get('distance', float('inf'))
@@ -406,7 +406,7 @@ class MapEnv(gym.Env):
             return transformed_data
         elif self.obs_space == 'UAM_UAV':
             #FIX: test this - chech if this method works and produces correct response
-            transformed_data = get_obs_uam_uav(self)
+            transformed_data = transform_for_uam(data)
 
         else:
             raise RuntimeError(

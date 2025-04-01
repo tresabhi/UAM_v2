@@ -3,8 +3,11 @@ from typing import List, Dict, Tuple
 import pandas as pd
 import numpy as np
 import shapely
-from map_uav_2_template import UAV_v2_template
+from uav_v2_template import UAV_v2_template
 from utils import compute_time_to_impact
+
+#FIX: delete this script
+
 
 class UniversalSensor(SensorTemplate):
 

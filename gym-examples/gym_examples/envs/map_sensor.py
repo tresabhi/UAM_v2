@@ -15,18 +15,17 @@ class MapSensor(SensorTemplate):
     Handles both dynamic (other UAVs) and static (restricted airspace) collision detection.
     """
     
-    def __init__(self, space):
+    def __init__(self, airspace):
         """
         Initialize the MapSensor.
         
         Args:
             space: The space containing UAVs, vertiports, and airspace information
         """
-        super().__init__(space)
-        self.airspace = space.airspace
+        self.airspace = airspace
     
     #### UAV ####
-    def get_uav_detection(self, self_uav: UAV_v2_template) -> None:
+    def get_uav_detection(self, self_uav: UAV_v2_template) -> List[Dict]:
         """
         Return data of other UAVs in space within detection radius.
         

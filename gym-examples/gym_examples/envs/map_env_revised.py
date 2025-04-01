@@ -12,9 +12,10 @@ from controller_non_coop import NonCoopController
 from controller_non_coop_smooth import NonCoopControllerSmooth
 from dynamics_point_mass import PointMassDynamics
 from map_sensor import MapSensor
-from map_space import MapSpace
+from atc import ATC
 from airspace import Airspace
 from utils_data_transform import transform_sensor_data
+from mapped_env_util import *
 
 from shapely import Point
 from matplotlib import pyplot as plt
@@ -31,40 +32,33 @@ class MapEnv(gym.Env):
     in a real-world map with restricted airspace.
     """
 
-    # Maximum number of other agents that can be observed by the learning agent
-    max_number_other_agents_observed = 7
 
-   
-
-   
-    #FIX: max_uavs, and max_vertiports should be 'CONSTANTS' in the code,
-    #     we should train/test using those max numbers. 
-    #     when the env is used by anyone else they should provide the init 
-    #     with some number less than the max 
-    #     which will be used to create that many UAVs and vertiports 
     def __init__(
         self,
-        location_name="Austin, Texas, USA",
-        airspace_tag_list=[("amenity", "hospital"), ("aeroway", "aerodrome")],
-        max_uavs=8,
-        max_vertiports=12,
-        max_episode_steps=1000,
-        max_number_other_agents_observed=7,
+        number_of_uav = None, # number of UAV for this simulation 
+        number_of_vertiport=None, # number of vertiorts for this simulation 
+        location_name="Austin, Texas, USA", # name of city 
+        airspace_tag_list=[("amenity", "hospital"), ("aeroway", "aerodrome")], # 
+        max_episode_steps=1000, # number of gym steps per episode 
+        number_of_other_agents_for_model=7, # max number of other agents that learning agent tracks for LSTM-A2C model 
         sleep_time=0.005,
         seed=70,
-        obs_space_constructor = None,
-        obs_space_str=None,
-        sorting_criteria=None,
+        obs_space_str=None, #! this will be used to choose the constructor 
+        sorting_criteria=None, # this needs to be defined for LSTM-A2C model
         render_mode=None,
+        max_uavs=8, # this is maximum number of UAVs allowed in env
+        max_vertiports=12, # this is maximum number of vertiports allowed in env
     ):  
         super().__init__()
         
         # Environment configuration
+        self.number_of_uav = number_of_uav
+        self.number_of_vertiport = number_of_vertiport
         self.location_name = location_name
         self.airspace_tag_list = airspace_tag_list
         self.max_uavs = max_uavs
         self.max_vertiports = max_vertiports
-        self.max_number_other_agents_observed = max_number_other_agents_observed
+        self.max_number_other_agents_observed = number_of_other_agents_for_model
         self.max_episode_steps = max_episode_steps
         self.sleep_time = sleep_time
         self._seed = seed
@@ -87,21 +81,16 @@ class MapEnv(gym.Env):
             "final_heading": [],
         })
 
+        
+        self.observation_space = choose_obs_space_constructor(self.obs_space_str)
+
         # Check observation space configuration
-        if obs_space_str == "seq" and sorting_criteria is None:
+        if self.obs_space_str == "LSTM-A2C" and self.sorting_criteria is None:
             raise RuntimeError(
-                "env.__init__ needs both obs_space_str and sorting_criteria for sequential observation space"
+                "env.__init__ needs both obs_space_str and sorting_criteria "
+                "for LSTM_A2C model ie sequential observation space"
             )
-
-        # Set observation and action spaces
-        #FIX: assign the obs_space_constructor here 
-        if self.obs_space_str == "seq":
-            self.observation_space = MapEnv.obs_space_seq
-        elif self.obs_space_str == "graph":
-            self.observation_space = MapEnv.obs_space_graph
-        else:
-            raise RuntimeError("Choose correct format of obs space: 'seq' or 'graph'")
-
+        
         self.action_space = spaces.Box(
             low=np.array([-1, -1]),  # [acceleration, heading_change]
             high=np.array([1, 1]),
@@ -114,11 +103,12 @@ class MapEnv(gym.Env):
         self.ax = None
 
     def step(self, action):
+        #! why is the UAV detection not used, we only use nmac and collsion 
         #FUTURE: 
         # there needs to be two lists, one for learning_agents, and another for non-learning agents
         # if there is a collision we remove items from respective lists
         # collect information from the removed items
-        # and continue until episode ends or agent list is empty  
+        # and continue until episode ends or agent list is empty(empty agent list means all agents had collision) 
         """
         Execute one time step within the environment.
         
@@ -139,17 +129,17 @@ class MapEnv(gym.Env):
         self.add_data(self.agent)
         
         # Check collision with static objects (restricted airspace)
-        static_collision, static_collision_info = self.agent.sensor.get_static_collision(self.agent)
+        static_collision, static_collision_info = self.agent.sensor.get_ra_collision(self.agent)
         if static_collision:
-            print("--- STATIC COLLISION ---")
+            print("--- Restricted Airspace COLLISION ---")
             print(f"Collision with restricted airspace: {static_collision_info}")
             self.logger.record_collision([self.agent.id], 'static')
 
             # Clean up trajectory data for collided agent
             if hasattr(self, 'trajectory_by_id') and self.agent.id in self.trajectory_by_id:
                 del self.trajectory_by_id[self.agent.id]
-            
-            return self._get_obs(), -100, False, True, {"collision": True, "type": "static"}
+            #      observation,    reward, truncated, terminated, info
+            return self._get_obs(), -100,   False,     True,       {"collision": True, "type": "static"}
             
         # Check NMAC and collision for learning agent with other UAVs
         is_nmac, nmac_list = self.agent.sensor.get_nmac(self.agent)
@@ -157,7 +147,7 @@ class MapEnv(gym.Env):
             print("--- NMAC ---")
             print(f"NMAC detected: {is_nmac}, and NMAC with {nmac_list}\n")
         
-        is_collision, collision_uav_ids = self.agent.sensor.get_collision(self.agent)
+        is_collision, collision_uav_ids = self.agent.sensor.get_uav_collision(self.agent)
         if is_collision:
             print("--- COLLISION ---")
             print(f"Collision detected: {is_collision}, and collision with {collision_uav_ids}\n")
@@ -169,14 +159,19 @@ class MapEnv(gym.Env):
                     if uav_id in self.trajectory_by_id:
                         del self.trajectory_by_id[uav_id]
 
-            self.space.remove_uavs_by_id(collision_uav_ids)
-            if len(self.space.uav_list) == 0:
+            self.atc.remove_uavs_by_id(collision_uav_ids)
+            if self.atc.get_uav_list() == 0:
                 print("No more UAVs in space")
-                #       obs, reward, terminated, truncated, info
-                return self._get_obs(), -100, False, True, {"collision": True, "type": "dynamic"}
+                #       obs,            reward, terminated, truncated, info
+                return self._get_obs(), -100,   False,      True,      {"collision": True, "type": "dynamic"}
+        
+        
+        
+        #### UAV (non-learning) ####
+        
         
         # Now update all non-learning UAVs
-        for uav in self.space.get_uav_list():
+        for uav in self.atc.get_uav_list():
             if not isinstance(uav, Auto_UAV_v2):  # Only process non-learning UAVs
                 # Save animation data
                 self.add_data(uav)
@@ -185,16 +180,16 @@ class MapEnv(gym.Env):
                 observation = uav.get_obs()
 
                 # Check static collisions for non-learning UAVs
-                static_collision, static_info = uav.sensor.get_static_collision(uav)
+                static_collision, static_info = uav.sensor.get_ra_collision(uav)
                 if static_collision:
-                    print(f"--- UAV {uav.id} STATIC COLLISION ---")
+                    print(f"--- UAV {uav.id} Restricted Airspace COLLISION ---")
                     self.logger.record_collision([uav.id], 'static')
 
                     # Clean up trajectory for this UAV
                     if hasattr(self, 'trajectory_by_id') and uav.id in self.trajectory_by_id:
                         del self.trajectory_by_id[uav.id]
 
-                    self.space.remove_uavs_by_id([uav.id])
+                    self.atc.remove_uavs_by_id([uav.id])
                     continue
                 
                 # Check NMAC and dynamic collisions
@@ -213,7 +208,7 @@ class MapEnv(gym.Env):
                             if coll_id in self.trajectory_by_id:
                                 del self.trajectory_by_id[coll_id]
 
-                    self.space.remove_uavs_by_id(collision_uav_ids)
+                    self.atc.remove_uavs_by_id(collision_uav_ids)
                     continue
                 
                 # Update non-learning UAV's state
@@ -225,7 +220,7 @@ class MapEnv(gym.Env):
                     self.logger.mark_agent_complete(uav.id)
                     if hasattr(self, 'trajectory_by_id') and uav.id in self.trajectory_by_id:
                         del self.trajectory_by_id[uav.id]
-                    self.space.remove_uavs_by_id([uav.id])
+                    self.atc.remove_uavs_by_id([uav.id])
                     continue
                 
                 # Get and apply non-learning UAV's action based on its controller
@@ -277,7 +272,7 @@ class MapEnv(gym.Env):
         }
         
         # Add static object detection info
-        static_detection, static_info = self.agent.sensor.get_static_detection(self.agent)
+        static_detection, static_info = self.agent.sensor.get_ra_detection(self.agent)
         if static_detection:
             info['static_detection'] = True
             info['distance_to_restricted'] = static_info.get('distance', float('inf'))
@@ -360,6 +355,7 @@ class MapEnv(gym.Env):
         pass
 
     def _get_obs(self):
+
         #FIX: 
         # Depending on the type of constructor used,
         # this method will need to return the correct format of obs data
@@ -368,7 +364,13 @@ class MapEnv(gym.Env):
             # Get Auto-UAV observation data
             raw_obs = self.agent.get_obs()
             
+            #FIX: 
+            # Once the sensor is updated to new sensor,
+            # static_object should have a method for it as well similar to dynamic_obs
+            
             # Add static object detection data
+            #FIX: 
+            # transform_sensor_data does not accept static_detection
             static_detection, static_info = self.agent.sensor.get_static_detection(self.agent)
             if static_detection:
                 raw_obs[0]['static_collision_detected'] = 1
@@ -408,26 +410,9 @@ class MapEnv(gym.Env):
             )
             
             return transformed_data
-        elif self.obs_space == obs_uam_uav:
-            agent_id = None
-            agent_speed = None
-            agent_deviation = None
-            intruder_info:bool = None
-
-            if intruder_info:
-                intruder_detected = 1
-                intruder_id = None
-                intruder_pos = None
-                intruder_heading = None
-                distance_to_intruder = None
-                relative_heading_intruder = None
-            else:
-                intruder_detected = 1
-                intruder_id = None
-                intruder_pos = None
-                intruder_heading = None
-                distance_to_intruder = None
-                relative_heading_intruder = None
+        elif self.obs_space == 'UAM_UAV':
+            #FIX: test this - chech if this method works and produces correct response
+            transformed_data = get_obs_uam_uav(self)
 
         else:
             raise RuntimeError(
@@ -471,21 +456,17 @@ class MapEnv(gym.Env):
         if hasattr(self, 'animation_trajectories'):
             del self.animation_trajectories
 
-        # Create the airspace with restricted areas
-        self.airspace = Airspace(self.location_name, airspace_tag_list=self.airspace_tag_list)
-        
-        # Create space, sensors, controllers, and dynamics
-        self.space = MapSpace(
-            max_uavs=self.max_uavs, 
-            max_vertiports=self.max_vertiports, 
-            seed=self._seed,
-            airspace=self.airspace
-        )
-        
         random.seed(self._seed)
         np.random.seed(self._seed)
         
-        self.map_sensor = MapSensor(space=self.space)
+        # Create the airspace with restricted areas
+        self.airspace = Airspace(self.number_of_vertiport, self.location_name, airspace_tag_list=self.airspace_tag_list)
+        
+        # Create space, sensors, controllers, and dynamics
+        self.atc = ATC(airspace=self.airspace, seed=self._seed)
+        
+        
+        self.map_sensor = MapSensor(airspace=self.airspace)
         self.static_controller = StaticController(0, 0)
         self.non_coop_smooth_controller = NonCoopControllerSmooth(10, 2)
         self.non_coop_controller = NonCoopController(10, 1)
@@ -493,26 +474,31 @@ class MapEnv(gym.Env):
         self.agent_pm_dynamics = PointMassDynamics(is_learning=True)
 
         # Create vertiports
-        num_vertiports = min(self.max_vertiports, 8)  # Use a reasonable number
-        self.space.create_random_vertiports(num_vertiports)
+        num_vertiports = min(self.max_vertiports, self.number_of_vertiport)  # Use a reasonable number
+        self.airspace.create_n_random_vertiports(num_vertiports)
 
         # Create UAVs
-        num_uavs = min(self.max_uavs, 4)  # Use a reasonable number
-        self.space.create_uavs(
-            num_uavs,
-            UAV_v2,
-            has_agent=True,
-            controller=self.non_coop_smooth_controller,
-            dynamics=self.pm_dynamics,
-            sensor=self.map_sensor,
-            radius=17,  # Match UAM_UAV parameters
-            nmac_radius=150,
-            detection_radius=550,
-        )
+        num_uavs = min(self.max_uavs, self.number_of_uav)  # Use a reasonable number
+        for _ in range(num_uavs):
+            self.atc.create_uav(
+                UAV_v2,
+                has_agent=True,
+                controller=self.non_coop_smooth_controller,
+                dynamics=self.pm_dynamics,
+                sensor=self.map_sensor,
+                radius=17,  # Match UAM_UAV parameters
+                nmac_radius=150,
+                detection_radius=550,
+            )
 
+        #FIX: this method needs uav, start, and end -
+        #FIX: use for loop and randomization to choose UAV, and start-end
         # Assign start and end points for non-learning UAVs
-        self.space.assign_vertiports("random")
+        self.atc.assign_vertiport_uav()
 
+        #FIX: I think agent should also be developed like UAV -
+        #FIX: maybe this is why I previously thought about having two lists
+        #FIX: one for UAV and one for Auto UAV 
         # Create learning agent
         self.agent = Auto_UAV_v2(
             dynamics=self.agent_pm_dynamics,
@@ -523,6 +509,7 @@ class MapEnv(gym.Env):
         )
 
         # Set learning agent in space and assign start/end points
+        #FIX: there are methods but, I need to think how to best use them or come up with new ones that feel natural
         self.space.set_uav(self.agent)
         self.space.assign_vertiport_agent(self.agent)
         
@@ -1005,6 +992,7 @@ class MapEnv(gym.Env):
             import traceback
             traceback.print_exc()
 
+    #FIX move this method to utils 
     def add_data(self, uav):
         """Add UAV data to animation dataframe."""
         self.df = self.df._append(

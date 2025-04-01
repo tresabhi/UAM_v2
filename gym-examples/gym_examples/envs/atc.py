@@ -2,7 +2,7 @@ import math
 from copy import copy
 import random
 import numpy as np
-from typing import List
+from typing import List, Tuple
 from space import Space
 from shapely import Point
 from shapely.geometry import Polygon
@@ -112,9 +112,146 @@ class ATC():
         return None
 
 
+    #FIX: #### START ####
+    # bring the following up to date for use with current env so that we can start making updates to vertiport
+    # and sound modeling 
+
+    def assign_vertiport_from_lat_long(lat_long:Tuple) -> Vertiport:
+        pass
     
     
     
+    
+    def has_reached_end_vertiport(self, uav: UAVBasic | AutonomousUAV) -> None:
+        """Checks if a UAV has reached its end_vertiport.
+
+        This method checks if a UAV has reached its end_vertiport. If it did reach,
+        it calls the landing_procedure method to update relevant objects.
+
+        Args:
+            uav (UAV): The UAV object to check.
+
+        Returns:
+            None
+        """
+
+        if (uav.current_position.distance(uav.end_point) <= uav.landing_proximity) and (
+            uav.reaching_end_vertiport == False
+        ):
+            # uav.reached_end_vertiport = True
+            self._landing_procedure(uav)
+        
+        return None
+        
+    def has_left_start_vertiport(self, uav: UAVBasic | AutonomousUAV) -> None:
+        """Checks if a UAV has left its start_vertiport.
+
+        This method checks if a UAV has left its start_vertiport. If it did leave,
+        then it calls the clearing_procedure to take care of updating objects.
+
+        Args:
+            uav (UAV): The UAV object to check.
+
+        Returns:
+            None
+        """
+        if (uav.current_position.distance(uav.start_point) > 100) and (
+            uav.leaving_start_vertiport == False
+        ):
+            self._clearing_procedure(uav)
+            uav.leaving_start_vertiport = True
+
+        return None
+    
+
+    def _clearing_procedure(
+        self, outgoing_uav: UAVBasic | AutonomousUAV
+    ) -> None:  #! rename to _takeoff_procedure()
+        """
+        Performs the clearing procedure for a given UAV.
+        Args:
+            outgoing_uav (UAV): The UAV that is outgoing(leaving the start_vertiport).
+        Returns:
+            None
+        Raises:
+            None
+        """
+        outgoing_uav_id = outgoing_uav.id
+        for uav in outgoing_uav.start_vertiport.uav_list:
+            if uav.id == outgoing_uav_id:
+                outgoing_uav.start_vertiport.uav_list.remove(uav)
+
+        return None
+
+    def _landing_procedure(self, landing_uav: UAVBasic | AutonomousUAV) -> None:
+        """
+        Performs the landing procedure for a given UAV.
+        Args:
+            landing_uav (UAV): The UAV that is landing.
+        Returns:
+            None
+        Raises:
+            None
+        """
+        landing_vertiport = landing_uav.end_vertiport
+        landing_vertiport.uav_list.append(landing_uav)
+        landing_uav.refresh_uav()
+        self._reassign_end_vertiport_of_uav(landing_uav)
+
+        return None
+        
+    def _reassign_end_vertiport_of_uav(self, uav: UAVBasic) -> None:
+        """Reassigns the end vertiport of a UAV.
+
+        This method samples a vertiport from the ATC vertiport list.
+        If the sampled vertiport is the same as the UAV's current start_vertiport, it resamples until a different vertiport is obtained.
+        The sampled end_vertiport is then assigned as the UAV's end_vertiport.
+        Finally, the UAV's end_point is updated.
+
+        Args:
+            uav (UAV): The UAV object for which the end vertiport needs to be reassigned.
+        """
+        sample_end_vertiport = self.provide_vertiport()
+        while sample_end_vertiport.location == uav.start_vertiport.location:
+            sample_end_vertiport = self.provide_vertiport()
+        uav.end_vertiport = sample_end_vertiport
+        uav.update_end_point()
+
+
+        return None
+
+    def _update_start_vertiport_of_uav(
+        self, vertiport: Vertiport, uav: UAVBasic
+    ) -> None:
+        """This method accepts a vertiport (end-vertiport of uav)
+        and updates the start_vertiport attribute of UAV
+        to the provided vertiport. This method works in conjunction with landing_procedure.
+
+        Args:
+            vertiport (Vertiport): The vertiport representing the end-vertiport of the UAV.
+            uav (UAV): The UAV whose start_vertiport attribute needs to be updated.
+
+        Returns:
+            None
+
+        """
+        uav.start_vertiport = vertiport
+        uav.update_start_point()
+    
+
+        return None
+    
+
+    #FIX: ####  END  ####
+
+
+
+
+
+
+
+
+
     # def assign_vertiport_agent(self, agent: UAV_v2_template) -> None:
     #     """
     #     Assign start and end vertiports to the learning agent.

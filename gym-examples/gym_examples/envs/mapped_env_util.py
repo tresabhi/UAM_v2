@@ -2,8 +2,29 @@
 from gymnasium.spaces import Dict, Box, Discrete
 import numpy as np
 
+def choose_obs_space_constructor(obs_space_string:str):
+    '''This helper method uses the argument to return correct obs_space constructor for gym env
+        Args:
+            obs_space_string
+        
+        Returns:
+            function (object)'''
+    if obs_space_string == 'LSTM-A2C':
+        return obs_space_seq
+    elif obs_space_string == 'GNN-A2C':
+        return obs_space_graph
+    elif obs_space_string == 'UAM_UAV':
+        return obs_space_uam
+
+
+
+
+
+
+
 # Define sequential observation space for LSTM
 def obs_space_seq(max_number_other_agents_observed):
+    '''Gym observation space for LSTM-A2C model'''
     return Dict(
     {
         "no_other_agents": Box(
@@ -16,6 +37,8 @@ def obs_space_seq(max_number_other_agents_observed):
         # Static object detection
         "static_collision_detected": Box(low=0, high=1, shape=(), dtype=np.int32),
         "distance_to_restricted": Box(low=0, high=10000, shape=(), dtype=np.float32),
+        #FIX:  add another key:value for static object, the heading of static_obj
+        
         # Other agent data
         "other_agent_state": Box(  # p_parall, p_orth, v_parall, v_orth, other_agent_radius, combined_radius, dist_2_other
             low=np.full(
@@ -35,6 +58,7 @@ def obs_space_seq(max_number_other_agents_observed):
 
 # Define graph observation space for GNN
 def obs_space_graph(max_number_other_agents_observed):
+    '''Gym obs space for GNN(and variants)-A2C model'''
     return Dict(
         {
             "num_other_agents": Box(low=0, high=100, shape=(), dtype=np.int64),
@@ -90,6 +114,7 @@ def obs_space_graph(max_number_other_agents_observed):
 
 
 def obs_space_uam(auto_uav):
+    '''Obs space for one intruder and restricted area'''
     return Dict(
             {
                 # agent ID as integer

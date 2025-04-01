@@ -179,3 +179,100 @@ def obs_space_uam(auto_uav):
         )
 
 
+def get_obs_uam_uav(self):
+    '''
+    Internal method to collect observation for the agent/auto_uav
+    Return: dict(observation dictionary)
+    '''
+    """
+    Gets the observation space of the agent
+
+    Args:
+        agent_id (str): The ID of the target UAV
+
+    Returns:
+        obs (dict): The observation space of the agent
+            agent_id
+            agent_speed
+            agent_deviation
+            intruder_detected
+            intruder_id
+            distance_to_intruder
+            relative_heading_intruder
+            intruder_heading
+    """
+
+    #! this observation does not include the static objects
+    #! add observation for static objects  
+    agent_id = np.array([self.agent.id]) #
+    agent_speed = self.agent.current_speed
+    agent_deviation = self.agent.current_heading - self.agent.final_heading
+    
+    #FIX: self.agent.sensor.get_uav_detection(self.agent) -> could return None, when no intruder
+    intruders_info = self.agent.sensor.get_uav_detection(self.agent)
+    #FIX: define a way to choose intruder_index - closest or some other metric
+    intruder_info = intruders_info[intruder_index] 
+
+    if intruder_info:
+        intruder_detected = 1
+        intruder_id = np.array([intruder_info['other_uav_id']])
+        intruder_pos = intruder_info['other_uav_current_position']
+        intruder_heading = np.array([intruder_info['other_uav_current_heading']])
+        distance_to_intruder = np.array(
+            [self.agent.current_position.distance(intruder_info['other_uav_current_position'])]
+        )
+        relative_heading_intruder = np.array(
+            [self.agent.current_heading - intruder_info['other_uav_current_heading']]
+        )
+    else:
+
+        intruder_detected = 0
+        intruder_id = np.array([0])
+        distance_to_intruder = np.array([0])
+        relative_heading_intruder = np.array([0])
+        intruder_heading = np.array([0])
+
+    #! restricted airspace detected - should this be detection/nmac
+    # if the detection area of uav intersects with a building's detection area,
+    # we should do the following -
+    # 1) if intersection is detected for 'detection' argument ->
+    #                   there should be a small penalty
+    #                   based on distance between the uav_footprint and the actual building
+    # 2) if there is no building detected the penalty should be zero
+    # 3) just like intruder_detected in obs
+    #    there will be restricted_airspace detected in obs
+    # 4) restricted_airspace will have 0 for not detected 1 for detected,
+    #    and if detected - distance will be added to the obs, if not detected distance is 0,
+    #    this will be handled by the reward function collect obs and based on restricted_airspace (y/n)
+    #    penatly is something or 0.
+
+    #! use shapely method shapely.ops.nearest_points(geom1, geom2)->list; return a list of two points point_geom1, point_geom2
+    
+    if self.agent.sensor.get_ra_detection()[0] == True:
+        ra_detected = 1
+        ra_distance = self.agent.sensor.get_ra_detection()[1]['distance']
+        ra_heading = self.agent.sensor.get_ra_detection()[1]['ra_heading'] 
+    else:
+        ra_detected = 0
+        ra_distance = 0
+        ra_heading = 0
+
+
+
+    
+
+    observation = {
+        "agent_id": agent_id,
+        "agent_speed": agent_speed,
+        "agent_deviation": agent_deviation,
+        "intruder_detected": intruder_detected,
+        "intruder_id": intruder_id,
+        "distance_to_intruder": distance_to_intruder,
+        "relative_heading_intruder": relative_heading_intruder,
+        "intruder_current_heading": intruder_heading,
+        "ra_detected": ra_detected,
+        "ra_distance": ra_distance,
+        "ra_heading": ra_heading
+    }
+
+    return observation

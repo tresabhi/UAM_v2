@@ -136,18 +136,19 @@ def obs_space_uam(auto_uav):
                     shape=(),
                     dtype=np.float32,
                     ),
-                "agent_current_heading": Box(
-                    low=-180,
-                    high=180,
-                    shape=(),
-                    dtype=np.float32,
-                    ),
                 # agent deviation
                 "agent_deviation": Box(
                     low=-180,
                     high=180,
                     shape=(1,),
                     dtype=np.float64,
+                ),
+                # agent distance to goal
+                "agent_dist_to_goal": Box(
+                    low=0,
+                    hight=100_000_000,
+                    shape=(1,),
+                    dtype=np.float64
                 ),
                 # intruder detection
                 "intruder_detected": Discrete(
@@ -483,12 +484,13 @@ def transform_for_uam(data:Tuple[Dict,    Tuple[List,        List]]) -> Dict:
     
     transformed_data = {
         'agent_id': host_data['agent_id'], #! need to check data to see if this is present 
-        'agent_dist_to_goal': host_data['distance_to_goal'],
         'agent_speed': host_data['current_speed'],
         'agent_current_heading': host_data['current_heading'],
         'agent_deviation': host_data['deviation'], #! need to check data to see if this is present 
+        'agent_dist_to_goal': host_data['distance_to_goal'],
         
         'intruder_detected': True if(len(other_uav_data)) else False,
+        'intruder_id': other_uav_data['agent_id'],#! need to check this attribute if it is present or not 
         'distance_to_intruder': distance_to_intruder,
         'relative_heading_intruder': relative_heading_intruder,
         'intruder_current_heading': intruder_current_heading,

@@ -5,7 +5,7 @@ import math
 from gymnasium.spaces import Dict, Box, Discrete
 
 
-def choose_obs_space_constructor(obs_space_string:str):
+def choose_obs_space_constructor(obs_space_string:str, auto_uav):
     '''This helper method uses the argument to return correct obs_space constructor for gym env
         Args:
             obs_space_string
@@ -13,11 +13,11 @@ def choose_obs_space_constructor(obs_space_string:str):
         Returns:
             function (object)'''
     if obs_space_string == 'LSTM-A2C':
-        return obs_space_seq
+        return obs_space_seq()
     elif obs_space_string == 'GNN-A2C':
-        return obs_space_graph
+        return obs_space_graph()
     elif obs_space_string == 'UAM_UAV':
-        return obs_space_uam
+        return obs_space_uam(auto_uav)
 
 
 #### OBS SPACE CONSTRUCTOR ####

@@ -32,7 +32,7 @@ class SensorTemplate(ABC):
 
 
 
-    def get_data(self) -> Tuple[List, List]:
+    def get_data(self, self_uav) -> Tuple[List, List]:
         '''Combination of uav detection(List of Dict) and ra detection(List of Dict)'''
         pass
 

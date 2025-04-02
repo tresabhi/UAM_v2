@@ -24,12 +24,13 @@ class MapSensor(SensorTemplate):
             space: The space containing UAVs, vertiports, and airspace information
         """
         
-        
+        self.airspace = airspace
+        self.atc = atc
         return None
 
 
 
-    def get_data(self) -> Tuple[List, List]:
+    def get_data(self, self_uav) -> Tuple[List, List]:
         """
         Collect data of other UAVs in space within detection radius.
         
@@ -37,8 +38,8 @@ class MapSensor(SensorTemplate):
             self_uav: The UAV using this sensor
         """
 
-        other_uav_data = self.get_uav_detection()
-        ra_data = self.get_ra_detection()
+        other_uav_data = self.get_uav_detection(self_uav)
+        ra_data = self.get_ra_detection(self_uav)
         #       List|List[Dict]    List|List[Dict]
         return other_uav_data,     ra_data
     
@@ -58,7 +59,7 @@ class MapSensor(SensorTemplate):
         self.detection_radius = self_uav.detection_radius
         
         # Get UAV list from space
-        uav_list: List[UAV_v2_template] = self.space.get_uav_list()
+        uav_list: List[UAV_v2_template] = self.atc.get_uav_list()
         
         # Collect data for each UAV within detection radius
         for uav in uav_list:

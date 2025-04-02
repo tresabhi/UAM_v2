@@ -126,7 +126,7 @@ class UAV_v2_template(ABC):
             Tuple[List, List]: Sensor data about other UAVs, and restricted area data.
         """
         
-        return self.sensor.get_data()
+        return self.sensor.get_data(self)
 
     def get_obs(self) -> Tuple[Dict, Tuple[List, List]]:  
         """

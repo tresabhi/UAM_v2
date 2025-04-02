@@ -81,8 +81,8 @@ class MapEnv(gym.Env):
             "final_heading": [],
         })
 
-        
-        self.observation_space = choose_obs_space_constructor(self.obs_space_str)
+        #FIX: cannot pass self.agent here, NOW WHAT
+        self.observation_space = choose_obs_space_constructor(self.obs_space_str, self.agent) 
 
         # Check observation space configuration
         if self.obs_space_str == "LSTM-A2C" and self.sorting_criteria is None:
@@ -386,10 +386,11 @@ class MapEnv(gym.Env):
             )
             
             return transformed_data
-        elif self.obs_space == 'UAM_UAV':
+        elif self.obs_space_str == 'UAM_UAV':
             #FIX: test this - chech if this method works and produces correct response
-            raw_obs = self.agent.get_obs()
-            
+        #   (own_dict, (other_agents, restricted_areas))
+            raw_obs =                                       self.agent.get_obs()
+
             # Transform data for UAM observation format
             transformed_data = transform_sensor_data(
                 raw_obs,
@@ -451,7 +452,7 @@ class MapEnv(gym.Env):
         self.atc = ATC(airspace=self.airspace, seed=self._seed)
         
         
-        self.map_sensor = MapSensor(airspace=self.airspace)
+        self.map_sensor = MapSensor(airspace=self.airspace, atc=self.atc)
         self.static_controller = StaticController(0, 0)
         self.non_coop_smooth_controller = NonCoopControllerSmooth(10, 2)
         self.non_coop_controller = NonCoopController(10, 1)
@@ -467,7 +468,6 @@ class MapEnv(gym.Env):
         for _ in range(num_uavs):
             self.atc.create_uav(
                 UAV_v2,
-                has_agent=True,
                 controller=self.non_coop_smooth_controller,
                 dynamics=self.pm_dynamics,
                 sensor=self.map_sensor,
@@ -510,7 +510,7 @@ class MapEnv(gym.Env):
 
         # Print debug info for vertiport assignments
         print("--- Vertiport Assignments ---")
-        for uav in self.space.get_uav_list():
+        for uav in self.atc.get_uav_list():
             print(f'UAV {uav.id} - Start: {uav.start} end: {uav.end}')
         print(f'Agent - Start: {self.agent.start} end: {self.agent.end}')
         print("---------------------------")

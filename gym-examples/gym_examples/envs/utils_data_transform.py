@@ -5,7 +5,7 @@ import math
 from gymnasium.spaces import Dict, Box, Discrete
 
 
-def choose_obs_space_constructor(obs_space_string:str, auto_uav):
+def choose_obs_space_constructor(obs_space_string:str):
     '''This helper method uses the argument to return correct obs_space constructor for gym env
         Args:
             obs_space_string
@@ -17,7 +17,7 @@ def choose_obs_space_constructor(obs_space_string:str, auto_uav):
     elif obs_space_string == 'GNN-A2C':
         return obs_space_graph()
     elif obs_space_string == 'UAM_UAV':
-        return obs_space_uam(auto_uav)
+        return obs_space_uam()
 
 
 #### OBS SPACE CONSTRUCTOR ####
@@ -112,21 +112,21 @@ def obs_space_graph(max_number_other_agents_observed):
     )
 
 # Define uam observation space 
-def obs_space_uam(auto_uav):
+def obs_space_uam():
     '''Obs space for one intruder and restricted area'''
     return Dict(
             {
                 # agent ID for debugging
                 "agent_id": Box(
                     low=0,
-                    high=np.iinfo(np.int64).max,
+                    high=100000,
                     shape=(1,),
                     dtype=np.int64,
                 ),
                 # agent speed
                 "agent_speed": Box(  #!TODO ensure that attribute is being properly referenced 
-                    low=-auto_uav.max_speed,
-                    high=auto_uav.max_speed,
+                    low=0,
+                    high=100,
                     shape=(1,),
                     dtype=np.float64,
                 ),
@@ -146,7 +146,7 @@ def obs_space_uam(auto_uav):
                 # agent distance to goal
                 "agent_dist_to_goal": Box(
                     low=0,
-                    hight=100_000_000,
+                    high=100000,
                     shape=(1,),
                     dtype=np.float64
                 ),
@@ -157,14 +157,14 @@ def obs_space_uam(auto_uav):
                 # intruder id for debugging
                 "intruder_id": Box(
                     low=0,
-                    high=np.iinfo(np.int64).max,
+                    high=100000,
                     shape=(1,),
                     dtype=np.int64,  #! find if it is possible to create ids that take less space
                 ),
                 # distance to intruder
                 "distance_to_intruder": Box(
                     low=0,
-                    high=auto_uav.detection_radius,
+                    high=1000,
                     shape=(1,),
                     dtype=np.float64,
                 ),
@@ -183,13 +183,17 @@ def obs_space_uam(auto_uav):
                     dtype=np.float64,
                 ),
                 # relative speed
-                "relative_intruder_heading": Box(low=-100000,
-                                                 high=100000,
-                                                 dtype=np.float64),
+                "relative_intruder_speed": Box(
+                    low=0,
+                    high=100000,
+                    shape=(1,),
+                    dtype=np.float64),
                 # intruder speed
-                "intruder_speed": Box(low=0,
-                                      high=10000,
-                                      dtype=np.float64),                                                 
+                "intruder_speed": Box(
+                    low=0,
+                    high=10000,
+                    shape=(1,),
+                    dtype=np.float64),                                                 
                 # restricted airspace
                 "restricted_airspace_detected":Discrete(
                     2 # 0 for no ra, 1 for ra detected

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Dict
+from typing import List, Dict, Tuple
 import math
 import numpy as np
 from shapely import Point
@@ -116,33 +116,30 @@ class UAV_v2_template(ABC):
                 }
 
     @abstractmethod
-    def get_sensor_data(self) -> List[Dict]:
+    def get_sensor_data(self) -> Tuple[List, List]:
         """
-        Collect data from the sensor about other UAVs in the environment.
-
-        Args:
-            sorting_criteria (str): The criteria for sorting sensor data (e.g., closest UAVs).
+        Collect data from the sensor about other UAVs and restricted airspace in the environment.
 
         Returns:
-            List[Dict]: Sensor data about other UAVs, sorted by the given criteria.
+            Tuple[List, List]: Sensor data about other UAVs, and restricted area data.
         """
-        self.sensor_data = self.sensor.get_data()
-        return self.sensor_data
+        
+        return self.sensor.get_data()
 
-    def get_obs(self) -> List[Dict]:  
+    def get_obs(self) -> Tuple[Dict, Tuple[List, List]]:  
         """
         Retrieve the observation, combining the UAV's state with sensor data.
 
         Returns:
             List[Dict]: A list containing the UAV's state and sorted sensor data.
         """
-        obs = []
-        # get self information
-        obs.append(self.get_state())
-        # add self obs with other_uav obs
-        obs = obs + self.get_sensor_data()
         
-        return obs
+        # get self information
+        own_data = self.get_state()
+        # add self obs with other_uav obs
+        sensor_data = self.get_sensor_data()
+        
+        return own_data, sensor_data
 
     def get_action(self, observation):
         """

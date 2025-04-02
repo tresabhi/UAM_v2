@@ -67,7 +67,7 @@ class UAV_v2_template(ABC):
         self.end = end
         self.current_position = start
         self.current_heading = math.atan2((end.y - start.y), (end.x - start.x))
-        self.final_heading = math.atan2((end.y - self.current_position.y), (end.x, self.current_position.x))
+        self.final_heading = math.atan2((end.y - self.current_position.y), (end.x - self.current_position.x))
         self.body = self.current_position.buffer(self.radius)
         return None
 

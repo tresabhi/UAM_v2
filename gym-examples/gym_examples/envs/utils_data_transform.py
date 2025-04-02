@@ -116,7 +116,7 @@ def obs_space_uam(auto_uav):
     '''Obs space for one intruder and restricted area'''
     return Dict(
             {
-                # agent ID as integer
+                # agent ID for debugging
                 "agent_id": Box(
                     low=0,
                     high=np.iinfo(np.int64).max,
@@ -124,12 +124,18 @@ def obs_space_uam(auto_uav):
                     dtype=np.int64,  #! find if it is possible to create ids that take less space
                 ),
                 # agent speed
-                "agent_speed": Box(  #!need to rename velocity -> speed
-                    low=-auto_uav.max_speed,  # agent's speed #! need to check why this is negative
+                "agent_speed": Box(  #!TODO ensure that attribute is being properly referenced 
+                    low=-auto_uav.max_speed,
                     high=auto_uav.max_speed,
                     shape=(1,),
                     dtype=np.float64,
                 ),
+                "agent_current_heading": Box(
+                    low=-180,
+                    high=180,
+                    shape=(),
+                    dtype=np.float32,
+                    ),
                 # agent deviation
                 "agent_deviation": Box(
                     low=-360,

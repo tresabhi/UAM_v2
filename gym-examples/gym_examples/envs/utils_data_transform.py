@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import List, Dict, Tuple
 import numpy as np
 from utils import compute_time_to_impact
 import math
@@ -347,15 +347,17 @@ def transform_for_graph(data, max_number_other_agents_observed) -> Dict:
     }
     return transformed_data
 
-
-def transform_for_uam(data) -> Dict:
+#                               own_data,(    other_agents, restricted_area)
+def transform_for_uam(data:Tuple[Dict,    Tuple[List,        List]]) -> Dict:
     # Create the transformed data dictionary
     transformed_data = {}
     # Auto UAV aka Host data
     host_data = data[0]
-    other_uav_data = data[1:] if len(data) > 1 else []
+    other_uav_data = data[1][0] 
+    ra_data = data[1][1]
+    
     # Process closest intruder if any exist
-    if other_uav_data:
+    if len(other_uav_data):
         # Sort by distance
         sorted_uavs = sorted(
             other_uav_data,
@@ -377,22 +379,26 @@ def transform_for_uam(data) -> Dict:
         # Intruder's current heading
         intruder_current_heading = closest_intruder['other_uav_current_heading']
     # Get restricted airspace data
-    restricted_airspace_detected = host_data.get('static_collision_detected')
-    distance_to_restricted_airspace = host_data.get('distance_to_restricted')
-    # Calculate relative heading to restricted airspace (default to 0 if no detection)
-    relative_heading_restricted_airspace = 0.0
+    if len(ra_data):
+        ra_distance = ra_data['distance']
+        ra_heading = ra_data['ra_heading']
+        ra_type = ra_data['type']
+    
+    
     transformed_data = {
         'agent_id': host_data['agent_id'], #! need to check data to see if this is present 
         'agent_dist_to_goal': host_data['distance_to_goal'],
         'agent_speed': host_data['current_speed'],
         'agent_current_heading': host_data['current_heading'],
         'agent_deviation': host_data['deviation'], #! need to check data to see if this is present 
-        'intruder_detected': intruder_detected,
+        
+        'intruder_detected': True if(len(other_uav_data)) else False,
         'distance_to_intruder': distance_to_intruder,
         'relative_heading_intruder': relative_heading_intruder,
         'intruder_current_heading': intruder_current_heading,
-        'restricted_airspace_detected': restricted_airspace_detected,
-        'distance_to_restricted_airspace': distance_to_restricted_airspace,
-        'relative_heading_restricted_airspace': relative_heading_restricted_airspace
+        
+        'restricted_airspace_detected': True if(len(ra_data)) else False,
+        'distance_to_restricted_airspace': ra_distance,
+        'relative_heading_restricted_airspace': ra_heading
     }
     return transformed_data

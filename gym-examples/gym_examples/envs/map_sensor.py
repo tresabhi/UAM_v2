@@ -41,7 +41,7 @@ class MapSensor(SensorTemplate):
         other_uav_data = self.get_uav_detection(self_uav)
         ra_data = self.get_ra_detection(self_uav)
         #       List|List[Dict]    List|List[Dict]
-        return other_uav_data,     ra_data
+        return other_uav_data, ra_data
     
 
     #### UAV ####
@@ -159,6 +159,7 @@ class MapSensor(SensorTemplate):
             
             # each restricted_areas_buffer is a polygon
             # Check for intersection with any restricted area buffer
+            # restricted_areas_buffer is a list of polygon
             for i in range(len(restricted_areas_buffer)):
                 # restricted_area is a polygon
                 restricted_area = restricted_areas_buffer.iloc[i]
@@ -167,7 +168,7 @@ class MapSensor(SensorTemplate):
                     restricted_geometry = restricted_area.geometry
                 else:
                     restricted_geometry = restricted_area
-                
+
                 if uav_detection_area.intersects(restricted_geometry):
                     # Calculate distance to the restricted area
                     distance = self_uav.current_position.distance(restricted_geometry.boundary)

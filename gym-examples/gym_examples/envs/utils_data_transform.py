@@ -182,6 +182,14 @@ def obs_space_uam(auto_uav):
                     shape=(1,), 
                     dtype=np.float64,
                 ),
+                # relative speed
+                "relative_intruder_heading": Box(low=-100000,
+                                                 high=100000,
+                                                 dtype=np.float64),
+                # intruder speed
+                "intruder_speed": Box(low=0,
+                                      high=10000,
+                                      dtype=np.float64),                                                 
                 # restricted airspace
                 "restricted_airspace_detected":Discrete(
                     2 # 0 for no ra, 1 for ra detected
@@ -201,79 +209,6 @@ def obs_space_uam(auto_uav):
                 )
             }
         )
-
-def obs_space_uam():
-    return Dict(
-        {
-            "agent_dist_to_goal": Box(
-                low=0, 
-                high=10000, 
-                shape=(), 
-                dtype=np.float32
-            ),
-            "agent_speed": Box(
-                low=0.0,
-                high=50.0,
-                shape=(),
-                dtype=np.float32,
-            ),
-            "agent_current_heading": Box(
-                low=-180,
-                high=180,
-                shape=(),
-                dtype=np.float32,
-            ),
-            # "agent_deviation": Box(
-            #     low=-180,
-            #     high=180,
-            #     shape=(),
-            #     dtype=np.float32,
-            # ),
-            "intruder_detected": Box(
-                low=0, 
-                high=1, 
-                shape=(), 
-                dtype=np.int32,
-            ),
-            "distance_to_intruder": Box(
-                low=0.0,
-                high=10000.0,
-                shape=(),
-                dtype=np.float32,
-            ),
-            "relative_heading_intruder": Box(
-                low=-180,
-                high=180,
-                shape=(),
-                dtype=np.float32,
-            ),
-            "intruder_current_heading": Box(
-                low=-180,
-                high=180,
-                shape=(),
-                dtype=np.float32,
-            ),
-            "restricted_airspace_detected": Box(
-                low=0, 
-                high=1, 
-                shape=(), 
-                dtype=np.int32,
-            ),
-            "distance_to_restricted_airspace": Box(
-                low=0,
-                high=10000.0,
-                shape=(),
-                dtype=np.float32,
-            ),
-            "relative_heading_restricted_airspace": Box(
-                low=-180,
-                high=180,
-                shape=(),
-                dtype=np.float32,
-            )
-        }
-    )
-
 
 
 #### DATA TRANSFORMATION ####
@@ -449,8 +384,14 @@ def transform_for_uam(data:Tuple[Dict,    Tuple[List,        List]]) -> Dict:
     # Create the transformed data dictionary
     transformed_data = {}
     # Auto UAV aka Host data
+    # DICT
     host_data = data[0]
+    host_deviation = host_data['current_heading'] - host_data['final_heading']  
+    # Other agents data
+    # List | List[Dict]
     other_uav_data = data[1][0] 
+    # RA 
+    # List | List[Dict]
     ra_data = data[1][1]
     
     # Process closest intruder if any exist
@@ -461,9 +402,12 @@ def transform_for_uam(data:Tuple[Dict,    Tuple[List,        List]]) -> Dict:
             key=lambda x: host_data['current_position'].distance(x['other_uav_current_position'])
         )
         # Get closest intruder data
+        # Dict
         closest_intruder = sorted_uavs[0]
+        
         # Set intruder detection flag
         intruder_detected = 1
+        intruder_id = closest_intruder['other_uav_id']
         # Calculate distance to intruder
         distance_to_intruder = host_data['current_position'].distance(closest_intruder['other_uav_current_position'])
         # Calculate relative heading (angle between agent's heading and vector to intruder)
@@ -472,30 +416,49 @@ def transform_for_uam(data:Tuple[Dict,    Tuple[List,        List]]) -> Dict:
             closest_intruder['other_uav_current_position'].y - host_data['current_position'].y
         ])
         intruder_angle = math.atan2(intruder_vector[1], intruder_vector[0])
+        
         relative_heading_intruder = ((intruder_angle - host_data['current_heading'] + 180) % 360) - 180
         # Intruder's current heading
         intruder_current_heading = closest_intruder['other_uav_current_heading']
+        intruder_speed = closest_intruder['other_uav_current_speed']
+        intruder_relative_speed = abs(host_data['current_speed'] - intruder_speed)
+    else:
+        intruder_detected = 0
+        intruder_id = -1
+        distance_to_intruder = 0.0
+        relative_heading_intruder = 0.0
+        intruder_current_heading = 0.0
+        intruder_relative_speed = 0.0
+        intruder_speed = 0.0
+    
     # Get restricted airspace data
     if len(ra_data):
+        ra_detected = 1
         ra_distance = ra_data['distance']
         ra_heading = ra_data['ra_heading']
         ra_type = ra_data['type']
+    else:
+        ra_detected = 0
+        ra_distance = 0.0
+        ra_heading = 0.0
     
     
     transformed_data = {
-        'agent_id': host_data['agent_id'], #! need to check data to see if this is present 
+        'agent_id': host_data['id'], 
         'agent_speed': host_data['current_speed'],
         'agent_current_heading': host_data['current_heading'],
-        'agent_deviation': host_data['deviation'], #! need to check data to see if this is present 
+        'agent_deviation': host_deviation,
         'agent_dist_to_goal': host_data['distance_to_goal'],
         
-        'intruder_detected': True if(len(other_uav_data)) else False,
-        'intruder_id': other_uav_data['agent_id'],#! need to check this attribute if it is present or not 
+        'intruder_detected': intruder_detected,
+        'intruder_id': intruder_id,
         'distance_to_intruder': distance_to_intruder,
         'relative_heading_intruder': relative_heading_intruder,
         'intruder_current_heading': intruder_current_heading,
+        'relative_intruder_speed': intruder_relative_speed,
+        'intruder_speed': intruder_speed,
         
-        'restricted_airspace_detected': True if(len(ra_data)) else False,
+        'restricted_airspace_detected': ra_detected,
         'distance_to_restricted_airspace': ra_distance,
         'relative_heading_restricted_airspace': ra_heading
     }

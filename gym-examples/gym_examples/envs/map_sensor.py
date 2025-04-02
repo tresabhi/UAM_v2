@@ -87,9 +87,11 @@ class MapSensor(SensorTemplate):
             Tuple of (nmac_detected, nmac_uav_list)
         """
         nmac_list = []
-        uav_list = self.space.get_uav_list()
+        uav_list = self.atc.get_uav_list()
         
-        self.deactivate_nmac(self_uav)
+        deactivation_flag = self.deactivate_nmac(self_uav)
+        if deactivation_flag == True:
+            return False, []
         
         for uav in uav_list:
             if uav.id == self_uav.id:
@@ -116,9 +118,11 @@ class MapSensor(SensorTemplate):
             Tuple of (collision_detected, collision_info)
         """
 
-        self.deactivate_collision(self_uav)
+        deactivate_collision_flag = self.deactivate_collision(self_uav)
+        if deactivate_collision_flag == True:
+            return False, [] 
         
-        uav_list = self.space.get_uav_list()
+        uav_list = self.atc.get_uav_list()
         
         for uav in uav_list:
             if uav.id == self_uav.id:
@@ -280,13 +284,15 @@ class MapSensor(SensorTemplate):
         return False, {}
     
 
-    def deactivate_nmac(self, uav)->None:
+    def deactivate_nmac(self, uav)->bool:
         if uav.current_position.distance(uav.start) <= 100 or uav.current_position.distance(uav.end)<=100:
-            return False, []
+            return True
+        return False
 
     def deactivate_detection()->None:
         pass
 
-    def deactivate_collision(self, uav)->None:
+    def deactivate_collision(self, uav)->bool:
         if uav.current_position.distance(uav.start) <= 100 or uav.current_position.distance(uav.end)<=100:
-            return False, [] 
+            return True  
+        return False

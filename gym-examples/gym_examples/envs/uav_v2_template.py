@@ -67,6 +67,7 @@ class UAV_v2_template(ABC):
         self.end = end
         self.current_position = start
         self.current_heading = math.atan2((end.y - start.y), (end.x - start.x))
+        self.final_heading = math.atan2((end.y - self.current_position.y), (end.x, self.current_position.x))
         self.body = self.current_position.buffer(self.radius)
         return None
 
@@ -108,6 +109,7 @@ class UAV_v2_template(ABC):
                 'current_position':self.current_position,
                 'current_speed': self.current_speed,
                 'current_heading': self.current_heading,
+                'final_heading': self.final_heading,
                 'end':self.end,
                 'radius': self.radius,
                 'ref_prll':ref_prll,
@@ -131,7 +133,9 @@ class UAV_v2_template(ABC):
         Retrieve the observation, combining the UAV's state with sensor data.
 
         Returns:
-            List[Dict]: A list containing the UAV's state and sorted sensor data.
+            Tuple[Dict, Tuple[List, List]]
+            Tuple containing Dict which contains own state informati 
+            and another Tuple that has two lists, one for other_uavs, and another for restricted airspaces
         """
         
         # get self information
@@ -139,7 +143,7 @@ class UAV_v2_template(ABC):
         # add self obs with other_uav obs
         sensor_data = self.get_sensor_data()
         
-        return own_data, sensor_data
+        return (own_data, sensor_data)
 
     def get_action(self, observation):
         """

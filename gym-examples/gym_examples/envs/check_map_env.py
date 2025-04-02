@@ -1,7 +1,11 @@
 from map_env_revised import MapEnv
 
 env = MapEnv(3,5, obs_space_str='UAM_UAV')
-env.reset()
+obs, info = env.reset()
+# print('Reset env')
+# print(f'obs: {obs}')
+# print(f'info: {info}')
+
 
 # print(env.observation_space.shape)
 # print(env.action_space.shape)
@@ -10,4 +14,8 @@ env.reset()
 # print(env.action_space.sample())
 
 
-print(env.agent.max_speed, env.agent.detection_radius)
+for _ in range(10000):
+    action = env.action_space.sample()
+    obs, reward, terminated, truncated, info =  env.step(action)
+
+

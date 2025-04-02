@@ -122,361 +122,361 @@ class ATC():
     
     
     
-    def has_reached_end_vertiport(self, uav: UAVBasic | AutonomousUAV) -> None:
-        """Checks if a UAV has reached its end_vertiport.
+    # def has_reached_end_vertiport(self, uav: UAVBasic | AutonomousUAV) -> None:
+    #     """Checks if a UAV has reached its end_vertiport.
 
-        This method checks if a UAV has reached its end_vertiport. If it did reach,
-        it calls the landing_procedure method to update relevant objects.
+    #     This method checks if a UAV has reached its end_vertiport. If it did reach,
+    #     it calls the landing_procedure method to update relevant objects.
 
-        Args:
-            uav (UAV): The UAV object to check.
-
-        Returns:
-            None
-        """
-
-        if (uav.current_position.distance(uav.end_point) <= uav.landing_proximity) and (
-            uav.reaching_end_vertiport == False
-        ):
-            # uav.reached_end_vertiport = True
-            self._landing_procedure(uav)
-        
-        return None
-        
-    def has_left_start_vertiport(self, uav: UAVBasic | AutonomousUAV) -> None:
-        """Checks if a UAV has left its start_vertiport.
-
-        This method checks if a UAV has left its start_vertiport. If it did leave,
-        then it calls the clearing_procedure to take care of updating objects.
-
-        Args:
-            uav (UAV): The UAV object to check.
-
-        Returns:
-            None
-        """
-        if (uav.current_position.distance(uav.start_point) > 100) and (
-            uav.leaving_start_vertiport == False
-        ):
-            self._clearing_procedure(uav)
-            uav.leaving_start_vertiport = True
-
-        return None
-    
-
-    def _clearing_procedure(
-        self, outgoing_uav: UAVBasic | AutonomousUAV
-    ) -> None:  #! rename to _takeoff_procedure()
-        """
-        Performs the clearing procedure for a given UAV.
-        Args:
-            outgoing_uav (UAV): The UAV that is outgoing(leaving the start_vertiport).
-        Returns:
-            None
-        Raises:
-            None
-        """
-        outgoing_uav_id = outgoing_uav.id
-        for uav in outgoing_uav.start_vertiport.uav_list:
-            if uav.id == outgoing_uav_id:
-                outgoing_uav.start_vertiport.uav_list.remove(uav)
-
-        return None
-
-    def _landing_procedure(self, landing_uav: UAVBasic | AutonomousUAV) -> None:
-        """
-        Performs the landing procedure for a given UAV.
-        Args:
-            landing_uav (UAV): The UAV that is landing.
-        Returns:
-            None
-        Raises:
-            None
-        """
-        landing_vertiport = landing_uav.end_vertiport
-        landing_vertiport.uav_list.append(landing_uav)
-        landing_uav.refresh_uav()
-        self._reassign_end_vertiport_of_uav(landing_uav)
-
-        return None
-        
-    def _reassign_end_vertiport_of_uav(self, uav: UAVBasic) -> None:
-        """Reassigns the end vertiport of a UAV.
-
-        This method samples a vertiport from the ATC vertiport list.
-        If the sampled vertiport is the same as the UAV's current start_vertiport, it resamples until a different vertiport is obtained.
-        The sampled end_vertiport is then assigned as the UAV's end_vertiport.
-        Finally, the UAV's end_point is updated.
-
-        Args:
-            uav (UAV): The UAV object for which the end vertiport needs to be reassigned.
-        """
-        sample_end_vertiport = self.provide_vertiport()
-        while sample_end_vertiport.location == uav.start_vertiport.location:
-            sample_end_vertiport = self.provide_vertiport()
-        uav.end_vertiport = sample_end_vertiport
-        uav.update_end_point()
-
-
-        return None
-
-    def _update_start_vertiport_of_uav(
-        self, vertiport: Vertiport, uav: UAVBasic
-    ) -> None:
-        """This method accepts a vertiport (end-vertiport of uav)
-        and updates the start_vertiport attribute of UAV
-        to the provided vertiport. This method works in conjunction with landing_procedure.
-
-        Args:
-            vertiport (Vertiport): The vertiport representing the end-vertiport of the UAV.
-            uav (UAV): The UAV whose start_vertiport attribute needs to be updated.
-
-        Returns:
-            None
-
-        """
-        uav.start_vertiport = vertiport
-        uav.update_start_point()
-    
-
-        return None
-    
-
-    #FIX: ####  END  ####
-
-
-
-
-
-
-
-
-
-    # def assign_vertiport_agent(self, agent: UAV_v2_template) -> None:
-    #     """
-    #     Assign start and end vertiports to the learning agent.
-        
     #     Args:
-    #         agent: The learning agent (Auto_UAV_v2)
-    #     """
-    #     if len(self.vertiport_list) < 2:
-    #         raise ValueError("Need at least 2 vertiports to assign agent start and end points")
-        
-    #     # Find vertiports that aren't used as starting points by other UAVs
-    #     used_starts = set()
-    #     for uav in self.uav_list:
-    #         if hasattr(uav, 'start'):
-    #             used_starts.add(uav.start)
-        
-    #     available_starts = [v for v in self.vertiport_list if v not in used_starts]
-        
-    #     # If all vertiports are used, select one randomly
-    #     if not available_starts:
-    #         available_starts = self.vertiport_list
-        
-    #     # Select start vertiport
-    #     start_vertiport = random.choice(available_starts)
-        
-    #     # Select end vertiport (different from start)
-    #     available_ends = [v for v in self.vertiport_list if v != start_vertiport]
-    #     end_vertiport = random.choice(available_ends)
-        
-    #     # Assign to agent
-    #     agent.assign_start_end(start_vertiport, end_vertiport)
-    #     print(f"Agent assigned start: ({start_vertiport.x}, {start_vertiport.y}), end: ({end_vertiport.x}, {end_vertiport.y})")
-    #     return None
+    #         uav (UAV): The UAV object to check.
 
-    
-
-    
-
-    
-
-
-    
-
-
-    
-    
-
-
-
-    
-    
-    
-    
-    
-    
-    #FIX: update/upgrade this method to work with MAPPED_ENV
-    
-    # def assign_vertiports(self, assignment_type: str) -> None:
-    #     """
-    #     Assign start and end vertiports to UAVs.
-        
-    #     Args:
-    #         assignment_type: Strategy for assigning vertiports ('random', 'optimal', etc.)
-    #     """
-        
-    #     print(f'Number of vertiports in space: {len(self.vertiport_list)}')
-    #     print(f'Number of UAVs in space: {len(self.uav_list)}')
-        
-    #     if len(self.vertiport_list) < 2:
-    #         raise ValueError("Need at least 2 vertiports to assign start and end points")
-        
-    #     self.assignment_type = assignment_type
-        
-    #     if assignment_type == 'random':
-    #         # Each UAV gets a random pair of distinct vertiports
-    #         available_starts = self.vertiport_list.copy()
-    #         available_ends = self.vertiport_list.copy()
-            
-    #         for uav in self.uav_list:
-    #             # Select random start vertiport
-    #             start_vertiport = random.choice(available_starts)
-    #             available_starts.remove(start_vertiport)
-                
-    #             # Create a temporary list excluding the start vertiport
-    #             temp_ends = [v for v in available_ends if v != start_vertiport]
-                
-    #             # If no valid end vertiports, reuse one
-    #             if not temp_ends:
-    #                 temp_ends = [v for v in self.vertiport_list if v != start_vertiport]
-                
-    #             # Select random end vertiport
-    #             end_vertiport = random.choice(temp_ends)
-    #             if end_vertiport in available_ends:
-    #                 available_ends.remove(end_vertiport)
-                
-    #             # Assign to UAV
-    #             uav.assign_start_end(start_vertiport, end_vertiport)
-                
-    #             # Replenish available vertiports if necessary
-    #             if not available_starts:
-    #                 available_starts = self.vertiport_list.copy()
-    #             if not available_ends:
-    #                 available_ends = self.vertiport_list.copy()
-        
-    #     elif assignment_type == 'optimal':
-    #         # Assign vertiports to minimize total distance or conflicts
-    #         # This is a more complex assignment strategy
-    #         pass
-        
-    #     else:
-    #         # Default to random assignment
-    #         self.assign_vertiports('random')
-        
-    #     return None
-
-
-    #FIX: this method needs to be removed - I strongly think this method is for Simple_ENV
-    # def assign_vertiports(self, assignment_type:str) -> None:
-    #     """
-    #     For a given space, assign start and end coordinates to UAVs.
-        
-    #     Args: 
-    #         assignment_type (str): This string determines how the start-end points are assigned.
-    #                                Options are 'opposite', 'consecutive', 'random'.
-                
-    #     Returns:
-    #         None  
-    #     """
-    #     print(f'Number of vertiports in space is {len(self.vertiport_list)}')
-    #     print(f'Number of UAVs in space is {len(self.uav_list)}')
-        
-    #     if self.vertiport_pattern == 'circular':
-    #         print(f'Vertiport pattern in space is {self.vertiport_pattern}')
-    #     elif self.vertiport_pattern == 'random':
-    #         print(f'Vertiport pattern in space is {self.vertiport_pattern}')
-    #     else:
-    #         print('No vertiport pattern set')
-    #         raise ValueError('No vertiport pattern set')
-        
-    #     self.assignment_type = assignment_type
-    #     coords_list_middle = int(len(self.vertiport_list)/2)
-    #     coords_list_len = int(len(self.vertiport_list))
-
-        
-    #     local_veriport_list = self.vertiport_list.copy()
-    #     local_uav_list = self.uav_list.copy()
-
-    #     if self.vertiport_pattern == 'circular':
-    #         if self.assignment_type == 'opposite':
-    #             for i in range(len(self.uav_list)):
-    #                 uav = self.uav_list[i]
-    #                 start_idx = i % len(self.vertiport_list)
-    #                 end_idx = (start_idx + coords_list_middle) % coords_list_len
-    #                 start = self.vertiport_list[start_idx]
-    #                 end = self.vertiport_list[end_idx]
-    #                 uav.assign_start_end(start, end)
-                
-    #         elif self.assignment_type == 'consecutive':
-    #             pass
-    #         elif self.assignment_type == 'random':
-    #             _start_list = self.vertiport_list.copy()
-    #             _end_list = self.vertiport_list.copy()
-    #             for i in range(len(self.uav_list)):
-    #                 uav = self.uav_list[i]
-    #                 start = random.choice(_start_list)
-    #                 end = random.choice(_end_list)
-    #                 uav.assign_start_end(start, end)
-    #                 _start_list.remove(start)
-    #                 _end_list.remove(end)
-                    
-    #         else:
-    #             pass
-        
-    #     elif self.vertiport_pattern == 'random':
-    #         random.seed(seed = self._seed)
-    #         _start_list = self.vertiport_list.copy()
-    #         _end_list = self.vertiport_list.copy()
-
-    #         for i in range(len(self.uav_list)):
-    #             uav = self.uav_list[i]
-    #             start = random.choice(_start_list)
-    #             end = random.choice(_end_list)
-    #             uav.assign_start_end(start, end)
-    #             _start_list.remove(start)
-    #             _end_list.remove(end)
-
-
-    #     return None
-
-        #FIX: this method is for SIMPLE_ENV 
-    # def assign_vertiport_agent(self, agent: UAV_v2_template) -> None:
-    #     """
-    #     Assigns a start and end vertiport to the agent UAV in a way that avoids
-    #     conflicts with other UAVs.
-        
-    #     Args:
-    #         agent (UAV_v2_template): The agent AutoUAV.
-        
     #     Returns:
     #         None
     #     """
-    #     coords_list_middle = int(len(self.vertiport_list)/2)
-    #     coords_list_len = int(len(self.vertiport_list))
+
+    #     if (uav.current_position.distance(uav.end_point) <= uav.landing_proximity) and (
+    #         uav.reaching_end_vertiport == False
+    #     ):
+    #         # uav.reached_end_vertiport = True
+    #         self._landing_procedure(uav)
         
-    #     # Instead of checking UAV start attributes, track assigned vertiports
-    #     assigned_vertiports = set()
-    #     for uav in self.uav_list:
-    #         if hasattr(uav, 'start'):  # Check if start has been assigned
-    #             assigned_vertiports.add(uav.start)
+    #     return None
         
-    #     # Find first unassigned vertiport
-    #     for i in range(len(self.vertiport_list)):
-    #         potential_start = self.vertiport_list[i]
-    #         if potential_start not in assigned_vertiports:
-    #             if self.vertiport_pattern == 'circular':
-    #                 # Use the opposite point pattern
-    #                 end_idx = (i + coords_list_middle) % coords_list_len
-    #                 end = self.vertiport_list[end_idx]
-    #             else:  # random pattern
-    #                 # Choose from remaining vertiports
-    #                 remaining = [v for v in self.vertiport_list 
-    #                         if v != potential_start]
-    #                 end = random.choice(remaining)
-                    
-    #             agent.assign_start_end(potential_start, end)
-    #             return None
+    # def has_left_start_vertiport(self, uav: UAVBasic | AutonomousUAV) -> None:
+    #     """Checks if a UAV has left its start_vertiport.
+
+    #     This method checks if a UAV has left its start_vertiport. If it did leave,
+    #     then it calls the clearing_procedure to take care of updating objects.
+
+    #     Args:
+    #         uav (UAV): The UAV object to check.
+
+    #     Returns:
+    #         None
+    #     """
+    #     if (uav.current_position.distance(uav.start_point) > 100) and (
+    #         uav.leaving_start_vertiport == False
+    #     ):
+    #         self._clearing_procedure(uav)
+    #         uav.leaving_start_vertiport = True
+
+    #     return None
+    
+
+    # def _clearing_procedure(
+    #     self, outgoing_uav: UAVBasic | AutonomousUAV
+    # ) -> None:  #! rename to _takeoff_procedure()
+    #     """
+    #     Performs the clearing procedure for a given UAV.
+    #     Args:
+    #         outgoing_uav (UAV): The UAV that is outgoing(leaving the start_vertiport).
+    #     Returns:
+    #         None
+    #     Raises:
+    #         None
+    #     """
+    #     outgoing_uav_id = outgoing_uav.id
+    #     for uav in outgoing_uav.start_vertiport.uav_list:
+    #         if uav.id == outgoing_uav_id:
+    #             outgoing_uav.start_vertiport.uav_list.remove(uav)
+
+    #     return None
+
+    # def _landing_procedure(self, landing_uav: UAVBasic | AutonomousUAV) -> None:
+    #     """
+    #     Performs the landing procedure for a given UAV.
+    #     Args:
+    #         landing_uav (UAV): The UAV that is landing.
+    #     Returns:
+    #         None
+    #     Raises:
+    #         None
+    #     """
+    #     landing_vertiport = landing_uav.end_vertiport
+    #     landing_vertiport.uav_list.append(landing_uav)
+    #     landing_uav.refresh_uav()
+    #     self._reassign_end_vertiport_of_uav(landing_uav)
+
+    #     return None
+        
+    # def _reassign_end_vertiport_of_uav(self, uav: UAVBasic) -> None:
+    #     """Reassigns the end vertiport of a UAV.
+
+    #     This method samples a vertiport from the ATC vertiport list.
+    #     If the sampled vertiport is the same as the UAV's current start_vertiport, it resamples until a different vertiport is obtained.
+    #     The sampled end_vertiport is then assigned as the UAV's end_vertiport.
+    #     Finally, the UAV's end_point is updated.
+
+    #     Args:
+    #         uav (UAV): The UAV object for which the end vertiport needs to be reassigned.
+    #     """
+    #     sample_end_vertiport = self.provide_vertiport()
+    #     while sample_end_vertiport.location == uav.start_vertiport.location:
+    #         sample_end_vertiport = self.provide_vertiport()
+    #     uav.end_vertiport = sample_end_vertiport
+    #     uav.update_end_point()
+
+
+    #     return None
+
+    # def _update_start_vertiport_of_uav(
+    #     self, vertiport: Vertiport, uav: UAVBasic
+    # ) -> None:
+    #     """This method accepts a vertiport (end-vertiport of uav)
+    #     and updates the start_vertiport attribute of UAV
+    #     to the provided vertiport. This method works in conjunction with landing_procedure.
+
+    #     Args:
+    #         vertiport (Vertiport): The vertiport representing the end-vertiport of the UAV.
+    #         uav (UAV): The UAV whose start_vertiport attribute needs to be updated.
+
+    #     Returns:
+    #         None
+
+    #     """
+    #     uav.start_vertiport = vertiport
+    #     uav.update_start_point()
+    
+
+    #     return None
+    
+
+    # #FIX: ####  END  ####
+
+
+
+
+
+
+
+
+
+    # # def assign_vertiport_agent(self, agent: UAV_v2_template) -> None:
+    # #     """
+    # #     Assign start and end vertiports to the learning agent.
+        
+    # #     Args:
+    # #         agent: The learning agent (Auto_UAV_v2)
+    # #     """
+    # #     if len(self.vertiport_list) < 2:
+    # #         raise ValueError("Need at least 2 vertiports to assign agent start and end points")
+        
+    # #     # Find vertiports that aren't used as starting points by other UAVs
+    # #     used_starts = set()
+    # #     for uav in self.uav_list:
+    # #         if hasattr(uav, 'start'):
+    # #             used_starts.add(uav.start)
+        
+    # #     available_starts = [v for v in self.vertiport_list if v not in used_starts]
+        
+    # #     # If all vertiports are used, select one randomly
+    # #     if not available_starts:
+    # #         available_starts = self.vertiport_list
+        
+    # #     # Select start vertiport
+    # #     start_vertiport = random.choice(available_starts)
+        
+    # #     # Select end vertiport (different from start)
+    # #     available_ends = [v for v in self.vertiport_list if v != start_vertiport]
+    # #     end_vertiport = random.choice(available_ends)
+        
+    # #     # Assign to agent
+    # #     agent.assign_start_end(start_vertiport, end_vertiport)
+    # #     print(f"Agent assigned start: ({start_vertiport.x}, {start_vertiport.y}), end: ({end_vertiport.x}, {end_vertiport.y})")
+    # #     return None
+
+    
+
+    
+
+    
+
+
+    
+
+
+    
+    
+
+
+
+    
+    
+    
+    
+    
+    
+    # #FIX: update/upgrade this method to work with MAPPED_ENV
+    
+    # # def assign_vertiports(self, assignment_type: str) -> None:
+    # #     """
+    # #     Assign start and end vertiports to UAVs.
+        
+    # #     Args:
+    # #         assignment_type: Strategy for assigning vertiports ('random', 'optimal', etc.)
+    # #     """
+        
+    # #     print(f'Number of vertiports in space: {len(self.vertiport_list)}')
+    # #     print(f'Number of UAVs in space: {len(self.uav_list)}')
+        
+    # #     if len(self.vertiport_list) < 2:
+    # #         raise ValueError("Need at least 2 vertiports to assign start and end points")
+        
+    # #     self.assignment_type = assignment_type
+        
+    # #     if assignment_type == 'random':
+    # #         # Each UAV gets a random pair of distinct vertiports
+    # #         available_starts = self.vertiport_list.copy()
+    # #         available_ends = self.vertiport_list.copy()
+            
+    # #         for uav in self.uav_list:
+    # #             # Select random start vertiport
+    # #             start_vertiport = random.choice(available_starts)
+    # #             available_starts.remove(start_vertiport)
                 
-    #     raise RuntimeError("No available vertiports for agent - all are assigned")
+    # #             # Create a temporary list excluding the start vertiport
+    # #             temp_ends = [v for v in available_ends if v != start_vertiport]
+                
+    # #             # If no valid end vertiports, reuse one
+    # #             if not temp_ends:
+    # #                 temp_ends = [v for v in self.vertiport_list if v != start_vertiport]
+                
+    # #             # Select random end vertiport
+    # #             end_vertiport = random.choice(temp_ends)
+    # #             if end_vertiport in available_ends:
+    # #                 available_ends.remove(end_vertiport)
+                
+    # #             # Assign to UAV
+    # #             uav.assign_start_end(start_vertiport, end_vertiport)
+                
+    # #             # Replenish available vertiports if necessary
+    # #             if not available_starts:
+    # #                 available_starts = self.vertiport_list.copy()
+    # #             if not available_ends:
+    # #                 available_ends = self.vertiport_list.copy()
+        
+    # #     elif assignment_type == 'optimal':
+    # #         # Assign vertiports to minimize total distance or conflicts
+    # #         # This is a more complex assignment strategy
+    # #         pass
+        
+    # #     else:
+    # #         # Default to random assignment
+    # #         self.assign_vertiports('random')
+        
+    # #     return None
+
+
+    # #FIX: this method needs to be removed - I strongly think this method is for Simple_ENV
+    # # def assign_vertiports(self, assignment_type:str) -> None:
+    # #     """
+    # #     For a given space, assign start and end coordinates to UAVs.
+        
+    # #     Args: 
+    # #         assignment_type (str): This string determines how the start-end points are assigned.
+    # #                                Options are 'opposite', 'consecutive', 'random'.
+                
+    # #     Returns:
+    # #         None  
+    # #     """
+    # #     print(f'Number of vertiports in space is {len(self.vertiport_list)}')
+    # #     print(f'Number of UAVs in space is {len(self.uav_list)}')
+        
+    # #     if self.vertiport_pattern == 'circular':
+    # #         print(f'Vertiport pattern in space is {self.vertiport_pattern}')
+    # #     elif self.vertiport_pattern == 'random':
+    # #         print(f'Vertiport pattern in space is {self.vertiport_pattern}')
+    # #     else:
+    # #         print('No vertiport pattern set')
+    # #         raise ValueError('No vertiport pattern set')
+        
+    # #     self.assignment_type = assignment_type
+    # #     coords_list_middle = int(len(self.vertiport_list)/2)
+    # #     coords_list_len = int(len(self.vertiport_list))
+
+        
+    # #     local_veriport_list = self.vertiport_list.copy()
+    # #     local_uav_list = self.uav_list.copy()
+
+    # #     if self.vertiport_pattern == 'circular':
+    # #         if self.assignment_type == 'opposite':
+    # #             for i in range(len(self.uav_list)):
+    # #                 uav = self.uav_list[i]
+    # #                 start_idx = i % len(self.vertiport_list)
+    # #                 end_idx = (start_idx + coords_list_middle) % coords_list_len
+    # #                 start = self.vertiport_list[start_idx]
+    # #                 end = self.vertiport_list[end_idx]
+    # #                 uav.assign_start_end(start, end)
+                
+    # #         elif self.assignment_type == 'consecutive':
+    # #             pass
+    # #         elif self.assignment_type == 'random':
+    # #             _start_list = self.vertiport_list.copy()
+    # #             _end_list = self.vertiport_list.copy()
+    # #             for i in range(len(self.uav_list)):
+    # #                 uav = self.uav_list[i]
+    # #                 start = random.choice(_start_list)
+    # #                 end = random.choice(_end_list)
+    # #                 uav.assign_start_end(start, end)
+    # #                 _start_list.remove(start)
+    # #                 _end_list.remove(end)
+                    
+    # #         else:
+    # #             pass
+        
+    # #     elif self.vertiport_pattern == 'random':
+    # #         random.seed(seed = self._seed)
+    # #         _start_list = self.vertiport_list.copy()
+    # #         _end_list = self.vertiport_list.copy()
+
+    # #         for i in range(len(self.uav_list)):
+    # #             uav = self.uav_list[i]
+    # #             start = random.choice(_start_list)
+    # #             end = random.choice(_end_list)
+    # #             uav.assign_start_end(start, end)
+    # #             _start_list.remove(start)
+    # #             _end_list.remove(end)
+
+
+    # #     return None
+
+    #     #FIX: this method is for SIMPLE_ENV 
+    # # def assign_vertiport_agent(self, agent: UAV_v2_template) -> None:
+    # #     """
+    # #     Assigns a start and end vertiport to the agent UAV in a way that avoids
+    # #     conflicts with other UAVs.
+        
+    # #     Args:
+    # #         agent (UAV_v2_template): The agent AutoUAV.
+        
+    # #     Returns:
+    # #         None
+    # #     """
+    # #     coords_list_middle = int(len(self.vertiport_list)/2)
+    # #     coords_list_len = int(len(self.vertiport_list))
+        
+    # #     # Instead of checking UAV start attributes, track assigned vertiports
+    # #     assigned_vertiports = set()
+    # #     for uav in self.uav_list:
+    # #         if hasattr(uav, 'start'):  # Check if start has been assigned
+    # #             assigned_vertiports.add(uav.start)
+        
+    # #     # Find first unassigned vertiport
+    # #     for i in range(len(self.vertiport_list)):
+    # #         potential_start = self.vertiport_list[i]
+    # #         if potential_start not in assigned_vertiports:
+    # #             if self.vertiport_pattern == 'circular':
+    # #                 # Use the opposite point pattern
+    # #                 end_idx = (i + coords_list_middle) % coords_list_len
+    # #                 end = self.vertiport_list[end_idx]
+    # #             else:  # random pattern
+    # #                 # Choose from remaining vertiports
+    # #                 remaining = [v for v in self.vertiport_list 
+    # #                         if v != potential_start]
+    # #                 end = random.choice(remaining)
+                    
+    # #             agent.assign_start_end(potential_start, end)
+    # #             return None
+                
+    # #     raise RuntimeError("No available vertiports for agent - all are assigned")

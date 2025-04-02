@@ -126,7 +126,7 @@ class MapEnv(gym.Env):
         self.agent.dynamics.update(self.agent, action)
         
         # Save animation data for all UAVs in the environment
-        self.add_data(self.agent)
+        # self.add_data(self.agent)
         
         # Check collision with static objects (restricted airspace)
         static_collision, static_collision_info = self.agent.sensor.get_ra_collision(self.agent)
@@ -174,7 +174,7 @@ class MapEnv(gym.Env):
         for uav in self.atc.get_uav_list():
             if not isinstance(uav, Auto_UAV_v2):  # Only process non-learning UAVs
                 # Save animation data
-                self.add_data(uav)
+                # self.add_data(uav)
                 
                 # Get non-learning UAV's observations and check for collisions
                 observation = uav.get_obs()
@@ -197,7 +197,7 @@ class MapEnv(gym.Env):
                 if is_nmac:
                     print(f"--- UAV {uav.id} NMAC ---")
                 
-                is_collision, collision_uav_ids = uav.sensor.get_collision(uav)
+                is_collision, collision_uav_ids = uav.sensor.get_uav_collision(uav)
                 if is_collision:
                     print(f"--- UAV {uav.id} COLLISION ---")
                     self.logger.record_collision(collision_uav_ids, 'dynamic')
@@ -272,10 +272,10 @@ class MapEnv(gym.Env):
         }
         
         # Add static object detection info
-        static_detection, static_info = self.agent.sensor.get_ra_detection(self.agent)
-        if static_detection:
+        ra_data = self.agent.sensor.get_ra_detection(self.agent)
+        if len(ra_data):
             info['static_detection'] = True
-            info['distance_to_restricted'] = static_info.get('distance', float('inf'))
+            info['distance_to_restricted'] = ra_data['distance']
         
         # Increment time step
         self.current_time_step += 1

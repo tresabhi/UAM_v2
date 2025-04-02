@@ -39,10 +39,8 @@ class MapSensor(SensorTemplate):
 
         other_uav_data = self.get_uav_detection()
         ra_data = self.get_ra_detection()
-
-        self.data = other_uav_data, ra_data
-        
-        return self.data
+        #       List|List[Dict]    List|List[Dict]
+        return other_uav_data,     ra_data
     
 
     #### UAV ####

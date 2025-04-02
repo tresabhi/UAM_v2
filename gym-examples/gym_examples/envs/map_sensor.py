@@ -6,6 +6,7 @@ import shapely
 from uav_v2_template import UAV_v2_template
 from auto_uav_v2 import Auto_UAV_v2
 from airspace import Airspace
+from atc import ATC
 import geopandas as gpd
 
 #FIX: rename to sensor_universal.py and SensorUniversal
@@ -15,15 +16,35 @@ class MapSensor(SensorTemplate):
     Handles both dynamic (other UAVs) and static (restricted airspace) collision detection.
     """
     
-    def __init__(self, airspace):
+    def __init__(self, airspace:Airspace, atc:ATC):
         """
         Initialize the MapSensor.
         
         Args:
             space: The space containing UAVs, vertiports, and airspace information
         """
-        self.airspace = airspace
+        
+        
+        return None
+
+
+
+    def get_data(self) -> Tuple[List, List]:
+        """
+        Collect data of other UAVs in space within detection radius.
+        
+        Args:
+            self_uav: The UAV using this sensor
+        """
+
+        other_uav_data = self.get_uav_detection()
+        ra_data = self.get_ra_detection()
+
+        self.data = other_uav_data, ra_data
+        
+        return self.data
     
+
     #### UAV ####
     def get_uav_detection(self, self_uav: UAV_v2_template) -> List[Dict]:
         """
@@ -33,7 +54,7 @@ class MapSensor(SensorTemplate):
             self_uav: The UAV using this sensor
         """
         # Clear previous data
-        self.data = []
+        other_uav_data_list = []
         
         # Get self_uav detection radius
         self.detection_radius = self_uav.detection_radius
@@ -52,9 +73,9 @@ class MapSensor(SensorTemplate):
                         'other_uav_current_heading': uav.current_heading,
                         'other_uav_radius': uav.radius
                     }
-                    self.data.append(other_uav_data)
+                    other_uav_data_list.append(other_uav_data)
         
-        return self.data
+        return other_uav_data_list
     
     def get_nmac(self, self_uav: UAV_v2_template) -> Tuple[bool, List]:
         """
@@ -116,7 +137,7 @@ class MapSensor(SensorTemplate):
     
     
     #### Restricted Area ####
-    def get_ra_detection(self, self_uav: UAV_v2_template) -> Tuple[bool, Dict]:
+    def get_ra_detection(self, self_uav: UAV_v2_template) -> List[Dict]:
         """
         Check if the UAV's detection radius intersects with restricted airspace.
         
@@ -126,6 +147,9 @@ class MapSensor(SensorTemplate):
         Returns:
             Tuple of (detection, detection_info)
         """
+        
+        # ra_data
+        ra_data = []
         # Get the buffer around the UAV's detection radius
         uav_detection_area = self_uav.current_position.buffer(self_uav.detection_radius)
         
@@ -151,14 +175,14 @@ class MapSensor(SensorTemplate):
                     # radial angle of vector pointing from centroid of ra to UAVs current_position
                     ra_heading = math.atan2((self_uav.current_position.y - restricted_geometry.centroid.y), (self_uav.current_position.x - restricted_geometry.centroid.x))
                     # Return detection info
-                    return True, {
+                    return  ra_data.append({
                         'type': tag_value,
                         'distance': distance,
                         'ra_heading':ra_heading,
                         'area': restricted_geometry
-                    }
+                    })
         
-        return False, {}
+        return ra_data
     
     def get_ra_collision(self, self_uav: UAV_v2_template) -> Tuple[bool, Dict]:
         """
@@ -254,3 +278,15 @@ class MapSensor(SensorTemplate):
             }
         
         return False, {}
+    
+
+    def deactivate_nmac(self, uav)->None:
+        if uav.current_position.distance(uav.start) <= 100 or uav.current_position.distance(uav.end)<=100:
+            return False, []
+
+    def deactivate_detection()->None:
+        pass
+
+    def deactivate_collision(self, uav)->None:
+        if uav.current_position.distance(uav.start) <= 100 or uav.current_position.distance(uav.end)<=100:
+            return False, [] 

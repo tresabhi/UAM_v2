@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Dict, List, Tuple
 import numpy as np 
-from uav_v2_template import UAV_v2_template
+#from uav_v2_template import UAV_v2_template
 class SensorTemplate(ABC):
 
     '''
@@ -28,9 +28,14 @@ class SensorTemplate(ABC):
 
     @abstractmethod
     def __init__(self, space)->None:
-        self.space = space
-        self.uav_data = []
-        self.restricted_airspace_data = []
+        return None
+
+
+
+    def get_data(self) -> Tuple[List, List]:
+        '''Combination of uav detection(List of Dict) and ra detection(List of Dict)'''
+        pass
+
 
 
     # UAV     
@@ -50,14 +55,6 @@ class SensorTemplate(ABC):
 
 
     # Restricted Airspace (ra)
-    def set_ra_data(self,)->None:
-        '''collect information about restricted airspace in space and save in data'''
-        pass
-
-    def get_ra_data()->List:
-        '''return a list of restricted airspaces'''
-        pass
-   
     def get_ra_detection()->Tuple[bool, Dict]:
         pass
 
@@ -69,14 +66,12 @@ class SensorTemplate(ABC):
 
 
     # Deactivate sensor 
-    def deactivate_nmac(self, uav:UAV_v2_template)->None:
-        if uav.current_position.distance(uav.start) <= 100 or uav.current_position.distance(uav.end)<=100:
-            return False, []
+    def deactivate_nmac(self, uav)->Tuple[bool, List]:
+        pass
 
     def deactivate_detection()->None:
         pass
 
-    def deactivate_collision(self, uav:UAV_v2_template)->None:
-        if uav.current_position.distance(uav.start) <= 100 or uav.current_position.distance(uav.end)<=100:
-            return False, [] 
+    def deactivate_collision(self, uav)->Tuple[bool, List]:
+        pass
 

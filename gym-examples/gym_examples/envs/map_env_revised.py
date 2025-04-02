@@ -82,7 +82,7 @@ class MapEnv(gym.Env):
         })
 
         #FIX: cannot pass self.agent here, NOW WHAT
-        self.observation_space = choose_obs_space_constructor(self.obs_space_str, self.agent) 
+        self.observation_space = choose_obs_space_constructor(self.obs_space_str)
 
         # Check observation space configuration
         if self.obs_space_str == "LSTM-A2C" and self.sorting_criteria is None:

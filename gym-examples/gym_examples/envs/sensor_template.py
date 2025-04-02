@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Any
 import numpy as np 
 #from uav_v2_template import UAV_v2_template
 class SensorTemplate(ABC):
@@ -49,7 +49,7 @@ class SensorTemplate(ABC):
         pass
     
     @abstractmethod
-    def get_uav_collision(self,):
+    def get_uav_collision(self,)->Tuple[bool, Tuple|Any]:
         '''returns a bool if there is a collision along with UAV id'''
         pass
 

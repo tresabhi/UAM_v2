@@ -364,20 +364,11 @@ class MapEnv(gym.Env):
             # Get Auto-UAV observation data
             raw_obs = self.agent.get_obs()
 
-            #FIX: transform_sensor_data does not accept static_detection
-            static_detection, static_info = self.agent.sensor.get_ra_detection(self.agent)
-            if static_detection:
-                raw_obs[0]['static_collision_detected'] = 1
-                raw_obs[0]['distance_to_restricted'] = static_info.get('distance', float('inf'))
-            else:
-                raw_obs[0]['static_collision_detected'] = 0
-                raw_obs[0]['distance_to_restricted'] = float('inf')
-            
             # Transform data for sequential observation format
             transformed_data = transform_sensor_data(
                 raw_obs,
                 self.max_number_other_agents_observed,
-                "seq",
+                self.obs_space_str,
                 self.sorting_criteria,
             )
             
@@ -387,26 +378,24 @@ class MapEnv(gym.Env):
             # Get Auto-UAV observation data
             raw_obs = self.agent.get_obs()
             
-            # Add static object detection data
-            static_detection, static_info = self.agent.sensor.get_ra_detection(self.agent)
-            if static_detection:
-                raw_obs[0]['static_collision_detected'] = 1
-                raw_obs[0]['distance_to_restricted'] = static_info.get('distance', float('inf'))
-            else:
-                raw_obs[0]['static_collision_detected'] = 0
-                raw_obs[0]['distance_to_restricted'] = float('inf')
-            
             # Transform data for graph observation format
             transformed_data = transform_sensor_data(
                 raw_obs, 
                 self.max_number_other_agents_observed, 
-                "graph"
+                self.obs_space_str
             )
             
             return transformed_data
         elif self.obs_space == 'UAM_UAV':
             #FIX: test this - chech if this method works and produces correct response
-            transformed_data = transform_for_uam(data)
+            raw_obs = self.agent.get_obs()
+            
+            # Transform data for UAM observation format
+            transformed_data = transform_sensor_data(
+                raw_obs,
+                self.max_number_other_agents_observed,
+                'UAM_UAV'
+            )
 
         else:
             raise RuntimeError(
@@ -416,6 +405,7 @@ class MapEnv(gym.Env):
     def reset(self, seed=None, options=None):
         """Reset environment to initial state."""
         # Reset internal state
+        #! why seed here (1 of 2)
         super().reset(seed=seed)
         if seed is not None:
             self._seed = seed
@@ -450,6 +440,7 @@ class MapEnv(gym.Env):
         if hasattr(self, 'animation_trajectories'):
             del self.animation_trajectories
 
+        #! why seed here (2 of 2)
         random.seed(self._seed)
         np.random.seed(self._seed)
         

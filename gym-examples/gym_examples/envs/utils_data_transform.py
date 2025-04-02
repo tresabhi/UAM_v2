@@ -121,7 +121,7 @@ def obs_space_uam(auto_uav):
                     low=0,
                     high=np.iinfo(np.int64).max,
                     shape=(1,),
-                    dtype=np.int64,  #! find if it is possible to create ids that take less space
+                    dtype=np.int64,
                 ),
                 # agent speed
                 "agent_speed": Box(  #!TODO ensure that attribute is being properly referenced 
@@ -136,18 +136,24 @@ def obs_space_uam(auto_uav):
                     shape=(),
                     dtype=np.float32,
                     ),
+                "agent_current_heading": Box(
+                    low=-180,
+                    high=180,
+                    shape=(),
+                    dtype=np.float32,
+                    ),
                 # agent deviation
                 "agent_deviation": Box(
-                    low=-360,
-                    high=360,
+                    low=-180,
+                    high=180,
                     shape=(1,),
-                    dtype=np.float64,  # agent's heading deviation #!should this be -180 to 180, if yes then this needs to be corrected to -180 to 180
+                    dtype=np.float64,
                 ),
                 # intruder detection
                 "intruder_detected": Discrete(
                     2  # 0 for no intruder, 1 for intruder detected
                 ),
-                # intruder id
+                # intruder id for debugging
                 "intruder_id": Box(
                     low=0,
                     high=np.iinfo(np.int64).max,
@@ -163,25 +169,109 @@ def obs_space_uam(auto_uav):
                 ),
                 # Relative heading of intruder #!should this be corrected to -180 to 180,
                 "relative_heading_intruder": Box(
-                    low=-360, high=360, shape=(1,), dtype=np.float64
+                    low=-180, 
+                    high=180, 
+                    shape=(1,), 
+                    dtype=np.float64
                 ),
+                # intruder's current heading
                 "intruder_current_heading": Box(
-                    low=-180, high=180, shape=(1,), dtype=np.float64
-                ),  # Intruder's heading
-                
+                    low=-180, 
+                    high=180, 
+                    shape=(1,), 
+                    dtype=np.float64,
+                ),
                 # restricted airspace
                 "restricted_airspace_detected":Discrete(
-                    2 
+                    2 # 0 for no ra, 1 for ra detected
                 ),
                 # distance to airspace 
                 "distance_to_restricted_airspace": Box(
                     low=0,
-                    high=1000,
+                    high=10000,
                     shape=(1,),
                     dtype=np.float64,
                 ),
+                "relative_heading_restricted_airspace": Box(
+                    low=-180,
+                    high=180,
+                    shape=(1,),
+                    dtype=np.float64,
+                )
             }
         )
+
+def obs_space_uam():
+    return Dict(
+        {
+            "agent_dist_to_goal": Box(
+                low=0, 
+                high=10000, 
+                shape=(), 
+                dtype=np.float32
+            ),
+            "agent_speed": Box(
+                low=0.0,
+                high=50.0,
+                shape=(),
+                dtype=np.float32,
+            ),
+            "agent_current_heading": Box(
+                low=-180,
+                high=180,
+                shape=(),
+                dtype=np.float32,
+            ),
+            # "agent_deviation": Box(
+            #     low=-180,
+            #     high=180,
+            #     shape=(),
+            #     dtype=np.float32,
+            # ),
+            "intruder_detected": Box(
+                low=0, 
+                high=1, 
+                shape=(), 
+                dtype=np.int32,
+            ),
+            "distance_to_intruder": Box(
+                low=0.0,
+                high=10000.0,
+                shape=(),
+                dtype=np.float32,
+            ),
+            "relative_heading_intruder": Box(
+                low=-180,
+                high=180,
+                shape=(),
+                dtype=np.float32,
+            ),
+            "intruder_current_heading": Box(
+                low=-180,
+                high=180,
+                shape=(),
+                dtype=np.float32,
+            ),
+            "restricted_airspace_detected": Box(
+                low=0, 
+                high=1, 
+                shape=(), 
+                dtype=np.int32,
+            ),
+            "distance_to_restricted_airspace": Box(
+                low=0,
+                high=10000.0,
+                shape=(),
+                dtype=np.float32,
+            ),
+            "relative_heading_restricted_airspace": Box(
+                low=-180,
+                high=180,
+                shape=(),
+                dtype=np.float32,
+            )
+        }
+    )
 
 
 

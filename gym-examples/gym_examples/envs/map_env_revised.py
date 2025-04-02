@@ -397,6 +397,7 @@ class MapEnv(gym.Env):
                 self.max_number_other_agents_observed,
                 'UAM_UAV'
             )
+            return transformed_data
 
         else:
             raise RuntimeError(

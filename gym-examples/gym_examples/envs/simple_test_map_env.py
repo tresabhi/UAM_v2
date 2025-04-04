@@ -18,6 +18,7 @@ import sys
 import shutil
 import random
 from map_logging_loader import MapLoader
+from map_renderer import MapRenderer
 
 # Ensure no global randomness affects our tests
 random.seed(0)
@@ -93,20 +94,25 @@ def test_map_env_with_random_actions(episodes=2, max_steps_per_episode=50, rende
     has_ffmpeg = check_ffmpeg()
     if not has_ffmpeg and save_animation:
         print("Note: MP4 animations may not work, but we'll try to save GIFs instead.")
+
+    # Track created episode directories in this test run
+    created_episode_dirs = []
     
     try:
         # Initialize environment with sequential observation space
         print(f"\n=== Creating environment with seed {env_seed} ===")
         env = MapEnv(
+            number_of_uav= 3,
+            number_of_vertiport= 5,
             location_name="Austin, Texas, USA",
             airspace_tag_list=[("amenity", "hospital"), ("aeroway", "aerodrome")],
-            max_uavs=4,
-            max_vertiports=6,
             max_episode_steps=max_steps_per_episode,
             seed=env_seed,  # Use the specified environment seed
-            obs_space_str="seq",
+            obs_space_str="LSTM-A2C",
             sorting_criteria="closest first",
-            render_mode="human" if render else None
+            render_mode="human" if render else None,
+            max_uavs=4,
+            max_vertiports=6,
         )
         
         for episode in range(episodes):
@@ -222,33 +228,47 @@ def test_map_env_with_random_actions(episodes=2, max_steps_per_episode=50, rende
         env.close()
         print("\nEnvironment closed!")
         
-        # Analyze the generated logs using the integrated loader
-        print("\n=== Analyzing Generated Logs ===")
-        loader = MapLoader(base_log_dir="logs")
-        
-        episodes = loader.list_episodes()
-        if episodes:
-            print(f"Found {len(episodes)} episode(s) in logs")
+        # Analyze the generated logs from this test
+        if created_episode_dirs:
+            print("\n=== Analyzing Episodes from Current Test Run ===")
+            loader = MapLoader(base_log_dir="logs")
             
-            # Analyze each episode
-            for episode_dir in episodes:
+            for episode_dir in created_episode_dirs:
                 print(f"\nAnalyzing episode: {episode_dir}")
                 
-                # Print episode summary
-                loader.print_episode_summary(episode_dir)
+                # Check if metadata.json exists before trying to load it
+                metadata_path = os.path.join("logs", episode_dir, 'metadata.json')
+                if not os.path.exists(metadata_path):
+                    print(f"Warning: No metadata.json file found for {episode_dir}")
+                    continue
                 
-                # Get all agents
-                non_learning_agents = loader.get_non_learning_agents(episode_dir)
-                learning_agents = loader.get_learning_agents(episode_dir)
-                
-                print(f"\nNon-learning agents: {non_learning_agents}")
-                print(f"Learning agents: {learning_agents}")
-                
-                # Print details for each agent
-                for agent_id in non_learning_agents + learning_agents:
-                    loader.print_agent_details(episode_dir, agent_id)
+                try:
+                    # Print episode summary with error handling
+                    try:
+                        loader.print_episode_summary(episode_dir)
+                    except Exception as e:
+                        print(f"Error printing episode summary: {e}")
+                    
+                    # Get all agents with error handling
+                    try:
+                        non_learning_agents = loader.get_non_learning_agents(episode_dir)
+                        learning_agents = loader.get_learning_agents(episode_dir)
+                        
+                        print(f"\nNon-learning agents: {non_learning_agents}")
+                        print(f"Learning agents: {learning_agents}")
+                        
+                        # Print details for each agent
+                        for agent_id in non_learning_agents + learning_agents:
+                            try:
+                                loader.print_agent_details(episode_dir, agent_id)
+                            except Exception as e:
+                                print(f"Error printing details for agent {agent_id}: {e}")
+                    except Exception as e:
+                        print(f"Error getting agent lists: {e}")
+                except Exception as e:
+                    print(f"Error analyzing episode {episode_dir}: {e}")
         else:
-            print("No episodes found in logs!")
+            print("\nNo episodes were created during this test run.")
                 
         print("\nTest completed!")
     

@@ -18,6 +18,14 @@ class Vertiport:
             location=self.location, uav_list=self.uav_list
         )
     
+    # Add x and y properties that delegate to the location Point object for rendering
+    @property
+    def x(self):
+        return self.location.x
+    
+    @property
+    def y(self):
+        return self.location.y
 
     def landing_queue(self):
         pass

@@ -25,6 +25,7 @@ from gymnasium.spaces import Discrete, Box, Dict
 from gymnasium import spaces
 # from UAV_logger import NonLearningLogger
 from map_logger import MapLogger
+from map_renderer import MapRenderer
 
 class MapEnv(gym.Env):
     """
@@ -70,19 +71,14 @@ class MapEnv(gym.Env):
 
         # Initialize logger for non-learning agents
         self.logger = MapLogger(base_log_dir="logs")
-
-        # Animation data structure
-        self.df = pd.DataFrame({
-            "current_time_step": [],
-            "uav_id": [],
-            "uav": [],
-            "current_position": [],
-            "current_heading": [],
-            "final_heading": [],
-        })
+        # Initialize renderer
+        self.renderer = MapRenderer(self, render_mode, sleep_time)
 
         #FIX: cannot pass self.agent here, NOW WHAT
-        self.observation_space = choose_obs_space_constructor(self.obs_space_str)
+        self.observation_space = choose_obs_space_constructor(
+            self.obs_space_str, 
+            self.max_number_other_agents_observed
+        )
 
         # Check observation space configuration
         if self.obs_space_str == "LSTM-A2C" and self.sorting_criteria is None:
@@ -97,10 +93,6 @@ class MapEnv(gym.Env):
             shape=(2,),
             dtype=np.float64,
         )
-
-        # Initialize rendering variables
-        self.fig = None
-        self.ax = None
 
     def step(self, action):
         #! why is the UAV detection not used, we only use nmac and collsion 
@@ -125,8 +117,8 @@ class MapEnv(gym.Env):
         # Update learning agent with provided action
         self.agent.dynamics.update(self.agent, action)
         
-        # Save animation data for all UAVs in the environment
-        # self.add_data(self.agent)
+        # Save animation data for all UAVs
+        self.renderer.add_data(self.agent)
         
         # Check collision with static objects (restricted airspace)
         static_collision, static_collision_info = self.agent.sensor.get_ra_collision(self.agent)
@@ -166,15 +158,14 @@ class MapEnv(gym.Env):
                 return self._get_obs(), -100,   False,      True,      {"collision": True, "type": "dynamic"}
         
         
-        
         #### UAV (non-learning) ####
-        
+
         
         # Now update all non-learning UAVs
         for uav in self.atc.get_uav_list():
             if not isinstance(uav, Auto_UAV_v2):  # Only process non-learning UAVs
                 # Save animation data
-                # self.add_data(uav)
+                self.renderer.add_data(uav)
                 
                 # Get non-learning UAV's observations and check for collisions
                 observation = uav.get_obs()
@@ -364,6 +355,10 @@ class MapEnv(gym.Env):
             # Get Auto-UAV observation data
             raw_obs = self.agent.get_obs()
 
+            with open("output.txt", "w") as file:
+                print(f"Raw observation format: {type(raw_obs)}", file=file)
+                print(f"Raw observation content: {raw_obs}", file=file)
+
             # Transform data for sequential observation format
             transformed_data = transform_sensor_data(
                 raw_obs,
@@ -414,33 +409,16 @@ class MapEnv(gym.Env):
             random.seed(seed)
             np.random.seed(seed)
             
-        # Reset logger for new episode
+        # Reset logger and rendering for new episode
         self.logger.reset()
+        self.renderer.reset()
+
         # Reset tracking for learning agent logging
         self.previous_obs = None
         self.previous_action = None
 
-        # Reset animation information for new episode
+        # Reset environment state
         self.current_time_step = 0
-        self.df = pd.DataFrame({
-            "current_time_step": [],
-            "uav_id": [],
-            "uav": [],
-            "current_position": [],
-            "current_heading": [],
-            "final_heading": [],
-        })
-        # Reset render history
-        self.render_history = []
-        # Reset trajectory tracking
-        self.trajectory_by_id = {}
-        # Clean up animation data if present
-        if hasattr(self, 'animation_data'):
-            del self.animation_data
-        if hasattr(self, 'animation_time_steps'):
-            del self.animation_time_steps
-        if hasattr(self, 'animation_trajectories'):
-            del self.animation_trajectories
 
         #! why seed here (2 of 2)
         random.seed(self._seed)
@@ -517,203 +495,23 @@ class MapEnv(gym.Env):
         print("---------------------------")
 
         return obs, info
-
-    def render(self):
-        """Render the environment with matplotlib."""
-        if self.render_mode is None:
-            return
-                
-        if self.fig is None or self.ax is None:
-            self.fig, self.ax = plt.subplots(figsize=(12, 10))
-            plt.ion()  # Interactive mode on
-            
-        self.ax.clear()
-        
-        # Draw the airspace and restricted areas
-        self.render_static_assets(self.ax)
-        
-        # Store current positions for trajectory history
-        current_positions = []
-        current_uav_ids = []
-        
-        # Draw vertiports with larger markers
-        for vertiport in self.space.get_vertiport_list():
-            self.ax.plot(vertiport.x, vertiport.y, 'gs', markersize=12)
-        
-        # Draw learning agent (with dark blue color like in uam_uav.py)
-        agent_pos = self.agent.current_position
-        current_positions.append((agent_pos.x, agent_pos.y))
-        current_uav_ids.append(self.agent.id)
-        
-        # Agent detection radius
-        agent_detection = Circle((agent_pos.x, agent_pos.y),
-                            self.agent.detection_radius,
-                            fill=False, color='#0278c2', alpha=0.3, linewidth=2)
-        self.ax.add_patch(agent_detection)
-        
-        # Agent NMAC radius
-        agent_nmac = Circle((agent_pos.x, agent_pos.y),
-                        self.agent.nmac_radius,
-                        fill=False, color='#FF7F50', alpha=0.4, linewidth=2)
-        self.ax.add_patch(agent_nmac)
-        
-        # Agent body
-        agent_body = Circle((agent_pos.x, agent_pos.y),
-                        self.agent.radius,
-                        fill=True, color='#0000A0', alpha=0.9)
-        self.ax.add_patch(agent_body)
-        
-        # Agent heading indicator with thicker line
-        heading_length = self.agent.radius * 5  # Make longer for visibility
-        dx = heading_length * np.cos(self.agent.current_heading)
-        dy = heading_length * np.sin(self.agent.current_heading)
-        agent_arrow = FancyArrowPatch((agent_pos.x, agent_pos.y),
-                                (agent_pos.x + dx, agent_pos.y + dy),
-                                color='black',
-                                arrowstyle='->',
-                                mutation_scale=10,
-                                linewidth=2.5)
-        self.ax.add_patch(agent_arrow)
-        
-        # Agent start-end connection with thicker line
-        self.ax.plot([self.agent.start.x, self.agent.end.x],
-                    [self.agent.start.y, self.agent.end.y],
-                    'b--', alpha=0.6, linewidth=2.0)
-        
-        # Draw non-learning UAVs
-        for uav in self.space.get_uav_list():
-            if isinstance(uav, Auto_UAV_v2):
-                continue
-                
-            pos = uav.current_position
-            current_positions.append((pos.x, pos.y))
-            current_uav_ids.append(uav.id)
-            
-            # UAV detection radius
-            detection = Circle((pos.x, pos.y), uav.detection_radius, 
-                        fill=False, color='green', alpha=0.3, linewidth=2)
-            self.ax.add_patch(detection)
-            
-            # UAV NMAC radius
-            nmac = Circle((pos.x, pos.y), uav.nmac_radius, 
-                    fill=False, color='orange', alpha=0.4, linewidth=2)
-            self.ax.add_patch(nmac)
-            
-            # UAV body
-            body = Circle((pos.x, pos.y), uav.radius, 
-                    fill=True, color='blue', alpha=0.7)
-            self.ax.add_patch(body)
-            
-            # UAV heading indicator with thicker line
-            heading_length = uav.radius * 5  # Make longer for visibility
-            dx = heading_length * np.cos(uav.current_heading)
-            dy = heading_length * np.sin(uav.current_heading)
-            arrow = FancyArrowPatch((pos.x, pos.y),
-                                (pos.x + dx, pos.y + dy),
-                                color='black',
-                                arrowstyle='->',
-                                mutation_scale=10,
-                                linewidth=2.5)
-            self.ax.add_patch(arrow)
-            
-            # UAV start-end connection with thicker line
-            self.ax.plot([uav.start.x, uav.end.x],
-                        [uav.start.y, uav.end.y],
-                        'g--', alpha=0.6, linewidth=2.0)
-        
-        # Update trajectory history - maintaining correct UAV ID mapping
-        # Create a dictionary of ID to position if it doesn't exist
-        if not hasattr(self, 'trajectory_by_id'):
-            self.trajectory_by_id = {}
-            
-        # Add current positions to trajectories
-        for uav_id, pos in zip(current_uav_ids, current_positions):
-            if uav_id not in self.trajectory_by_id:
-                self.trajectory_by_id[uav_id] = []
-            self.trajectory_by_id[uav_id].append(pos)
-        
-        # Draw trajectory lines - only for UAVs that still exist
-        for uav_id in current_uav_ids:
-            if uav_id in self.trajectory_by_id and len(self.trajectory_by_id[uav_id]) > 1:
-                xs, ys = zip(*self.trajectory_by_id[uav_id])
-                # Use thicker lines for trajectories
-                line_color = '#0000A0' if uav_id == self.agent.id else 'blue'
-                self.ax.plot(xs, ys, '-', linewidth=2.5, alpha=0.6, color=line_color)
-        
-        # Calculate proper plot limits to see the whole map
-        # First get vertiport boundaries
-        vp_x_coords = [v.x for v in self.space.get_vertiport_list()]
-        vp_y_coords = [v.y for v in self.space.get_vertiport_list()]
-        
-        # Then get UAV positions
-        uav_x_coords = [pos[0] for pos in current_positions]
-        uav_y_coords = [pos[1] for pos in current_positions]
-        
-        # Combine to get full area
-        all_x_coords = vp_x_coords + uav_x_coords
-        all_y_coords = vp_y_coords + uav_y_coords
-        
-        # Add restricted areas dimensions
-        for tag_value in self.airspace.location_tags.keys():
-            # Get bounds of restricted areas
-            restricted_bounds = self.airspace.location_utm[tag_value].bounds
-            if len(restricted_bounds) > 0:
-                for bound in restricted_bounds.values:
-                    if len(bound) >= 4:  # minx, miny, maxx, maxy
-                        all_x_coords.extend([bound[0], bound[2]])
-                        all_y_coords.extend([bound[1], bound[3]])
-        
-        # Set limits with margin
-        if all_x_coords and all_y_coords:
-            x_min, x_max = min(all_x_coords), max(all_x_coords)
-            y_min, y_max = min(all_y_coords), max(all_y_coords)
-            
-            # Add margin to ensure all elements are visible
-            margin = max(500, (x_max - x_min) * 0.1)
-            self.ax.set_xlim(x_min - margin, x_max + margin)
-            self.ax.set_ylim(y_min - margin, y_max + margin)
-        
-        self.ax.set_title(f'UAM Simulation - {self.location_name} - Step {self.current_time_step}')
-        self.ax.set_aspect('equal')
-        
-        plt.draw()
-        plt.pause(self.sleep_time)
-
     
+    def render(self):
+        """Render the current state of the environment."""
+        return self.renderer.render()
+    
+    def create_animation(self, env_time_step):
+        """Create an animation of the environment."""
+        return self.renderer.create_animation(env_time_step)
+    
+    def save_animation(self, animation_obj, file_name):
+        """Save animation to file."""
+        return self.renderer.save_animation(animation_obj, file_name)
+
     def close(self):
         """Close the environment and clean up resources."""
-        # close any ongoing animations 
-        plt.close('all')
-
-        if self.fig is not None:
-            plt.close(self.fig)
-            self.fig = None
-            self.ax = None
-        
-        # Clean up render and animation resources
-        self.render_history = []
-        
-        if hasattr(self, 'trajectory_by_id'):
-            self.trajectory_by_id = {}
-        
-        if hasattr(self, 'animation_data'):
-            del self.animation_data
-        
-        if hasattr(self, 'animation_time_steps'):
-            del self.animation_time_steps
-        
-        if hasattr(self, 'animation_trajectories'):
-            del self.animation_trajectories
-        
-        if hasattr(self, 'df'):
-            self.df = pd.DataFrame({
-                "current_time_step": [],
-                "uav_id": [],
-                "uav": [],
-                "current_position": [],
-                "current_heading": [],
-                "final_heading": [],
-            })
+        # Close renderer
+        self.renderer.close()
 
         # Close the logger
         self.logger.close()

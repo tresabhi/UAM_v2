@@ -36,8 +36,41 @@ class MapLoader:
             Dict containing episode metadata
         """
         metadata_path = os.path.join(self.base_log_dir, episode_dir, 'metadata.json')
-        with open(metadata_path, 'r') as f:
-            return json.load(f)
+    
+        # Check if the metadata file exists
+        if not os.path.exists(metadata_path):
+            print(f"Warning: Metadata file not found: {metadata_path}")
+            # Return empty metadata dictionary
+            return {
+                "timestamp": "unknown",
+                "collision_occurred": False,
+                "collision_agents": [],
+                "collision_type": "none",
+                "non_learning_agents": [],
+                "learning_agents": [],
+                "completed_agents": [],
+                "num_non_learning_agents": 0,
+                "num_learning_agents": 0
+            }
+            
+        # Load and return metadata if it exists
+        try:
+            with open(metadata_path, 'r') as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"Error loading metadata from {metadata_path}: {e}")
+            # Return empty metadata dictionary on error
+            return {
+                "timestamp": "unknown",
+                "collision_occurred": False,
+                "collision_agents": [],
+                "collision_type": "none",
+                "non_learning_agents": [],
+                "learning_agents": [],
+                "completed_agents": [],
+                "num_non_learning_agents": 0,
+                "num_learning_agents": 0
+            }
     
     def get_non_learning_agents(self, episode_dir: str) -> List[str]:
         """Get list of non-learning agent IDs in an episode

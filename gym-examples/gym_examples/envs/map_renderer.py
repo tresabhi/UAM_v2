@@ -522,6 +522,9 @@ class MapRenderer:
         """Render the static assets of the environment (map, restricted areas)."""
         # Draw map boundaries
         self.env.airspace.location_utm_gdf.plot(ax=ax, color="gray", linewidth=0.6)
+        # GRID
+        # need to add grid if needed here 
+        # plt.grid(visible=True)
         
         # Draw restricted areas
         for tag_value in self.env.airspace.location_tags.keys():

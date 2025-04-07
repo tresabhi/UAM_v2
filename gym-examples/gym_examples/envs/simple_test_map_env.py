@@ -21,6 +21,7 @@ from map_logging_loader import MapLoader
 from map_renderer import MapRenderer
 
 # Ensure no global randomness affects our tests
+#FIX: why is seed being used here, seed should be a variable that is passed to the env
 random.seed(0)
 np.random.seed(0)
 

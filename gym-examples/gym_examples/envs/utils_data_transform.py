@@ -494,7 +494,7 @@ def transform_for_uam(data:Tuple[Dict,    Tuple[List,        List]]) -> Dict:
         intruder_current_heading = closest_intruder['other_uav_current_heading']
         intruder_speed = closest_intruder['other_uav_current_speed']
         intruder_relative_speed = abs(host_data['current_speed'] - intruder_speed)
-        intruder_position = closest_intruder['current_position']
+        intruder_position = closest_intruder['other_uav_current_position']
     else:
         intruder_detected = 0
         intruder_id = -1

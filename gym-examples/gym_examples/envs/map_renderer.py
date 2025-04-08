@@ -7,12 +7,12 @@ from matplotlib.patches import Circle, FancyArrowPatch
 from matplotlib.animation import FuncAnimation, FFMpegWriter, PillowWriter
 from uav_v2 import UAV_v2
 from auto_uav_v2 import Auto_UAV_v2
-from map_env_revised import MapEnv
+#from map_env_revised import MapEnv
 
 class MapRenderer:
     """A dedicated class for handling all rendering functionality in MapEnv."""
     
-    def __init__(self, env:MapEnv, render_mode=None, sleep_time=0.005):
+    def __init__(self, env, render_mode=None, sleep_time=0.005):
         """
         Initialize the renderer with a reference to the environment.
         
@@ -203,7 +203,7 @@ class MapRenderer:
         self.ax.set_aspect('equal')
         
         plt.draw()
-        plt.pause(self.sleep_time)
+        plt.pause(self.sleep_time) #! why use this instead of time.sleep()
 
     def create_animation(self, env_time_step):
         """Create an animation of the environment."""

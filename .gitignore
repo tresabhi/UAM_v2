@@ -7,4 +7,5 @@ sarsa_logs
 non_learning_logs
 *.gif
 *.mp4
-
+logs
+output.txt

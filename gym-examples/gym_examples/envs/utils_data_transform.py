@@ -158,6 +158,13 @@ def obs_space_uam():
                     shape=(1,),
                     dtype=np.int64,  #! find if it is possible to create ids that take less space
                 ),
+                #intruder_current_position
+                'intruder_current_position': Box(
+                    low=-10000000,
+                    high=10000000,
+                    shape=(1,),
+                    dtype=np.float64,
+                ),
                 # distance to intruder
                 "distance_to_intruder": Box(
                     low=0,
@@ -487,6 +494,7 @@ def transform_for_uam(data:Tuple[Dict,    Tuple[List,        List]]) -> Dict:
         intruder_current_heading = closest_intruder['other_uav_current_heading']
         intruder_speed = closest_intruder['other_uav_current_speed']
         intruder_relative_speed = abs(host_data['current_speed'] - intruder_speed)
+        intruder_position = closest_intruder['current_position']
     else:
         intruder_detected = 0
         intruder_id = -1
@@ -495,6 +503,7 @@ def transform_for_uam(data:Tuple[Dict,    Tuple[List,        List]]) -> Dict:
         intruder_current_heading = 0.0
         intruder_relative_speed = 0.0
         intruder_speed = 0.0
+        intruder_position = 0.0
     
     # Get restricted airspace data
     if len(ra_data):
@@ -518,6 +527,7 @@ def transform_for_uam(data:Tuple[Dict,    Tuple[List,        List]]) -> Dict:
         'intruder_detected': intruder_detected,
         'intruder_id': intruder_id,
         'distance_to_intruder': distance_to_intruder,
+        'intruder_position': intruder_position,
         'relative_heading_intruder': relative_heading_intruder,
         'intruder_current_heading': intruder_current_heading,
         'relative_intruder_speed': intruder_relative_speed,

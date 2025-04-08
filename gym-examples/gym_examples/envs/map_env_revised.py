@@ -406,7 +406,7 @@ class MapEnv(gym.Env):
         reward += punishment_existence
         
         # Get current state information
-        obs = self._get_obs
+        obs = self._get_obs()
         current_distance = self.agent.current_position.distance(self.agent.end)
         
         if self.obs_space_str == 'UAM_UAV':
@@ -416,6 +416,8 @@ class MapEnv(gym.Env):
             current_deviation = obs['agent_deviation']
             # UAV intruder info
             uav_intruder = obs['intruder_detected']
+            uav_intruder_position = obs['intruder_position']
+            uav_intruder_speed = obs['intruder_speed']
             dist_to_uav = obs['distance_to_intruder']
             uav_relative_heading = obs['relative_heading_intruder']
             # RA intruder info
@@ -452,7 +454,7 @@ class MapEnv(gym.Env):
             # NEW: NMAC-specific state-based rewards
             if dist_to_uav <= self.agent.nmac_radius:
                 # NMAC situation detected - apply state-based rewards
-                nmac_reward = self._get_nmac_state_reward(uav_intruder, dist_to_uav, uav_relative_heading)
+                nmac_reward = self._get_nmac_state_reward(uav_intruder_position, uav_intruder_speed, dist_to_uav, uav_relative_heading)
                 reward += nmac_reward
                 
                 # Add reward/penalty for response time
@@ -487,13 +489,13 @@ class MapEnv(gym.Env):
         
         return reward
     
-    def _get_nmac_state_reward(self, intruder, distance, relative_heading):
+    def _get_nmac_state_reward(self, position, speed, distance, relative_heading):
         """
         Calculate reward/penalty based on NMAC state tuple:
         (quadrant, relative_speed, relative_heading)
         """
         # Get the quadrant of the intruder
-        intruder_pos = self.intruders[intruder].current_position
+        intruder_pos = position
         agent_pos = self.agent.current_position
         
         # Determine quadrant (1-4)
@@ -510,7 +512,7 @@ class MapEnv(gym.Env):
             quadrant = 4
         
         # Determine relative speed category
-        intruder_speed = self.intruders[intruder].speed
+        intruder_speed = speed
         agent_speed = self.agent.current_speed
         speed_diff = intruder_speed - agent_speed
         
@@ -767,6 +769,11 @@ class MapEnv(gym.Env):
             print(f'UAV {uav.id} - Start: {uav.start} end: {uav.end}')
         print(f'Agent - Start: {self.agent.start} end: {self.agent.end}')
         print("---------------------------")
+        
+        #ADDING data to renderer
+        self.renderer.add_data(self.agent)
+        for uav in self.atc.get_uav_list():
+            self.renderer.add_data(uav)
 
         return obs, info
     

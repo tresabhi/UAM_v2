@@ -53,6 +53,7 @@ class UAV_v2_template(ABC):
         self.current_speed = 0
         self.max_speed = 80
         self.max_acceleration = 1 
+        self.rotor_speed = 1 #! this is temp value, we need to find a way to calculate and update this method
 
     @abstractmethod
     def assign_start_end(self, start: Point, end: Point):

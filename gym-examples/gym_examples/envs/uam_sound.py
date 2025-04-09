@@ -159,7 +159,7 @@ def calculate_noise_window(noise_window, minx, miny, noise_intensity = get_noise
     
     for location in location_list:
         pass
-    
+
     
 
     
@@ -170,7 +170,20 @@ def set_noise_matrix():
     pass
 
 
-
+# How to implement these methods in env:
+# initialize noise matrix
+# in step():
+#   for uav in uav_list:
+#       make noise_window for UAV
+#       calculate noise intensity @ UAV's window
+#       super_impose noise window over noise matrix
+# save noise_matrix in xr_array
+# 
+# How to visualize: 
+# use the xr_array 
+# for every timestep:
+#   collect noise_matrix from xr_array @ current_time  
+#   plot noise_matrix USING ??? (there is a matplotlib method for plotting heat map, need to make sure its able to superimpose over existing static and dynamic assets)
 
 if __name__ == '__main__':
     some_window = uav_array_window(5,(1,1))

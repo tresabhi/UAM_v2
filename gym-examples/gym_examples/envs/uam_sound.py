@@ -3,6 +3,7 @@ import numpy as np
 import xarray as xr
 from geopandas import GeoDataFrame as GDF
 from shapely import Point
+from uav_v2_template import UAV_v2_template
 
 
 
@@ -48,10 +49,10 @@ def create_noise_matrix(min_x, min_y, max_x, max_y, cell_dim = 100):
     return noise_matrix
 
 
-
 def uav_array_window(window_ln, center_idx):
     ''' Given window length, and window center index,
-        return indices of surrounding UAV. 
+        return indices of surrounding UAV. The window indices are 
+        indices of the noise matrix, around UAV.  
         
         Args: 
             int, (int, int)
@@ -63,14 +64,10 @@ def uav_array_window(window_ln, center_idx):
     window = []
     row_range = column_range = window_ln//2
     for i in range(center_idx[0]-row_range, center_idx[0]+row_range+1):
-        temp_list = []
         for j in range(center_idx[1]-column_range, center_idx[1]+column_range+1):
-            temp_list.append((i,j))
-        window.append(temp_list)
-
+            window.append((i,j))
+    
     return window
-
-
 
 # position to array index
 def pos2idx(position:Point, minx, miny):
@@ -91,7 +88,6 @@ def pos2idx(position:Point, minx, miny):
     index = (row, col)
     
     return index
-
 
 
 def idx2pos(array_loc, minx, miny, cell_dim=100):
@@ -140,33 +136,31 @@ def get_noise_intensity(uav_current_pos, uav_current_speed, uav_rotor_speed, obs
     return noise_intensity
     
 
-    
-
-
-def calculate_noise_window(noise_window, minx, miny, noise_intensity = get_noise_intensity):
+def calculate_noise_window(uav:UAV_v2_template, win_len, minx, miny, noise_matrix, noise_intensity = get_noise_intensity) -> None:
+    '''Calculate and update the noise matrix'''
     # for a noise matrix and a defined noise window associated with a UAV
     # calculate noise level for the UAV's noise window
     #  
-    idx_list = []
-    for _list in noise_window:
-        for item in _list:
-            idx_list.append(item)
-
-    location_list = []
-    for item in idx_list:
-        position = idx2pos(item, minx, miny)
-        location_list.append(position)
+    uav_idx = pos2idx(uav.current_position, minx, miny)
+    uav_noise_window = uav_array_window(win_len,uav_idx)
     
-    for location in location_list:
-        pass
+    for arr_idx in uav_noise_window:
+        if arr_idx == uav_idx:
+            # when array index matches UAV's array index, we are using UAVs current position to calculate the noise intensity 
+            noise_lvl = noise_intensity(uav.current_position, uav.current_speed, uav.rotorspeed, uav.current_position)
+            noise_matrix[arr_idx] += noise_lvl
+        else:
 
-    
-
-    
+            obs_pos = idx2pos(arr_idx, minx, miny)
+            noise_lvl = noise_intensity(uav.current_position, uav.current_speed, uav.rotor_speed, obs_pos)
+            noise_matrix[arr_idx] += noise_lvl
+            
     pass
 
-def set_noise_matrix():
-    # update the noise matrix given noise window from a UAV
+
+def set_noise_matrix_2_xr(current_time_step, ):
+    # add the noise matrix of current time step to x_array
+
     pass
 
 

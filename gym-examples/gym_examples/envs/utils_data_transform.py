@@ -506,11 +506,13 @@ def transform_for_uam(data:Tuple[Dict,    Tuple[List,        List]]) -> Dict:
         intruder_position = 0.0
     
     # Get restricted airspace data
-    if len(ra_data):
+    if len(ra_data) > 0:
+        # Sort by distance
+        closest_ra = sorted(ra_data, key=lambda x: x['distance'])[0] if len(ra_data) > 1 else ra_data[0]
         ra_detected = 1
-        ra_distance = ra_data['distance']
-        ra_heading = ra_data['ra_heading']
-        ra_type = ra_data['type']
+        ra_distance = closest_ra['distance']
+        ra_heading = closest_ra['ra_heading']
+        ra_type = closest_ra['type']
     else:
         ra_detected = 0
         ra_distance = 0.0

@@ -49,7 +49,7 @@ class UAV_v2_template(ABC):
         self.sensor: SensorTemplate = sensor
         self.dynamics: DynamicsTemplate = dynamics
         self.controller: ControllerTemplate = controller
-        self.mission_complete_distance = 10
+        self.mission_complete_distance = 40 # Increased from 10 to 40 to account for UAV overshotting goal between updates
         self.current_speed = 0
         self.max_speed = 80
         self.max_acceleration = 1 

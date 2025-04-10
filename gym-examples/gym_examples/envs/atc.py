@@ -108,6 +108,27 @@ class ATC():
 
     
     def assign_vertiport_uav(self, uav:UAV_v2_template, start:Vertiport, end:Vertiport )->None:
+        """
+        Assign start and end vertiports to a UAV, ensuring they're different.
+        
+        Args:
+            uav: The UAV to assign vertiports to
+            start: The starting vertiport
+            end: The ending vertiport (should be different from start)
+        """
+        if start.id == end.id or start.location.equals(end.location):
+            # Find a different end vertiport
+            alternative_vertiports = [v for v in self.vertiport_list 
+                                if v.id != start.id and not v.location.equals(start.location)]
+            
+            # If there are alternatives, choose one
+            if alternative_vertiports:
+                end = random.choice(alternative_vertiports)
+                print(f"Found same vertiport for start and end, replaced with different end vertiport")
+            else:
+                print(f"WARNING: No alternative vertiports found, using same start and end")
+        
+        # Assign start and end vertiports to the UAV
         uav.assign_start_end(start.location, end.location)
         return None
 

@@ -179,7 +179,7 @@ class MapSensor(SensorTemplate):
                     # radial angle of vector pointing from centroid of ra to UAVs current_position
                     ra_heading = math.atan2((self_uav.current_position.y - restricted_geometry.centroid.y), (self_uav.current_position.x - restricted_geometry.centroid.x))
                     # Return detection info
-                    return  ra_data.append({
+                    ra_data.append({
                         'type': tag_value,
                         'distance': distance,
                         'ra_heading':ra_heading,

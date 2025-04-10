@@ -266,24 +266,47 @@ class SimpleEnv(gym.Env):
         Returns:
             None
         '''
-        digression = self.agent.dist_to_goal #shapely.distance(self.agent.end, self.agent.current_position) # penalty distance digression
+
+        reward = 0 
         
-        deviation =   self.agent.current_heading - self.agent.get_state()['dest_heading'] # penalty deviation between current_heading, and destination_heading
+        # penalty distance digression
+        digression = self.agent.dist_to_goal #shapely.distance(self.agent.end, self.agent.current_position) 
+        reward -= digression
         
-        dest = None       # reward for reaching destination
+        # penalty deviation between current_heading, and destination_heading
+        deviation =   self.agent.current_heading - self.agent.get_state()['dest_heading'] 
+        reward -= deviation
         
-        some_turn_rate = 10
-        if action[1] > some_turn_rate:
-            turn_rate = None  # penalty for high turn rate 
-        else:
-            turn_rate = 0
+        # reward for reaching destination
+        dest = 100       
+        reward += dest
+
+        # turn_rate_threshold = 10
+        # if action[1] > turn_rate_threshold:
+        #     turn_rate = -1  # penalty for high turn rate 
+        # else:
+        #     turn_rate = 0
         
         if self.agent.sensor.get_nmac(self.agent)[0]:
+            #! if NMAC, 
+            # check how many other agents are in the NMAC area
+            # number_other_agents in NMAC_area * NMAC_penalty 
+
             nmac_incidence = True       # penalty for nmac incidence 
             #! how to calculate closeness for multiple other_agents 
-            closeness = None  # penalty for closeness to intruder/other_agent
+            closeness = -100  # penalty for closeness to intruder/other_agent
         else: 
             nmac_incidence = False
+            closeness = 0
+
+        if self.agent.sensor.get_collision():
+            collision = -10000
+            reward += collision
+        else:
+            collision = 0
+            reward += collision
+        
+        return reward 
 
 
 
@@ -354,19 +377,21 @@ class SimpleEnv(gym.Env):
         # if agent has collision, call reset.
         # if agent reaches goal, call reset.
         # if agent reaches max steps, call reset.
+        # INIT Space
         self.space = Space(
             max_uavs=self.max_uavs, max_vertiports=self.max_vertiports, seed=self._seed
         )
+        # INIT Sensor 
         self.universal_sensor = UniversalSensor(space=self.space)
+        # INIT Controller
         self.static_controller = StaticController(0, 0)
         self.non_coop_smooth_controller = NonCoopControllerSmooth(10, 2)
         self.non_coop_controller_orca = ORCA_controller(10,np.pi, 5, 0.1)
         self.non_coop_controller = NonCoopController(10, 1)
-        
+        # INIT Dynamics
         self.orca_dynamics = ORCA_Dynamics()
         self.pm_dynamics = PointMassDynamics()
         self.agent_pm_dynamics = PointMassDynamics(is_learning=True)
-        self.universal_sensor = UniversalSensor(space=self.space)
 
         # --- Vertiport construction ---
         self.space.create_circular_pattern_vertiports(8, 300)
@@ -413,14 +438,14 @@ class SimpleEnv(gym.Env):
                 action = uav.get_action(observation=observation)
                 self.non_learning_logger.log_step(uav.id, observation, action)
 
-        ##### check UAV and start - end points ######
+        ##### BEGIN: check UAV and start - end points ######
 
         for uav in self.space.get_uav_list():
             print(f'Start: {uav.start} end: {uav.end} ')
 
 
 
-        ##### check UAV and start - end points ######
+        ##### END:  check UAV and start - end points ######
 
         return obs, info
 

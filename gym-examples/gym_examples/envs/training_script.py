@@ -68,7 +68,7 @@ for epoch in range(epochs):
     for t in range(steps_per_epoch):
         #### LSTM-A2C MODEL STEP ####
         # get action, and value from actor-critic model 
-        
+        print(f'step: {t}')
         learning_state, other_agents_states, mask = process_obs(obs)
         learning_state_tensor = tensor(learning_state, dtype=torch.float32)
         other_agents_tensor = unsqueeze(tensor(other_agents_states, dtype=torch.float32), 0)

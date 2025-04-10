@@ -4,7 +4,7 @@ from pandas import DataFrame
 import numpy as np
 import shapely
 from uav_v2_template import UAV_v2_template
-from utils import compute_time_to_impact
+# from utils import compute_time_to_impact
 
 class UniversalSensor(SensorTemplate):
 

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Dict, List
+from typing import Dict, List, Tuple, Any
 import numpy as np 
 class SensorTemplate(ABC):
 
@@ -24,12 +24,12 @@ class SensorTemplate(ABC):
         return self.data
     
     @abstractmethod
-    def get_nmac(self):
+    def get_nmac(self) -> Tuple[bool, List]:
         '''Collect the time step and UAVs with who there was an NMAC'''
         pass
     
     @abstractmethod
-    def get_collision(self,):
+    def get_collision(self,) -> Tuple[bool, Tuple[Any, Any]]:
         '''returns a bool if there is a collision along with UAV id'''
         pass
     

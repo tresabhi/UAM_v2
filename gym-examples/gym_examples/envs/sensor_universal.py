@@ -1,5 +1,5 @@
 from sensor_template import SensorTemplate
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Any
 from pandas import DataFrame
 import numpy as np
 import shapely
@@ -37,18 +37,6 @@ class UniversalSensor(SensorTemplate):
     def get_data(self) -> List[Dict]:
         return self.data
        
-
-    def get_collision(self, self_uav:UAV_v2_template):
-        uav_list = self.space.get_uav_list()
-        
-        for uav in uav_list:
-            if uav.id == self_uav.id:
-                continue
-            else:
-                if self_uav.current_position.buffer(self_uav.radius).intersects(uav.current_position.buffer(uav.radius)):
-                    return True, (self_uav.id, uav.id)
-        return False, None
-
     def get_nmac(self, self_uav:UAV_v2_template) -> Tuple[bool, List]:
         nmac_list = []
         uav_list = self.space.get_uav_list()
@@ -62,4 +50,16 @@ class UniversalSensor(SensorTemplate):
         if len(nmac_list) > 0:
             return True, nmac_list
         return False, nmac_list
+
+    def get_collision(self, self_uav:UAV_v2_template) -> Tuple[bool, Tuple[Any, Any]]:
+        uav_list = self.space.get_uav_list()
+        
+        for uav in uav_list:
+            if uav.id == self_uav.id:
+                continue
+            else:
+                if self_uav.current_position.buffer(self_uav.radius).intersects(uav.current_position.buffer(uav.radius)):
+                    return True, (self_uav.id, uav.id)
+        return False, None
+
             

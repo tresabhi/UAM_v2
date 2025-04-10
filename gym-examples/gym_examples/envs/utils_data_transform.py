@@ -238,6 +238,10 @@ def transform_for_graph(data, max_number_other_agents_observed) -> Dict:
 
 
 def process_obs(obs:Dict): 
+    '''Process transformed obs and make three arrays.
+    1. - learning agent obs array
+    2. - other agents obs array
+    3. - mask'''
     # obs -> dict('learning_agent_attribute'........,
     #             'other_agents_states':[[1,2,3],[4,5,6], ....])
 
@@ -246,7 +250,7 @@ def process_obs(obs:Dict):
     for obs_keys, obs_value in obs.items():
         if obs_keys != 'other_agents_states' and obs_keys != 'mask':
             learning_agent_states.append(obs_value)
-        elif obs_keys == 'other_agents_states':
+        elif obs_keys == 'other_agents_states' and obs_keys != 'mask':
             other_agents_states = obs_value
         else:
             mask = obs_value

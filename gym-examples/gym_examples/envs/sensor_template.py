@@ -25,12 +25,14 @@ class SensorTemplate(ABC):
     
     @abstractmethod
     def get_nmac(self) -> Tuple[bool, List]:
-        '''Collect the time step and UAVs with who there was an NMAC'''
+        '''Return NMAC status (True/False).
+        If there is NMAC this method will return True, and list of nmac UAV'''
         pass
     
     @abstractmethod
     def get_collision(self,) -> Tuple[bool, Tuple[Any, Any]]:
-        '''returns a bool if there is a collision along with UAV id'''
+
+        '''returns a bool if there is a collision along with own id and UAV id'''
         pass
     
     

@@ -234,7 +234,7 @@ class SimpleEnv(gym.Env):
                 
                 # Get and apply non-learning UAV's action based on its controller
                 uav_action = uav.get_action(observation=observation)
-                print(f'uav action: {uav_action}')
+                #print(f'uav action: {uav_action}')
                 uav.dynamics.update(uav, uav_action)
 
                 # Log the state-action pair for this non-learning UAV
@@ -299,7 +299,7 @@ class SimpleEnv(gym.Env):
             closeness = 0
             reward += closeness
 
-        if self.agent.sensor.get_collision():
+        if self.agent.sensor.get_collision(self.agent):
             collision = -10000
             reward += collision
         else:

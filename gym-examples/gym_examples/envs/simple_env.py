@@ -292,12 +292,12 @@ class SimpleEnv(gym.Env):
             # check how many other agents are in the NMAC area
             # number_other_agents in NMAC_area * NMAC_penalty 
 
-            nmac_incidence = True       # penalty for nmac incidence 
-            #! how to calculate closeness for multiple other_agents 
-            closeness = -100  # penalty for closeness to intruder/other_agent
+            nmac_qt = len(self.agent.sensor.get_nmac()[1])
+            closeness = 100*nmac_qt  # penalty for closeness to intruder/other_agent
+            reward -= closeness
         else: 
-            nmac_incidence = False
             closeness = 0
+            reward += closeness
 
         if self.agent.sensor.get_collision():
             collision = -10000

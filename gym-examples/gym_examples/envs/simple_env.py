@@ -243,6 +243,12 @@ class SimpleEnv(gym.Env):
                 # If UAV completed its mission, log it
                 if uav_mission_complete_status:
                     self.non_learning_logger.mark_agent_complete(uav.id)
+                    #### REMOVING UAV ####
+                    for i, _uav in enumerate(self.space.uav_list):
+                        if _uav.id == uav.id:
+                            self.space.uav_list.pop(i)
+                            print(f'removing UAV: {_uav.id}')
+                
                 
                 if __debug__:  # Debug printing for state verification
                     # print(f"Non-learning UAV State:\n{uav.get_state()}\n")

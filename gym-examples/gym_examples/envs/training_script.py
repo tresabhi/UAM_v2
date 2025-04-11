@@ -3,7 +3,7 @@ import torch
 import time
 
 from LSTM_A2C_core import LSTM_A2C
-from LSTM_A2C_utils import VPGBuffer, update_actor_critic, count_vars
+from LSTM_A2C_utils import VPGBuffer, update_actor_critic, count_vars, pi_optimizer, vf_optimizer
 from logx import Logger, EpochLogger
 from utils_data_transform import process_obs
 from mpi_pytorch import sync_params
@@ -17,16 +17,19 @@ from simple_env import SimpleEnv
 
 #### model HYPER-PARAMETER ####
 env = SimpleEnv(obs_space_str='seq', sorting_criteria='closest first')
-epochs = 100               # for training the actor and critic network
-steps_per_epoch = 4000      # data collection steps - each step collects state, action, next_state
+epochs = 2               # for training the actor and critic network
+steps_per_epoch = 40      # data collection steps - each step collects state, action, next_state
                             # steps per epoch - should be more than episode length                               
-max_ep_len = 3500           # gym episode length
-save_freq = 100
+max_ep_len = 35           # gym episode length
+save_freq = 10
 
 
 #! need to provide arguments 
 other_agents_states_size = env.get_obs_shape()['other_agents_states_shape']
+num_other_agents = env.max_number_other_agents_observed
+# print(f'other agents states size: {other_agents_states_size}')
 learning_agent_state_size = env.get_obs_shape()['learning_agent_state_shape'] 
+# print(f'learning agent states size: {learning_agent_state_size}')
 lstm_hidden_size = 64
 fc_output_size = 256
 action_size = env.action_space.shape[0]
@@ -43,7 +46,7 @@ print(f'learning agent state size: {learning_agent_state_size}')
 print(f'observation: {obs}')
 ####          ####
 
-buf = VPGBuffer(learning_agent_state_size, action_size, steps_per_epoch*epochs) 
+buf = VPGBuffer(learning_agent_state_size, other_agents_states_size, num_other_agents, action_size, steps_per_epoch) 
 # setup logger and save config
 logger = EpochLogger()
 # print(locals())
@@ -68,11 +71,12 @@ for epoch in range(epochs):
     for t in range(steps_per_epoch):
         #### LSTM-A2C MODEL STEP ####
         # get action, and value from actor-critic model 
-        print(f'step: {t}')
+        #print(f'step: {t}')
         learning_state, other_agents_states, mask = process_obs(obs)
         learning_state_tensor = tensor(learning_state, dtype=torch.float32)
         other_agents_tensor = unsqueeze(tensor(other_agents_states, dtype=torch.float32), 0)
-        
+        # print(learning_state_tensor.shape)
+        # print(other_agents_tensor.shape)
         #FIX: remove torch.as_tensor, convert to torch tensor inside model
         a, v, logp = lstm_a2c(learning_state_tensor, other_agents_tensor)
     
@@ -85,7 +89,8 @@ for epoch in range(epochs):
 
         # save and log
         buf_obs = learning_state
-        buf.store(buf_obs, a, reward, v, logp)
+        buf_other_obs = other_agents_states
+        buf.store(buf_obs, buf_other_obs, a, reward, v, logp)
         logger.store(VVals=v)
         
         # Update obs (critical!)
@@ -110,7 +115,8 @@ for epoch in range(epochs):
             if terminal:
                 # only save EpRet / EpLen if trajectory finished
                 logger.store(EpRet=ep_ret, EpLen=ep_len)
-            obs, ep_ret, ep_len = env.reset(), 0, 0
+            print('CALLING RESET')
+            (obs,info), ep_ret, ep_len = env.reset(), 0, 0
 
 
     # Save model
@@ -118,7 +124,12 @@ for epoch in range(epochs):
         logger.save_state({'env': env}, None)
 
     # Perform VPG update!
-    update_actor_critic()
+    #! 
+    # INIT pi optim
+    pi_optim = pi_optimizer('adam', lstm_a2c, pi_lr=0.0003)
+    # INIT v optim
+    v_optim = vf_optimizer('adam', lstm_a2c, 0.0001)
+    update_actor_critic(lstm_a2c, buf, logger, train_v_iters=2, pi_optim=pi_optim, vf_optim=v_optim)
 
     # Log info about epoch
     logger.log_tabular('Epoch', epoch)

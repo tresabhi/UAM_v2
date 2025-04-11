@@ -18,8 +18,13 @@ class VPGBuffer:
     """
                                     # what is gamma, and lam
                                     # gamma - discount factor, lambda ???
-    def __init__(self, obs_dim, act_dim, size, gamma=0.99, lam=0.95):
-        self.obs_buf = np.zeros(combined_shape(size, obs_dim), dtype=np.float32)
+    def __init__(self, agent_obs_dim, other_obs_dim, num_other_agent,act_dim, size, gamma=0.99, lam=0.95):
+        #learning agent
+        self.obs_buf = np.zeros(combined_shape(size, agent_obs_dim), dtype=np.float32)
+        #non-learning agent
+        #                                                  combined_shape(): can unpack tuple
+        self.other_obs_buf = np.zeros(combined_shape(size,(other_obs_dim, num_other_agent)))
+
         self.act_buf = np.zeros(combined_shape(size, act_dim), dtype=np.float32)
         self.adv_buf = np.zeros(size, dtype=np.float32)
         self.rew_buf = np.zeros(size, dtype=np.float32)
@@ -29,12 +34,16 @@ class VPGBuffer:
         self.gamma, self.lam = gamma, lam
         self.ptr, self.path_start_idx, self.max_size = 0, 0, size
 
-    def store(self, obs, act, rew, val, logp):
+    def store(self, obs, other_obs, act, rew, val, logp):
         """
         Append one timestep of agent-environment interaction to the buffer.
         """
         assert self.ptr < self.max_size     # buffer has to have room so you can store
+        #learning agent
         self.obs_buf[self.ptr] = obs
+        #non-learning agent 
+        self.other_obs_buf[self.ptr] = other_obs
+        
         self.act_buf[self.ptr] = act
         self.rew_buf[self.ptr] = rew
         self.val_buf[self.ptr] = val
@@ -90,7 +99,8 @@ class VPGBuffer:
         #! find a method that will calculate the mean and std_dev for a ndarray data
         adv_mean, adv_std = mpi_statistics_scalar(self.adv_buf)
         self.adv_buf = (self.adv_buf - adv_mean) / adv_std
-        data = dict(obs=self.obs_buf, 
+        data = dict(obs=self.obs_buf,
+                    other_obs = self.other_obs_buf, 
                     act=self.act_buf, 
                     ret=self.ret_buf,   # Reward to Go
                     adv=self.adv_buf,   # Advantage function
@@ -101,14 +111,19 @@ class VPGBuffer:
 
 
 
-
-
-def compute_loss_pi(data, ac):
-    obs, act, adv, logp_old = data['obs'], data['act'], data['adv'], data['logp']
-
+#   why 5 feats in obs
+#   (40,5)               data -> coming from buffer 
+def compute_loss_pi(data, model): # ac has to be lstm-a2c
+    obs, other_obs, act, adv, logp_old = data['obs'], data['other_obs'], data['act'], data['adv'], data['logp']
     # Policy loss
         # pi is distribution - in this case its a Normal distribution
-    pi, logp = ac.pi(obs, act)
+    # print(obs.shape), print(act.shape)
+
+    # model: lstm-a2c, model.pi does not exist !!!
+    _, (h_out,_) = model.lstm_net(other_obs) # other_obs shape: size, num_other_uav, other_states
+    _comb_obs = torch.cat((obs, torch.squeeze(h_out, dim=0)), dim=1)
+    _fc_out = model.fc_network(_comb_obs)
+    pi, logp = model.a2c.pi(_fc_out, act)
     loss_pi = -(logp * adv).mean() # REMEMBER:
                                     # grad_J approximated - grad_log_pi,
                                     # the negative because, pytorch's gradient op always minimizes loss
@@ -126,29 +141,35 @@ def compute_loss_pi(data, ac):
 
 
 # Set up function for computing value loss
-def compute_loss_v(data, ac):
-    obs, ret = data['obs'], data['ret']
-    return ((ac.v(obs) - ret)**2).mean() # MSE loss 
+def compute_loss_v(data, model):
+    # model: lstm-a2c, model.pi does not exist !!!
+    obs, other_obs, ret = data['obs'], data['other_obs'], data['ret']
+    _, (h_out,_) = model.lstm_net(other_obs)
+    _comb_obs = torch.cat((obs, torch.squeeze(h_out, dim=0)), dim=1)
+    _fc_out = model.fc_network(_comb_obs)
+    val = model.a2c.v(_fc_out)
+    # model: lstm-a2c, model.v does not exist !!!
+    return ((val - ret)**2).mean() # MSE loss 
 
 
-def pi_optimizer(optim_str, ac, pi_lr):
+def pi_optimizer(optim_str, model, pi_lr):
     '''ADAM or RMS_Prop.
     adam: for ADAM optimizer,
     rms:  for RMS_Prop optimizer'''
     if optim_str == 'adam':
-        return Adam(ac.pi.parameters(), lr = pi_lr)
+        return Adam(model.a2c.pi.parameters(), lr = pi_lr)
     elif optim_str == 'rms':
         pass
     else:
         raise RuntimeError('Invalid str for policy optimizer choice')
 
 
-def vf_optimizer(optim_str, ac, v_lr):
+def vf_optimizer(optim_str, model, v_lr):
     '''ADAM or RMS_Prop
     adam: for ADAM optimizer,
     rms:  for RMS_Prop optimizer'''
     if optim_str == 'adam':
-        return Adam(ac.v.parameters(), lr = v_lr)
+        return Adam(model.a2c.v.parameters(), lr = v_lr)
     elif optim_str == 'rms':
         pass
     else:
@@ -158,40 +179,43 @@ def vf_optimizer(optim_str, ac, v_lr):
 # call to this method will update the policy network once, 
 # and update the value network train_v_iters times.
 # During training this method will need to be called iteratively.  
-def update_actor_critic(buf, logger,train_v_iters):
+def update_actor_critic(model, buf, logger,train_v_iters, pi_optim, vf_optim):
         '''
         Use collected data to update the parameters of pi and v network.
         This method updates policy network once and value network train_v_iters times. 
         '''
         # data for whole epoch
-        data = buf.get()
+        # need to update the get method so that it return
+        # 1. learning_agent obs
+        # 2. other_agent_obs  
+        data = buf.get() 
 
         # Get loss and info values before update
-        pi_l_old, pi_info_old = compute_loss_pi(data)
+        pi_l_old, pi_info_old = compute_loss_pi(data, model) #ac_model is ac inside LSTM-A2C
         pi_l_old = pi_l_old.item()
-        v_l_old = compute_loss_v(data).item()
+        v_l_old = compute_loss_v(data, model).item()
 
         # Train policy with a single step of gradient descent
-        pi_optimizer.zero_grad()
-        loss_pi, pi_info = compute_loss_pi(data)
+        pi_optim.zero_grad()
+        loss_pi, pi_info = compute_loss_pi(data, model)
         loss_pi.backward()
 
         #mpi_avg_grads(ac.pi)    # average grads across MPI processes
 
-        pi_optimizer.step()
+        pi_optim.step()
 
         # Value function learning
         for i in range(train_v_iters): 
             # REMEMBER: train_v_iters = 80,
             # meaning using the same loss its taking 80 update steps for the val_func
             #! WHY take so many gradient update steps  ???
-            vf_optimizer.zero_grad()
-            loss_v = compute_loss_v(data)
+            vf_optim.zero_grad()
+            loss_v = compute_loss_v(data, model)
             loss_v.backward()
             
             #mpi_avg_grads(ac.v)    # average grads across MPI processes
             
-            vf_optimizer.step()
+            vf_optim.step()
 
         # Log changes from update
         kl, ent = pi_info['kl'], pi_info_old['ent']

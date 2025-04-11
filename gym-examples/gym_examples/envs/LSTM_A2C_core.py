@@ -9,12 +9,11 @@ from torch.distributions.categorical import Categorical
 
 
 class LSTM_embedding_Network(nn.Module):
-    def __init__(self, feature_size, hidden_size, batch_size=1):
+    def __init__(self, feature_size, hidden_size):
         super().__init__()
         # input
         # LSTM layer
         self.hidden_size = hidden_size
-        self.batch_size = batch_size
         self.lstm = nn.LSTM(feature_size, hidden_size, batch_first=True)
 
     # x: np.array - shape(no_other_agents, feats):(4,7)or(10,7)
@@ -27,6 +26,7 @@ class LSTM_embedding_Network(nn.Module):
         # INPUT - dtype - torch.Tensor
         # define the flow of input data x
         # OUTPUT - a vector, dtype - torch.Tensor
+        self.batch_size, _ , _ = x.shape
         h0 = torch.zeros((1, self.batch_size, self.hidden_size))
         c0 = torch.zeros((1, self.batch_size, self.hidden_size))
         #! QUESTION
@@ -246,12 +246,13 @@ if __name__ == "__main__":
     print(lstm_a2c)
 
     ### TESTING MODEL ###
+    #           this parameter ----------------------> 
     # batch: 1, other_agents:4, other_agent_state:7
-    other_agent_states = torch.randn((1, 4, 7))
+    other_agent_states = torch.randn((1, 10, 7))
     learning_agent_state = torch.randn((9))
 
     print(f'learn shape: {learning_agent_state.shape}')
     print(f'other shape: {other_agent_states.shape}')
 
-    # action, value, logp = lstm_a2c(learning_agent_state, other_agent_states)
-    # print(action, value, logp)
+    action, value, logp = lstm_a2c(learning_agent_state, other_agent_states)
+    print(action, value, logp)

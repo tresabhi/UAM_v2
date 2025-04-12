@@ -88,9 +88,9 @@ class MapEnv(gym.Env):
             )
         
         self.action_space = spaces.Box(
-            low=np.array([-1, -1]),  # [acceleration, heading_change]
+            low=np.array([0, -1]),  # [acceleration, heading_change]
             high=np.array([1, 1]),
-            shape=(2,),
+            shape=(2,),  # Updated shape back to (2,)
             dtype=np.float64,
         )
 
@@ -115,6 +115,8 @@ class MapEnv(gym.Env):
             info: Additional information
         """
         # Update learning agent with provided action
+        print("Map ENV Step Method")
+        print(action)
         self.agent.dynamics.update(self.agent, action)
         
         # Save animation data for all UAVs
@@ -403,7 +405,109 @@ class MapEnv(gym.Env):
         
     #     return float(reward)
     
+    """Revised reward"""
+    # def _get_reward(self):
+    #     # Base reward from existing function
+    #     reward = 0.0
+
+    #     # Key reward/punishment parameters
+    #     punishment_existence = -0.1
+    #     uav_punishment_closeness = 0
+    #     ra_punishment_closeness = 0
+    #     heading_efficiency = 0
+    #     progress = 0
+
+    #     reward += punishment_existence
+        
+    #     # Get current state information
+    #     obs = self._get_obs()
+    #     current_distance = self.agent.current_position.distance(self.agent.end)
+        
+    #     if self.obs_space_str == 'UAM_UAV':
+    #         # Agent info
+    #         current_speed = obs['agent_speed']
+    #         current_heading = obs['agent_current_heading']
+    #         current_deviation = obs['agent_deviation']
+    #         # UAV intruder info
+    #         uav_intruder = obs['intruder_detected']
+    #         uav_intruder_position = obs['intruder_position']
+    #         uav_intruder_speed = obs['intruder_speed']
+    #         dist_to_uav = obs['distance_to_intruder']
+    #         uav_relative_heading = obs['relative_heading_intruder']
+    #         # RA intruder info
+    #         ra_intruder = obs['restricted_airspace_detected']
+    #         dist_to_ra = obs['distance_to_restricted_airspace']
+    #         ra_relative_heading = obs['relative_heading_restricted_airspace']
+        
+    #     # Progress reward
+    #     if hasattr(self, 'previous_distance') and self.previous_distance is not None:
+    #         progress = self.previous_distance - current_distance
+    #         # Exponential scaling for distance factor to emphasize final approach
+    #         distance_factor = np.exp(-current_distance / 5000)
+    #         reward += progress * 15.0 * (1.0 + distance_factor)
+    #     self.previous_distance = current_distance
+        
+    #     # Heading efficiency reward
+    #     ref_heading = math.atan2(
+    #         self.agent.end.y - self.agent.current_position.y,
+    #         self.agent.end.x - self.agent.current_position.x
+    #     )
+    #     heading_diff = ((math.degrees(ref_heading) - math.degrees(self.agent.current_heading) + 180) % 360) - 180
+    #     heading_efficiency = np.cos(np.deg2rad(heading_diff))
+    #     reward += heading_efficiency * 0.5  # Added this line which was missing
+
+    #     # UAV intruder collision avoidance
+    #     # No UAV intruder detection
+    #     if uav_intruder == 0:
+    #         uav_punishment_closeness = 0
+    #     # UAV intruder detected 
+    #     else:
+    #         normed_nmac_distance = self.agent.nmac_radius / self.agent.detection_radius
+    #         uav_punishment_closeness = -math.exp(normed_nmac_distance - dist_to_uav * 10.0)
+            
+    #         # NEW: NMAC-specific state-based rewards
+    #         if dist_to_uav <= self.agent.nmac_radius:
+    #             # NMAC situation detected - apply state-based rewards
+    #             nmac_reward = self._get_nmac_state_reward(uav_intruder_position, uav_intruder_speed, dist_to_uav, uav_relative_heading)
+    #             reward += nmac_reward
+                
+    #             # Add reward/penalty for response time
+    #             if hasattr(self, 'nmac_detected_time'):
+    #                 # If we already detected NMAC before
+    #                 response_time = self.current_time_step - self.nmac_detected_time
+    #                 # Penalize longer response times exponentially
+    #                 response_penalty = -0.5 * math.exp(min(response_time / 2.0, 5.0))
+    #                 reward += response_penalty
+    #             else:
+    #                 # First time detecting NMAC
+    #                 self.nmac_detected_time = self.current_time_step
+    #         else:
+    #             # If we're no longer in NMAC but were previously
+    #             if hasattr(self, 'nmac_detected_time'):
+    #                 # Reward for successfully exiting NMAC
+    #                 reward += 2.0
+    #                 # Reset NMAC detection time
+    #                 delattr(self, 'nmac_detected_time')
+        
+    #     # RA intruder collision avoidance
+    #     # No RA intruder detection
+    #     if ra_intruder == 0:
+    #         ra_punishment_closeness = 0
+    #     # RA intruder detected
+    #     else:
+    #         normed_nmac_distance = self.agent.nmac_radius / self.agent.detection_radius
+    #         ra_punishment_closeness = -math.exp(normed_nmac_distance - dist_to_ra * 10.0)
+        
+    #     # Add proximity penalties to total reward
+    #     reward += uav_punishment_closeness + ra_punishment_closeness
+        
+    #     return reward
+
     def _get_reward(self):
+        """
+        Calculate the reward for the learning agent with the updated observation format.
+        Handles both the goal-seeking behavior and collision avoidance.
+        """
         # Base reward from existing function
         reward = 0.0
 
@@ -421,20 +525,32 @@ class MapEnv(gym.Env):
         current_distance = self.agent.current_position.distance(self.agent.end)
         
         if self.obs_space_str == 'UAM_UAV':
-            # Agent info
-            current_speed = obs['agent_speed']
-            current_heading = obs['agent_current_heading']
-            current_deviation = obs['agent_deviation']
-            # UAV intruder info
-            uav_intruder = obs['intruder_detected']
-            uav_intruder_position = obs['intruder_position']
-            uav_intruder_speed = obs['intruder_speed']
-            dist_to_uav = obs['distance_to_intruder']
-            uav_relative_heading = obs['relative_heading_intruder']
-            # RA intruder info
-            ra_intruder = obs['restricted_airspace_detected']
-            dist_to_ra = obs['distance_to_restricted_airspace']
-            ra_relative_heading = obs['relative_heading_restricted_airspace']
+            # Agent info - extract values from numpy arrays
+            current_speed = obs['agent_speed'][0]
+            current_heading = obs['agent_current_heading'][0]
+            current_deviation = obs['agent_deviation'][0]
+            
+            # UAV intruder info - extract values from numpy arrays
+            uav_intruder = obs['intruder_detected'][0]
+            dist_to_uav = obs['distance_to_intruder'][0]
+            uav_relative_heading = obs['relative_heading_intruder'][0]
+            
+            # Intruder position info
+            intruder_position_x = obs['intruder_position_x'][0]
+            intruder_position_y = obs['intruder_position_y'][0]
+            intruder_speed = obs['intruder_speed'][0]
+            
+            # Create a Point object from coordinates for _get_nmac_state_reward function
+            from shapely import Point
+            if uav_intruder > 0.5:  # If intruder is detected
+                intruder_position = Point(intruder_position_x, intruder_position_y)
+            else:
+                intruder_position = None
+            
+            # RA intruder info - extract values from numpy arrays
+            ra_intruder = obs['restricted_airspace_detected'][0]
+            dist_to_ra = obs['distance_to_restricted_airspace'][0]
+            ra_relative_heading = obs['relative_heading_restricted_airspace'][0]
         
         # Progress reward
         if hasattr(self, 'previous_distance') and self.previous_distance is not None:
@@ -451,21 +567,19 @@ class MapEnv(gym.Env):
         )
         heading_diff = ((math.degrees(ref_heading) - math.degrees(self.agent.current_heading) + 180) % 360) - 180
         heading_efficiency = np.cos(np.deg2rad(heading_diff))
-        reward += heading_efficiency * 0.5  # Added this line which was missing
+        reward += heading_efficiency * 0.5
 
         # UAV intruder collision avoidance
-        # No UAV intruder detection
-        if uav_intruder == 0:
+        if uav_intruder < 0.5:  # No UAV intruder detection
             uav_punishment_closeness = 0
-        # UAV intruder detected 
-        else:
+        else:  # UAV intruder detected
             normed_nmac_distance = self.agent.nmac_radius / self.agent.detection_radius
             uav_punishment_closeness = -math.exp(normed_nmac_distance - dist_to_uav * 10.0)
             
-            # NEW: NMAC-specific state-based rewards
-            if dist_to_uav <= self.agent.nmac_radius:
+            # NMAC-specific state-based rewards
+            if dist_to_uav <= self.agent.nmac_radius and intruder_position is not None:
                 # NMAC situation detected - apply state-based rewards
-                nmac_reward = self._get_nmac_state_reward(uav_intruder_position, uav_intruder_speed, dist_to_uav, uav_relative_heading)
+                nmac_reward = self._get_nmac_state_reward(intruder_position, intruder_speed, dist_to_uav, uav_relative_heading)
                 reward += nmac_reward
                 
                 # Add reward/penalty for response time
@@ -487,16 +601,18 @@ class MapEnv(gym.Env):
                     delattr(self, 'nmac_detected_time')
         
         # RA intruder collision avoidance
-        # No RA intruder detection
-        if ra_intruder == 0:
+        if ra_intruder < 0.5:  # No RA intruder detection
             ra_punishment_closeness = 0
-        # RA intruder detected
-        else:
+        else:  # RA intruder detected
             normed_nmac_distance = self.agent.nmac_radius / self.agent.detection_radius
             ra_punishment_closeness = -math.exp(normed_nmac_distance - dist_to_ra * 10.0)
         
         # Add proximity penalties to total reward
         reward += uav_punishment_closeness + ra_punishment_closeness
+        
+        # Add goal reached reward (using mission_complete_distance)
+        if current_distance < self.agent.mission_complete_distance:
+            reward += 1000.0
         
         return reward
     
@@ -720,7 +836,7 @@ class MapEnv(gym.Env):
         self.non_coop_smooth_controller = NonCoopControllerSmooth(10, 2)
         self.non_coop_controller = NonCoopController(10, 1)
         self.pm_dynamics = PointMassDynamics()
-        self.agent_pm_dynamics = PointMassDynamics(is_learning=True)
+        self.agent_pm_dynamics = PointMassDynamics()
 
         # Create vertiports
         num_vertiports = min(self.max_vertiports, self.number_of_vertiport)  # Use a reasonable number

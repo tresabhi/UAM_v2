@@ -311,7 +311,7 @@ if __name__ == "__main__":
     # Increase to 500 steps to see more movement
     test_map_env_with_random_actions(
         episodes=2,
-        max_steps_per_episode=500,
+        max_steps_per_episode=250,
         render=True,
         save_animation=has_animation,
         env_seed=env_seed,

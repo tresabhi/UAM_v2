@@ -95,7 +95,7 @@ class Airspace:
         """
         return self.vertiport_list
 
-    def create_n_random_vertiports(self, num_vertiports: int) -> None:
+    def create_n_random_vertiports(self, num_vertiports: int, seed = None) -> None:
         """
         Creates a specified number of random vertiports within the airspace.
 
@@ -109,6 +109,12 @@ class Airspace:
             - Creates the vertiports and updates the vertiports in the airspace list.
         """
 
+        # Set seed if provided
+        if seed is not None:
+            print(f"Creating vertiports with seed: {seed}")
+            random.seed(seed)
+            np.random.seed(seed)
+
         if num_vertiports > self.number_of_vertiports:
             raise RuntimeError('Exceeds vertiport number defined for initialization')
 
@@ -118,13 +124,15 @@ class Airspace:
             )
 
         sample_space_gdf = GeoSeries(sample_space)
-        sample_vertiport: GeoSeries = sample_space_gdf.sample_points(num_vertiports)
+        sample_vertiport: GeoSeries = sample_space_gdf.sample_points(num_vertiports, seed=seed)
         sample_vertiport_array: np.ndarray = shapely.get_parts(sample_vertiport[0])
 
         for location in sample_vertiport_array:
             self.vertiport_list.append(
                 Vertiport(location=location, uav_list=[])
-            )  
+            )
+
+        print(f"Created {len(self.vertiport_list)} vertiports with seed {seed}")
 
     def create_vertiport_at_location(self, position:Tuple)-> None:
         """Create a vertiport at position(x,y)."""

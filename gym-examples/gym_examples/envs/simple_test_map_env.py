@@ -53,7 +53,8 @@ def simple_reward(self):
 MapEnv._get_reward = simple_reward
 
 def test_map_env_with_random_actions(episodes=2, max_steps_per_episode=50, render=True, 
-                                     save_animation=True, env_seed=42, episode_seeds=None):
+                                     save_animation=True, env_seed=42, episode_seeds=None,
+                                     mp4_only=True):
     """
     Test the MapEnv with random actions to verify all components work together.
     Using a simplified reward function that just returns 0.
@@ -65,12 +66,13 @@ def test_map_env_with_random_actions(episodes=2, max_steps_per_episode=50, rende
         save_animation: Whether to save animations
         env_seed: Initial seed for environment creation
         episode_seeds: List of seeds for each episode (if None, will generate)
+        mp4_only: If True, only save MP4 and skip backup GIF creation
     """
     # Set up seeds - use clearly different values
     if episode_seeds is None:
         # Generate very different seeds for each episode
         episode_seeds = [env_seed + 1000 * (i+1) for i in range(episodes)]
-    
+
     print(f"Using environment seed: {env_seed}")
     print(f"Episode seeds: {episode_seeds}")
         
@@ -100,7 +102,7 @@ def test_map_env_with_random_actions(episodes=2, max_steps_per_episode=50, rende
     created_episode_dirs = []
     
     try:
-        # Initialize environment with sequential observation space
+        # Initialize environment with selected observation space
         print(f"\n=== Creating environment with seed {env_seed} ===")
         env = MapEnv(
             number_of_uav= 3,
@@ -109,8 +111,8 @@ def test_map_env_with_random_actions(episodes=2, max_steps_per_episode=50, rende
             airspace_tag_list=[("amenity", "hospital"), ("aeroway", "aerodrome")],
             max_episode_steps=max_steps_per_episode,
             seed=env_seed,  # Use the specified environment seed
-            obs_space_str="LSTM-A2C",
-            sorting_criteria="closest first",
+            obs_space_str= "UAM_UAV", # "LSTM-A2C",
+            sorting_criteria= None, # "closest first",
             render_mode="human" if render else None,
             max_uavs=4,
             max_vertiports=6,
@@ -125,7 +127,20 @@ def test_map_env_with_random_actions(episodes=2, max_steps_per_episode=50, rende
                 # Reset environment with episode-specific seed
                 print(f"Resetting environment with seed {episode_seed}...")
                 obs, info = env.reset(seed=episode_seed)
+                # Print initial observations for debugging
                 print(f"Initial observation keys: {obs.keys() if isinstance(obs, dict) else 'not a dict'}")
+
+                # Track the episode directory created by the logger
+                episode_timestamp = env.logger.timestamp
+                episode_dir = f"episode_{episode_timestamp}"
+                # Store the timestamp from the logger for later analysis
+                created_episode_dirs.append(episode_dir)
+                print(f"Created episode directory: {episode_dir}")
+
+                # Debugging to output to text file
+                # with open("output.txt", "w") as file:
+                #     print(f"\n===== Starting Episode {episode+1}/{episodes} with seed {episode_seed} =====", file=file)
+                #     print(f"Resetting environment with seed {episode_seed}...", file=file)
                 
                 steps = 0
                 collision_detected = False
@@ -194,17 +209,17 @@ def test_map_env_with_random_actions(episodes=2, max_steps_per_episode=50, rende
                         if ani:
                             save_path = os.path.join(output_dir, f"episode_{episode+1}_seed_{episode_seed}_animation")
                             print(f"Saving animation to {save_path}")
-                            env.save_animation(ani, save_path)
+                            env.save_animation(ani, save_path, mp4_only)
                             
                             # Check if animation was successfully saved
                             gif_path = f"{save_path}.gif"
                             mp4_path = f"{save_path}.mp4"
-                            
-                            if os.path.exists(gif_path):
+
+                            if not mp4_only and os.path.exists(gif_path):
                                 print(f"GIF successfully saved at: {gif_path}")
                                 file_size = os.path.getsize(gif_path) / (1024 * 1024)  # Size in MB
                                 print(f"GIF file size: {file_size:.2f} MB")
-                            else:
+                            elif not mp4_only:
                                 print(f"Warning: GIF file not found at {gif_path}")
                                 
                             if os.path.exists(mp4_path):
@@ -235,7 +250,7 @@ def test_map_env_with_random_actions(episodes=2, max_steps_per_episode=50, rende
             loader = MapLoader(base_log_dir="logs")
             
             for episode_dir in created_episode_dirs:
-                print(f"\nAnalyzing episode: {episode_dir}")
+                print(f"\n=== Analyzing episode: {episode_dir } ===")
                 
                 # Check if metadata.json exists before trying to load it
                 metadata_path = os.path.join("logs", episode_dir, 'metadata.json')
@@ -291,16 +306,17 @@ if __name__ == "__main__":
     
     # Define very different seeds to clearly demonstrate seed effect
     env_seed = 17  # Main environment seed
-    episode_seeds = [70, 85]  # Completely different seeds for each episode
+    episode_seeds = [60, 75]  # Completely different seeds for each episode
     
     # Increase to 500 steps to see more movement
     test_map_env_with_random_actions(
         episodes=2,
-        max_steps_per_episode=500,
+        max_steps_per_episode=250,
         render=True,
         save_animation=has_animation,
         env_seed=env_seed,
-        episode_seeds=episode_seeds
+        episode_seeds=episode_seeds,
+        mp4_only=True  # Set to True to only save MP4 files
     )
     
     print("Test script completed.")

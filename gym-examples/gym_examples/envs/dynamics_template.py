@@ -4,8 +4,7 @@ from typing import Tuple
 
 class DynamicsTemplate(ABC):
     
-    def __init__(self, dt = 0.1, is_learning=False):
-        self.is_learning = False
+    def __init__(self, dt = 0.1):
         self.dt = dt
     
     @abstractmethod

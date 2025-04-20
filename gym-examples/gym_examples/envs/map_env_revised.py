@@ -88,9 +88,9 @@ class MapEnv(gym.Env):
             )
         
         self.action_space = spaces.Box(
-            low=np.array([-1, -1]),  # [acceleration, heading_change]
+            low=np.array([0, -1]),  # [acceleration, heading_change]
             high=np.array([1, 1]),
-            shape=(2,),
+            shape=(2,),  # Updated shape back to (2,)
             dtype=np.float64,
         )
 
@@ -115,6 +115,8 @@ class MapEnv(gym.Env):
             info: Additional information
         """
         # Update learning agent with provided action
+        print("Map ENV Step Method")
+        print(action)
         self.agent.dynamics.update(self.agent, action)
         
         # Save animation data for all UAVs
@@ -136,8 +138,11 @@ class MapEnv(gym.Env):
         # Check NMAC and collision for learning agent with other UAVs
         is_nmac, nmac_list = self.agent.sensor.get_nmac(self.agent)
         if is_nmac:
-            print("--- NMAC ---")
-            print(f"NMAC detected: {is_nmac}, and NMAC with {nmac_list}\n")
+            print(f"--- Agent {self.agent.id} NMAC ---")
+            print(f"NMAC detected with {[uav.id for uav in nmac_list]}\n")
+            # Log NMAC event with all IDs involved
+            nmac_ids = [self.agent.id] + [uav.id for uav in nmac_list]
+            self.logger.record_nmac(nmac_ids, self.current_time_step)
         
         is_collision, collision_uav_ids = self.agent.sensor.get_uav_collision(self.agent)
         if is_collision:
@@ -187,6 +192,10 @@ class MapEnv(gym.Env):
                 is_nmac, nmac_list = uav.sensor.get_nmac(uav)
                 if is_nmac:
                     print(f"--- UAV {uav.id} NMAC ---")
+                    print(f"NMAC detected with {[other_uav.id for other_uav in nmac_list]}\n")
+                    # Log NMAC event with all IDs involved
+                    nmac_ids = [uav.id] + [other_uav.id for other_uav in nmac_list]
+                    self.logger.record_nmac(nmac_ids, self.current_time_step)
                 
                 is_collision, collision_uav_ids = uav.sensor.get_uav_collision(uav)
                 if is_collision:
@@ -249,7 +258,7 @@ class MapEnv(gym.Env):
         timeout = self.current_time_step >= self.max_episode_steps
         truncated = timeout
 
-        # If agent completed mission, log ut and clean up its trajectory
+        # If agent completed mission, log it and clean up its trajectory
         if agent_mission_complete:
             self.logger.mark_agent_complete(self.agent.id)
             if hasattr(self, 'trajectory_by_id') and self.agent.id in self.trajectory_by_id:
@@ -263,16 +272,25 @@ class MapEnv(gym.Env):
         }
         
         # Add static object detection info
-        ra_data = self.agent.sensor.get_ra_detection(self.agent)
-        if len(ra_data):
-            info['static_detection'] = True
-            info['distance_to_restricted'] = ra_data['distance']
+        ra_data_list = self.agent.sensor.get_ra_detection(self.agent)
+        if len(ra_data_list) > 0:
+            # At least one restricted area detected
+            closest_ra = ra_data_list[0]
+            if len(ra_data_list) > 1:
+                info['static_detection'] = True
+                # Find the closest one if multiple are detected
+                closest_ra = sorted(ra_data_list, key=lambda x: x['distance'])[0]
+                info['distance_to_restricted'] = closest_ra['distance']
         
         # Increment time step
         self.current_time_step += 1
         
         return obs, reward, terminated, truncated, info
 
+    """Old goal direction dense reward function with punishments for static and dynamic collision avoidance.
+    
+    Reward worked for goal direction task but failed to conduct collision avoidance
+    Trained on 25,000 steps with PPO"""
     # def _get_reward(self):
     #     #FIX: 
     #     # Depending on the type of obs_constructor used,
@@ -343,9 +361,6 @@ class MapEnv(gym.Env):
     #         #!TODO mess around with constants to put notion of relative importance for UAV versus RA collision avoidance
     #         normed_namc_distance = self.agent.namc_radius / self.agent.detection_radius
     #         ra_punishment_closeness = -math.exp(normed_namc_distance - dist_to_ra * 10.0)
-
-
-    #     """Old stuff start"""
         
     #     # # Static collision avoidance rewards
     #     # static_detection, static_info = self.agent.sensor.get_static_detection(self.agent)
@@ -374,8 +389,6 @@ class MapEnv(gym.Env):
     #     #         distance = self.agent.current_position.distance(nmac_uav.current_position)
     #     #         nmac_factor = 1.0 - (distance / self.agent.nmac_radius)
     #     #         reward -= nmac_factor * 30.0
-
-    #     """Old stuff end"""
         
     #     ### We're keeping this for later
     #     # # Speed management reward
@@ -392,7 +405,109 @@ class MapEnv(gym.Env):
         
     #     return float(reward)
     
+    """Revised reward"""
+    # def _get_reward(self):
+    #     # Base reward from existing function
+    #     reward = 0.0
+
+    #     # Key reward/punishment parameters
+    #     punishment_existence = -0.1
+    #     uav_punishment_closeness = 0
+    #     ra_punishment_closeness = 0
+    #     heading_efficiency = 0
+    #     progress = 0
+
+    #     reward += punishment_existence
+        
+    #     # Get current state information
+    #     obs = self._get_obs()
+    #     current_distance = self.agent.current_position.distance(self.agent.end)
+        
+    #     if self.obs_space_str == 'UAM_UAV':
+    #         # Agent info
+    #         current_speed = obs['agent_speed']
+    #         current_heading = obs['agent_current_heading']
+    #         current_deviation = obs['agent_deviation']
+    #         # UAV intruder info
+    #         uav_intruder = obs['intruder_detected']
+    #         uav_intruder_position = obs['intruder_position']
+    #         uav_intruder_speed = obs['intruder_speed']
+    #         dist_to_uav = obs['distance_to_intruder']
+    #         uav_relative_heading = obs['relative_heading_intruder']
+    #         # RA intruder info
+    #         ra_intruder = obs['restricted_airspace_detected']
+    #         dist_to_ra = obs['distance_to_restricted_airspace']
+    #         ra_relative_heading = obs['relative_heading_restricted_airspace']
+        
+    #     # Progress reward
+    #     if hasattr(self, 'previous_distance') and self.previous_distance is not None:
+    #         progress = self.previous_distance - current_distance
+    #         # Exponential scaling for distance factor to emphasize final approach
+    #         distance_factor = np.exp(-current_distance / 5000)
+    #         reward += progress * 15.0 * (1.0 + distance_factor)
+    #     self.previous_distance = current_distance
+        
+    #     # Heading efficiency reward
+    #     ref_heading = math.atan2(
+    #         self.agent.end.y - self.agent.current_position.y,
+    #         self.agent.end.x - self.agent.current_position.x
+    #     )
+    #     heading_diff = ((math.degrees(ref_heading) - math.degrees(self.agent.current_heading) + 180) % 360) - 180
+    #     heading_efficiency = np.cos(np.deg2rad(heading_diff))
+    #     reward += heading_efficiency * 0.5  # Added this line which was missing
+
+    #     # UAV intruder collision avoidance
+    #     # No UAV intruder detection
+    #     if uav_intruder == 0:
+    #         uav_punishment_closeness = 0
+    #     # UAV intruder detected 
+    #     else:
+    #         normed_nmac_distance = self.agent.nmac_radius / self.agent.detection_radius
+    #         uav_punishment_closeness = -math.exp(normed_nmac_distance - dist_to_uav * 10.0)
+            
+    #         # NEW: NMAC-specific state-based rewards
+    #         if dist_to_uav <= self.agent.nmac_radius:
+    #             # NMAC situation detected - apply state-based rewards
+    #             nmac_reward = self._get_nmac_state_reward(uav_intruder_position, uav_intruder_speed, dist_to_uav, uav_relative_heading)
+    #             reward += nmac_reward
+                
+    #             # Add reward/penalty for response time
+    #             if hasattr(self, 'nmac_detected_time'):
+    #                 # If we already detected NMAC before
+    #                 response_time = self.current_time_step - self.nmac_detected_time
+    #                 # Penalize longer response times exponentially
+    #                 response_penalty = -0.5 * math.exp(min(response_time / 2.0, 5.0))
+    #                 reward += response_penalty
+    #             else:
+    #                 # First time detecting NMAC
+    #                 self.nmac_detected_time = self.current_time_step
+    #         else:
+    #             # If we're no longer in NMAC but were previously
+    #             if hasattr(self, 'nmac_detected_time'):
+    #                 # Reward for successfully exiting NMAC
+    #                 reward += 2.0
+    #                 # Reset NMAC detection time
+    #                 delattr(self, 'nmac_detected_time')
+        
+    #     # RA intruder collision avoidance
+    #     # No RA intruder detection
+    #     if ra_intruder == 0:
+    #         ra_punishment_closeness = 0
+    #     # RA intruder detected
+    #     else:
+    #         normed_nmac_distance = self.agent.nmac_radius / self.agent.detection_radius
+    #         ra_punishment_closeness = -math.exp(normed_nmac_distance - dist_to_ra * 10.0)
+        
+    #     # Add proximity penalties to total reward
+    #     reward += uav_punishment_closeness + ra_punishment_closeness
+        
+    #     return reward
+
     def _get_reward(self):
+        """
+        Calculate the reward for the learning agent with the updated observation format.
+        Handles both the goal-seeking behavior and collision avoidance.
+        """
         # Base reward from existing function
         reward = 0.0
 
@@ -410,20 +525,32 @@ class MapEnv(gym.Env):
         current_distance = self.agent.current_position.distance(self.agent.end)
         
         if self.obs_space_str == 'UAM_UAV':
-            # Agent info
-            current_speed = obs['agent_speed']
-            current_heading = obs['agent_current_heading']
-            current_deviation = obs['agent_deviation']
-            # UAV intruder info
-            uav_intruder = obs['intruder_detected']
-            uav_intruder_position = obs['intruder_position']
-            uav_intruder_speed = obs['intruder_speed']
-            dist_to_uav = obs['distance_to_intruder']
-            uav_relative_heading = obs['relative_heading_intruder']
-            # RA intruder info
-            ra_intruder = obs['restricted_airspace_detected']
-            dist_to_ra = obs['distance_to_restricted_airspace']
-            ra_relative_heading = obs['relative_heading_restricted_airspace']
+            # Agent info - extract values from numpy arrays
+            current_speed = obs['agent_speed'][0]
+            current_heading = obs['agent_current_heading'][0]
+            current_deviation = obs['agent_deviation'][0]
+            
+            # UAV intruder info - extract values from numpy arrays
+            uav_intruder = obs['intruder_detected'][0]
+            dist_to_uav = obs['distance_to_intruder'][0]
+            uav_relative_heading = obs['relative_heading_intruder'][0]
+            
+            # Intruder position info
+            intruder_position_x = obs['intruder_position_x'][0]
+            intruder_position_y = obs['intruder_position_y'][0]
+            intruder_speed = obs['intruder_speed'][0]
+            
+            # Create a Point object from coordinates for _get_nmac_state_reward function
+            from shapely import Point
+            if uav_intruder > 0.5:  # If intruder is detected
+                intruder_position = Point(intruder_position_x, intruder_position_y)
+            else:
+                intruder_position = None
+            
+            # RA intruder info - extract values from numpy arrays
+            ra_intruder = obs['restricted_airspace_detected'][0]
+            dist_to_ra = obs['distance_to_restricted_airspace'][0]
+            ra_relative_heading = obs['relative_heading_restricted_airspace'][0]
         
         # Progress reward
         if hasattr(self, 'previous_distance') and self.previous_distance is not None:
@@ -440,21 +567,19 @@ class MapEnv(gym.Env):
         )
         heading_diff = ((math.degrees(ref_heading) - math.degrees(self.agent.current_heading) + 180) % 360) - 180
         heading_efficiency = np.cos(np.deg2rad(heading_diff))
-        reward += heading_efficiency * 0.5  # Added this line which was missing
+        reward += heading_efficiency * 0.5
 
         # UAV intruder collision avoidance
-        # No UAV intruder detection
-        if uav_intruder == 0:
+        if uav_intruder < 0.5:  # No UAV intruder detection
             uav_punishment_closeness = 0
-        # UAV intruder detected 
-        else:
+        else:  # UAV intruder detected
             normed_nmac_distance = self.agent.nmac_radius / self.agent.detection_radius
             uav_punishment_closeness = -math.exp(normed_nmac_distance - dist_to_uav * 10.0)
             
-            # NEW: NMAC-specific state-based rewards
-            if dist_to_uav <= self.agent.nmac_radius:
+            # NMAC-specific state-based rewards
+            if dist_to_uav <= self.agent.nmac_radius and intruder_position is not None:
                 # NMAC situation detected - apply state-based rewards
-                nmac_reward = self._get_nmac_state_reward(uav_intruder_position, uav_intruder_speed, dist_to_uav, uav_relative_heading)
+                nmac_reward = self._get_nmac_state_reward(intruder_position, intruder_speed, dist_to_uav, uav_relative_heading)
                 reward += nmac_reward
                 
                 # Add reward/penalty for response time
@@ -476,16 +601,18 @@ class MapEnv(gym.Env):
                     delattr(self, 'nmac_detected_time')
         
         # RA intruder collision avoidance
-        # No RA intruder detection
-        if ra_intruder == 0:
+        if ra_intruder < 0.5:  # No RA intruder detection
             ra_punishment_closeness = 0
-        # RA intruder detected
-        else:
+        else:  # RA intruder detected
             normed_nmac_distance = self.agent.nmac_radius / self.agent.detection_radius
             ra_punishment_closeness = -math.exp(normed_nmac_distance - dist_to_ra * 10.0)
         
         # Add proximity penalties to total reward
         reward += uav_punishment_closeness + ra_punishment_closeness
+        
+        # Add goal reached reward (using mission_complete_distance)
+        if current_distance < self.agent.mission_complete_distance:
+            reward += 1000.0
         
         return reward
     
@@ -660,7 +787,9 @@ class MapEnv(gym.Env):
         elif self.obs_space_str == 'UAM_UAV':
             #FIX: test this - chech if this method works and produces correct response
         #   (own_dict, (other_agents, restricted_areas))
-            raw_obs =                                       self.agent.get_obs()
+            raw_obs = self.agent.get_obs()
+            with open("output.txt", "w") as file:
+                print(raw_obs, file=file)
 
             # Transform data for UAM observation format
             transformed_data = transform_sensor_data(
@@ -678,12 +807,12 @@ class MapEnv(gym.Env):
     def reset(self, seed=None, options=None):
         """Reset environment to initial state."""
         # Reset internal state
-        #! why seed here (1 of 2)
         super().reset(seed=seed)
         if seed is not None:
             self._seed = seed
-            random.seed(seed)
-            np.random.seed(seed)
+            random.seed(self._seed)
+            np.random.seed(self._seed)
+            print(f"Environment reset with seed: {self._seed}")
             
         # Reset logger and rendering for new episode
         self.logger.reset()
@@ -695,10 +824,6 @@ class MapEnv(gym.Env):
 
         # Reset environment state
         self.current_time_step = 0
-
-        #! why seed here (2 of 2)
-        random.seed(self._seed)
-        np.random.seed(self._seed)
         
         # Create the airspace with restricted areas
         self.airspace = Airspace(self.number_of_vertiport, self.location_name, airspace_tag_list=self.airspace_tag_list)
@@ -706,41 +831,22 @@ class MapEnv(gym.Env):
         # Create space, sensors, controllers, and dynamics
         self.atc = ATC(airspace=self.airspace, seed=self._seed)
         
-        
         self.map_sensor = MapSensor(airspace=self.airspace, atc=self.atc)
         self.static_controller = StaticController(0, 0)
         self.non_coop_smooth_controller = NonCoopControllerSmooth(10, 2)
         self.non_coop_controller = NonCoopController(10, 1)
         self.pm_dynamics = PointMassDynamics()
-        self.agent_pm_dynamics = PointMassDynamics(is_learning=True)
+        self.agent_pm_dynamics = PointMassDynamics()
 
         # Create vertiports
         num_vertiports = min(self.max_vertiports, self.number_of_vertiport)  # Use a reasonable number
-        self.airspace.create_n_random_vertiports(num_vertiports)
+        self.airspace.create_n_random_vertiports(num_vertiports, seed=self._seed)
 
-        # Create UAVs
-        num_uavs = min(self.max_uavs, self.number_of_uav)  # Use a reasonable number
-        for _ in range(num_uavs):
-            self.atc.create_uav(
-                UAV_v2,
-                controller=self.non_coop_smooth_controller,
-                dynamics=self.pm_dynamics,
-                sensor=self.map_sensor,
-                radius=17,  # Match UAM_UAV parameters
-                nmac_radius=150,
-                detection_radius=550,
-            )
-
-        # Assign start and end points for non-learning UAVs
-        for uav in self.atc.get_uav_list():
-            start_vertiport = random.choice(self.airspace.get_vertiport_list())
-            end_vertiport = random.choice(self.airspace.get_vertiport_list())
-            self.atc.assign_vertiport_uav(uav, start_vertiport, end_vertiport)
-
-        #FIX: I think agent should also be developed like UAV -
-        #FIX: maybe this is why I previously thought about having two lists
-        #FIX: one for UAV and one for Auto UAV 
-        # Create learning agent
+        # Verify we have at least 2 vertiports
+        if len(self.airspace.get_vertiport_list()) < 2:
+            raise RuntimeError("Failed to create at least 2 vertiports - cannot assign meaningful start/end points")
+            
+        # Create learning agent first to ensure it gets priority in vertiport assignment
         self.agent = Auto_UAV_v2(
             dynamics=self.agent_pm_dynamics,
             sensor=self.map_sensor,
@@ -748,13 +854,109 @@ class MapEnv(gym.Env):
             nmac_radius=150,
             detection_radius=550,
         )
-
-        # Set learning agent in space and assign start/end points
-        #FIX: there are methods but, I need to think how to best use them or come up with new ones that feel natural
+        
+        # Set learning agent in space
         self.atc._set_uav(self.agent)
-        start_vertiport = random.choice(self.airspace.get_vertiport_list())
-        end_vertiport = random.choice(self.airspace.get_vertiport_list())
-        self.atc.assign_vertiport_uav(self.agent, start_vertiport, end_vertiport)
+        
+        # Assign agent to vertiports
+        vertiports = self.airspace.get_vertiport_list()
+        start_idx = 0
+        end_idx = 1 % len(vertiports) # Ensure different start and end
+        
+        self.atc.assign_vertiport_uav(
+            self.agent, 
+            vertiports[start_idx], 
+            vertiports[end_idx]
+        )
+
+        # Create non-learning UAVs
+        num_uavs = min(self.max_uavs, self.number_of_uav)
+
+        # Set non-learning UAVs in space and assign to vertiports
+        for _ in range(num_uavs):
+            self.atc.create_uav(
+                UAV_v2,
+                controller=self.non_coop_smooth_controller,
+                dynamics=self.pm_dynamics,
+                sensor=self.map_sensor,
+                radius=17,
+                nmac_radius=150,
+                detection_radius=550,
+            )
+
+        # Assign start and end points for non-learning UAVs - with controlled randomness
+        used_start_indices = [start_idx]  # Track used start indices
+        used_end_indices = [end_idx]      # Track used end indices
+        
+        for i, uav in enumerate(self.atc.get_uav_list()):
+            if isinstance(uav, Auto_UAV_v2):
+                continue  # Skip the learning agent which was already assigned
+                
+            # Find unused vertiports if possible
+            available_starts = [i for i in range(len(vertiports)) if i not in used_start_indices]
+            if not available_starts:  # If all are used, then allow reuse
+                available_starts = list(range(len(vertiports)))
+                
+            # Select start vertiport
+            uav_start_idx = random.choice(available_starts)
+            used_start_indices.append(uav_start_idx)
+            
+            # Find end vertiport different from start
+            available_ends = [i for i in range(len(vertiports)) if i != uav_start_idx]
+            if not available_ends:
+                available_ends = [(uav_start_idx + 1) % len(vertiports)]
+                
+            uav_end_idx = random.choice(available_ends)
+            used_end_indices.append(uav_end_idx)
+            
+            # Assign to UAV
+            self.atc.assign_vertiport_uav(
+                uav, 
+                vertiports[uav_start_idx], 
+                vertiports[uav_end_idx]
+            )
+
+        """Old UAV and auto_UAV creation and vertiport assignment
+        
+        Error: auto_UAV assignment sometimes led to same start and end vertiport 
+        since this was never checked or handled"""
+        # # Create UAVs
+        # num_uavs = min(self.max_uavs, self.number_of_uav)  # Use a reasonable number
+        # for _ in range(num_uavs):
+        #     self.atc.create_uav(
+        #         UAV_v2,
+        #         controller=self.non_coop_smooth_controller,
+        #         dynamics=self.pm_dynamics,
+        #         sensor=self.map_sensor,
+        #         radius=17,  # Match UAM_UAV parameters
+        #         nmac_radius=150,
+        #         detection_radius=550,
+        #     )
+
+        # # Assign start and end points for non-learning UAVs
+        # for uav in self.atc.get_uav_list():
+        #     start_vertiport = random.choice(self.airspace.get_vertiport_list())
+        #     end_vertiport = random.choice(self.airspace.get_vertiport_list())
+        #     self.atc.assign_vertiport_uav(uav, start_vertiport, end_vertiport)
+
+        # #FIX: I think agent should also be developed like UAV -
+        # #FIX: maybe this is why I previously thought about having two lists
+        # #FIX: one for UAV and one for Auto UAV 
+        # # Create learning agent
+        # self.agent = Auto_UAV_v2(
+        #     dynamics=self.agent_pm_dynamics,
+        #     sensor=self.map_sensor,
+        #     radius=17,
+        #     nmac_radius=150,
+        #     detection_radius=550,
+        # )
+
+        # # Set learning agent in space and assign start/end points
+        # #FIX: there are methods but, I need to think how to best use them or come up with new ones that feel natural
+        # self.atc._set_uav(self.agent)
+        # start_vertiport = random.choice(self.airspace.get_vertiport_list())
+        # end_vertiport = random.choice(self.airspace.get_vertiport_list())
+        # self.atc.assign_vertiport_uav(self.agent, start_vertiport, end_vertiport)
         
         # Initialize tracking for reward function
         self.previous_distance = self.agent.current_position.distance(self.agent.end)
@@ -766,8 +968,9 @@ class MapEnv(gym.Env):
         # Print debug info for vertiport assignments
         print("--- Vertiport Assignments ---")
         for uav in self.atc.get_uav_list():
-            print(f'UAV {uav.id} - Start: {uav.start} end: {uav.end}')
-        print(f'Agent - Start: {self.agent.start} end: {self.agent.end}')
+            if not isinstance(uav, Auto_UAV_v2):  # Only print for non-learning UAVs
+                print(f'UAV {uav.id} - Start: {uav.start} end: {uav.end}')
+        print(f'Agent {self.agent.id} - Start: {self.agent.start} end: {self.agent.end}')
         print("---------------------------")
         
         #ADDING data to renderer
@@ -785,9 +988,9 @@ class MapEnv(gym.Env):
         """Create an animation of the environment."""
         return self.renderer.create_animation(env_time_step)
     
-    def save_animation(self, animation_obj, file_name):
+    def save_animation(self, animation_obj, file_name, mp4_only=True):
         """Save animation to file."""
-        return self.renderer.save_animation(animation_obj, file_name)
+        return self.renderer.save_animation(animation_obj, file_name, mp4_only)
 
     def close(self):
         """Close the environment and clean up resources."""

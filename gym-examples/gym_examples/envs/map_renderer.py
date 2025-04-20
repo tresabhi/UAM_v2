@@ -414,8 +414,14 @@ class MapRenderer:
             traceback.print_exc()
             return None
 
-    def save_animation(self, animation_obj, file_name):
-        """Save animation to a file with optimized quality and compatibility."""
+    def save_animation(self, animation_obj, file_name, mp4_only=True):
+        """Save animation to a file with optimized quality and compatibility.
+    
+        Args:
+            animation_obj: The animation object to save
+            file_name: Base file name for the animation (without extension)
+            mp4_only: If True, only save MP4 and skip GIF creation
+        """
         if animation_obj is None:
             print("No animation to save")
             return
@@ -474,39 +480,42 @@ class MapRenderer:
                             print(f"Minimal MP4 save failed: {e}")
             except Exception as mp4_error:
                 print(f"MP4 saving failed completely: {mp4_error}")
-                
-            # Save as GIF (as backup)
-            try:
-                print(f"Saving animation to {file_name}.gif...")
-                from matplotlib.animation import PillowWriter
-                
-                # Use higher quality settings for GIF
-                animation_obj.save(
-                    f"{file_name}.gif",
-                    writer=PillowWriter(fps=8),
-                    dpi=150  # Higher DPI for better quality
-                )
-                print("GIF saved successfully!")
-            except Exception as gif_error:
-                print(f"GIF save failed: {gif_error}")
-                
-                # Try with minimal settings
+
+            # If mp4_only is False, also save as GIF
+            if not mp4_only: 
+                # Save as GIF (as backup)
                 try:
-                    print("Trying with minimal GIF settings...")
+                    print(f"Saving animation to {file_name}.gif...")
+                    from matplotlib.animation import PillowWriter
+                    
+                    # Use higher quality settings for GIF
                     animation_obj.save(
                         f"{file_name}.gif",
-                        writer=PillowWriter(fps=5),
-                        dpi=100
+                        writer=PillowWriter(fps=8),
+                        dpi=150  # Higher DPI for better quality
                     )
-                    print("GIF saved successfully with minimal settings!")
-                except Exception as e:
-                    print(f"Minimal GIF save failed: {e}")
+                    print("GIF saved successfully!")
+                except Exception as gif_error:
+                    print(f"GIF save failed: {gif_error}")
+                    
+                    # Try with minimal settings
+                    try:
+                        print("Trying with minimal GIF settings...")
+                        animation_obj.save(
+                            f"{file_name}.gif",
+                            writer=PillowWriter(fps=5),
+                            dpi=100
+                        )
+                        print("GIF saved successfully with minimal settings!")
+                    except Exception as e:
+                        print(f"Minimal GIF save failed: {e}")
+            else:
+                print("Skipping GIF creation as mp4_only=True.")
                     
         except Exception as e:
             print(f"Error in animation saving: {e}")
             import traceback
             traceback.print_exc()
-
 
     def add_data(self, uav):
         """Add UAV data to animation dataframe."""

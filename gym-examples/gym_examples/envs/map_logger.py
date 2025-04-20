@@ -105,6 +105,30 @@ class MapLogger:
         self.completed_agents.add(agent_id)
         if agent_id not in self.episode_metadata['completed_agents']:
             self.episode_metadata['completed_agents'].append(agent_id)
+
+    def record_nmac(self, nmac_ids, time_step=None):
+        """Record Near Mid-Air Collision (NMAC) information
+        
+        Args:
+            nmac_ids: List of UAV IDs involved in the NMAC
+            time_step: Current time step when NMAC occurred (optional)
+        """
+        if not hasattr(self, 'nmac_data'):
+            self.nmac_data = []
+        
+        nmac_record = {
+            'nmac_ids': self._serialize_array(nmac_ids),
+            'time_step': time_step
+        }
+        
+        self.nmac_data.append(nmac_record)
+        
+        # Update metadata
+        if 'nmac_occurred' not in self.episode_metadata:
+            self.episode_metadata['nmac_occurred'] = True
+            self.episode_metadata['nmac_events'] = []
+        
+        self.episode_metadata['nmac_events'].append(nmac_record)
     
     def record_collision(self, collision_ids, collision_type):
         """Record collision information"""

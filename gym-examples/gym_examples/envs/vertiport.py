@@ -9,6 +9,7 @@ class Vertiport:
         self.id = id(self)
         self.location = location
         self.uav_list: List = uav_list
+        # vertiport capacity 
         self.landing_takeoff_capacity = 4
 
     def __repr__(

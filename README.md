@@ -6,6 +6,7 @@ As urban air mobility (UAM) slowly becomes a reality, the strategic placement of
 
 ## Setup
 
+
 ### Getting Started (ubuntu):
 
 ```
@@ -39,6 +40,12 @@ conda activate AAM_AMOD
 You will want to activate this conda environment anytime you want to run somthing.
 
 If you are using VScode set your environment in the bottoom right of your screen to make running files easier
+
+### Setting up RVO2 
+ 
+After completing the steps above for creating the conda environment, follow the steps in Python-RVO2 README to build and install Python-RVO2. Make sure you are using - pip install Cython
+
+This command installs the latest Cython which will enable you to install pyrvo2 in your conda environment without any issues.
 
 ## Exacutables
 

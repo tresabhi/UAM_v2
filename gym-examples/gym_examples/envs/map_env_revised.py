@@ -27,6 +27,11 @@ from gymnasium import spaces
 from map_logger import MapLogger
 from map_renderer import MapRenderer
 
+# FOR ORCA/RVO2
+from RVO2_sim import RVO2_simulator
+from controller_ORCA import ORCA_controller
+from dynamics_ORCA import ORCA_Dynamics
+
 class MapEnv(gym.Env):
     """
     Urban Air Mobility environment for flying multiple UAVs with an autonomous agent
@@ -37,6 +42,7 @@ class MapEnv(gym.Env):
     def __init__(
         self,
         number_of_uav = None, # number of UAV for this simulation 
+        num_ORCA_uav = None, # number of ORCA UAV for this simulation 
         number_of_vertiport=None, # number of vertiorts for this simulation 
         location_name="Austin, Texas, USA", # name of city 
         airspace_tag_list=[("amenity", "hospital"), ("aeroway", "aerodrome")], # 
@@ -51,6 +57,10 @@ class MapEnv(gym.Env):
         max_vertiports=12, # this is maximum number of vertiports allowed in env
     ):  
         super().__init__()
+        
+        # ORCA config
+        self.num_ORCA_uav = num_ORCA_uav
+        
         
         # Environment configuration
         self.number_of_uav = number_of_uav
@@ -229,6 +239,17 @@ class MapEnv(gym.Env):
 
                 # Log the state-action pair for this non-learning UAV
                 self.logger.log_non_learning_step(uav.id, observation, uav_action)
+        
+        
+        
+        #### START - UAV ORCA (non-learning) ####
+        
+        self.rvo2_sim.step()
+
+        #### END - UAV ORCA (non-learning) ####
+        
+        
+        
         
         # Get learning agent's observation, reward, and status
         obs = self._get_obs()
@@ -854,6 +875,22 @@ class MapEnv(gym.Env):
             nmac_radius=150,
             detection_radius=550,
         )
+
+        #### START - Create ORCA agents ####
+        # collect num ORCA agents
+        #TODO: ATC needs to know about these agents
+        #TODO: these agents needs to work with vertiport assignment
+        #TODO: these agents need to check when they leave and reach vertiport
+        self.ORCA_agent_list = [UAV_v2(ORCA_controller, ORCA_Dynamics, MapSensor, radius=12, nmac_radius=150,detection_radius=500) for _ in self.num_ORCA_uav]
+        
+        self.rvo2_sim = RVO2_simulator(timestep=0.1, radius=17, max_speed=80, mapped_env_orca_agent_list=self.ORCA_agent_list)
+        # collect Restricted airspace polygons
+        self.rvo2_sim.set_polygon_coords(self.airspace.restricted_airspace_buffer_geo_series)
+        
+        #ORCA/RVO2 reset
+        self.rvo2_sim.reset()
+
+        #### END --- ORCA agents ####
         
         # Set learning agent in space
         self.atc._set_uav(self.agent)

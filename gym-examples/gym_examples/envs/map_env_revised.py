@@ -194,7 +194,8 @@ class MapEnv(gym.Env):
                     # Clean up trajectory for this UAV
                     if hasattr(self, 'trajectory_by_id') and uav.id in self.trajectory_by_id:
                         del self.trajectory_by_id[uav.id]
-
+                    
+                    #TODO: need to add logic where UAV with ORCA will be disregarded 
                     self.atc.remove_uavs_by_id([uav.id])
                     continue
                 
@@ -859,6 +860,11 @@ class MapEnv(gym.Env):
         self.pm_dynamics = PointMassDynamics()
         self.agent_pm_dynamics = PointMassDynamics()
 
+        # ORCA dynamics and controller 
+        self.orca_controller = ORCA_controller(12,12)
+        self.orca_dynamics = ORCA_Dynamics()
+
+
         # Create vertiports
         num_vertiports = min(self.max_vertiports, self.number_of_vertiport)  # Use a reasonable number
         self.airspace.create_n_random_vertiports(num_vertiports, seed=self._seed)
@@ -878,17 +884,16 @@ class MapEnv(gym.Env):
 
         #### START - Create ORCA agents ####
         # collect num ORCA agents
-        #TODO: ATC needs to know about these agents
+        self.ORCA_agent_list = [UAV_v2(self.orca_controller, self.orca_dynamics, self.map_sensor, radius=12, nmac_radius=150,detection_radius=500) for _ in range(self.num_ORCA_uav)]
+        #ATC needs to know about these agents - change this style of open addition
+        self.atc.uav_list += self.ORCA_agent_list
         #TODO: these agents needs to work with vertiport assignment
         #TODO: these agents need to check when they leave and reach vertiport
-        self.ORCA_agent_list = [UAV_v2(ORCA_controller, ORCA_Dynamics, MapSensor, radius=12, nmac_radius=150,detection_radius=500) for _ in self.num_ORCA_uav]
-        
         self.rvo2_sim = RVO2_simulator(timestep=0.1, radius=17, max_speed=80, mapped_env_orca_agent_list=self.ORCA_agent_list)
         # collect Restricted airspace polygons
         self.rvo2_sim.set_polygon_coords(self.airspace.restricted_airspace_buffer_geo_series)
         
-        #ORCA/RVO2 reset
-        self.rvo2_sim.reset()
+
 
         #### END --- ORCA agents ####
         
@@ -953,47 +958,7 @@ class MapEnv(gym.Env):
                 vertiports[uav_end_idx]
             )
 
-        """Old UAV and auto_UAV creation and vertiport assignment
-        
-        Error: auto_UAV assignment sometimes led to same start and end vertiport 
-        since this was never checked or handled"""
-        # # Create UAVs
-        # num_uavs = min(self.max_uavs, self.number_of_uav)  # Use a reasonable number
-        # for _ in range(num_uavs):
-        #     self.atc.create_uav(
-        #         UAV_v2,
-        #         controller=self.non_coop_smooth_controller,
-        #         dynamics=self.pm_dynamics,
-        #         sensor=self.map_sensor,
-        #         radius=17,  # Match UAM_UAV parameters
-        #         nmac_radius=150,
-        #         detection_radius=550,
-        #     )
-
-        # # Assign start and end points for non-learning UAVs
-        # for uav in self.atc.get_uav_list():
-        #     start_vertiport = random.choice(self.airspace.get_vertiport_list())
-        #     end_vertiport = random.choice(self.airspace.get_vertiport_list())
-        #     self.atc.assign_vertiport_uav(uav, start_vertiport, end_vertiport)
-
-        # #FIX: I think agent should also be developed like UAV -
-        # #FIX: maybe this is why I previously thought about having two lists
-        # #FIX: one for UAV and one for Auto UAV 
-        # # Create learning agent
-        # self.agent = Auto_UAV_v2(
-        #     dynamics=self.agent_pm_dynamics,
-        #     sensor=self.map_sensor,
-        #     radius=17,
-        #     nmac_radius=150,
-        #     detection_radius=550,
-        # )
-
-        # # Set learning agent in space and assign start/end points
-        # #FIX: there are methods but, I need to think how to best use them or come up with new ones that feel natural
-        # self.atc._set_uav(self.agent)
-        # start_vertiport = random.choice(self.airspace.get_vertiport_list())
-        # end_vertiport = random.choice(self.airspace.get_vertiport_list())
-        # self.atc.assign_vertiport_uav(self.agent, start_vertiport, end_vertiport)
+       
         
         # Initialize tracking for reward function
         self.previous_distance = self.agent.current_position.distance(self.agent.end)
@@ -1009,6 +974,10 @@ class MapEnv(gym.Env):
                 print(f'UAV {uav.id} - Start: {uav.start} end: {uav.end}')
         print(f'Agent {self.agent.id} - Start: {self.agent.start} end: {self.agent.end}')
         print("---------------------------")
+        
+        #### START - RESET ORCA/RVO2 ####
+        self.rvo2_sim.reset()
+        #### END - RESET ORCA/RVO2 ####
         
         #ADDING data to renderer
         self.renderer.add_data(self.agent)

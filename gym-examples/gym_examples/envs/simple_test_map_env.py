@@ -105,7 +105,8 @@ def test_map_env_with_random_actions(episodes=2, max_steps_per_episode=50, rende
         # Initialize environment with selected observation space
         print(f"\n=== Creating environment with seed {env_seed} ===")
         env = MapEnv(
-            number_of_uav= 3,
+            number_of_uav= 0,
+            num_ORCA_uav=3,
             number_of_vertiport= 5,
             location_name="Austin, Texas, USA",
             airspace_tag_list=[("amenity", "hospital"), ("aeroway", "aerodrome")],

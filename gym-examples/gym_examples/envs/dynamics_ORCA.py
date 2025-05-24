@@ -8,4 +8,8 @@ import numpy as np
 
 
 class ORCA_Dynamics(DynamicsTemplate):
-    pass
+    def __init__(self, dt=0.1):
+        super().__init__(dt)
+
+    def update(self, uav, action):
+        return None

@@ -4,7 +4,7 @@ from uav_v2_template import UAV_v2_template
 from controller_template import ControllerTemplate
 import shapely
 from typing import List, Dict 
-from map_env_revised import MapEnv
+
 
 
 
@@ -14,13 +14,13 @@ class RVO2_simulator:
     def __init__(self, timestep,radius,max_speed, mapped_env_orca_agent_list:List[UAV_v2_template] = None):
         # create the ORCA sim 
         self.rvo2_sim = rvo2.PyRVOSimulator(# the arguments should be added to __init__ above
-                                        timestep = timestep, #sim timestep 
-                                        neighborDist = 1.5, # these numbers are from example.py - ./Python-RVO2
-                                        maxNeighbor = 5, #  
-                                        timeHorizon = 1.5, #
-                                        timeHorizonConst = 2, #
-                                        radius = radius, # size of UAV
-                                        maxSpeed = max_speed, # max speed of UAV
+                                        timestep, #sim timestep 
+                                        1.5, # neighborDist these numbers are from example.py - ./Python-RVO2
+                                        5, #  maxNeighbor 
+                                        1.5, # timeHorizon 
+                                        2, # timeHorizonConst 
+                                        radius, # size of UAV
+                                        max_speed, # max speed of UAV
                                         )
         
         self.orca_polygon_list = []
@@ -46,8 +46,10 @@ class RVO2_simulator:
         for orca_agent_key, orca_agent_value in self.orca_agent_dict.items():
             
             mapped_agent = self.orca_agent_to_mapped_agent[orca_agent_key]
-            orca_agent_current_position = rvo2.getAgentPosition(self.orca_agent_dict[orca_agent_key])
+            orca_agent_current_position = self.rvo2_sim.getAgentPosition(self.orca_agent_dict[orca_agent_key])
             
+            #CONVERT - TUPLE TO POINT
+            orca_agent_current_position = shapely.Point(orca_agent_current_position)
             # updating the MAPPED_ENV UAV agent's current_position
             self.orca_agent_to_mapped_agent[orca_agent_key].current_position = orca_agent_current_position
             
@@ -96,11 +98,14 @@ class RVO2_simulator:
         
         current_position = agent.current_position
         goal = agent.end
+        goalDirection_x, goalDirection_y = goal.x - current_position.x, goal.y - current_position.y
+        # norm_goalDirection = goalDirection/shapely.distance(goal, current_position) #need to define magnitude
+        magnitude = shapely.distance(goal, current_position)
+        norm_x, norm_y = goalDirection_x/magnitude, goalDirection_y/magnitude
 
-        goalDirection = goal - current_position
-        norm_goalDirection = goalDirection/shapely.length(goal, current_position) #need to define magnitude
-        prefVelocity = norm_goalDirection * agent.max_speed
-        prefVelocityTuple = (prefVelocity.x, prefVelocity.y)
+        # prefVelocity = norm_goalDirection * agent.max_speed
+        prefVelocity_x, prefVelocity_y = norm_x*agent.max_speed, norm_y*agent.max_speed
+        prefVelocityTuple = (prefVelocity_x, prefVelocity_y)
         return prefVelocityTuple #prefVelocity has to be a tuple
     
     def set_polygon_coords(self, poly_list):

@@ -9,3 +9,4 @@ non_learning_logs
 *.mp4
 logs
 output.txt
+*.ipynb

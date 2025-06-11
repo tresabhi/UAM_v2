@@ -15,10 +15,10 @@ class RVO2_simulator:
         # create the ORCA sim 
         self.rvo2_sim = rvo2.PyRVOSimulator(# the arguments should be added to __init__ above
                                         timestep, #sim timestep 
-                                        1.5, # neighborDist these numbers are from example.py - ./Python-RVO2
-                                        5, #  maxNeighbor 
-                                        1.5, # timeHorizon 
-                                        2, # timeHorizonConst 
+                                        3*radius, # neighborDist - 3 times of radius
+                                        10, #  maxNeighbor - number of neighbor to keep in account when performing collision avoidance 
+                                        5, # time horizon other agents - secondss use the website for definition: https://gamma.cs.unc.edu/RVO2/documentation/2.0/params.html 
+                                        5, # time horizon obstacles - seconds
                                         radius, # size of UAV
                                         max_speed, # max speed of UAV
                                         )
@@ -115,6 +115,8 @@ class RVO2_simulator:
         # poly-list is [poly1, poly2, poly3, poly4, poly5, ...... poly_n]
         # poly_n = [[x1 y1], [x2 y2], ....[xn yn]]
         
+        # TODO: given a polygon list, I will form a rectangle around the polygon
+        # TODO: remember must use CCW, counter clockwise direction for OBSTACLE polygon coordinates
         for i in range(len(poly_list)):
             airspace_polygon = poly_list[i]
             orca_polygon = []

@@ -106,17 +106,17 @@ def test_map_env_with_random_actions(episodes=2, max_steps_per_episode=50, rende
         print(f"\n=== Creating environment with seed {env_seed} ===")
         env = MapEnv(
             number_of_uav= 0,
-            num_ORCA_uav=3,
-            number_of_vertiport= 5,
+            num_ORCA_uav=40,
+            number_of_vertiport= 45,
             location_name="Austin, Texas, USA",
-            airspace_tag_list=[("amenity", "hospital"), ("aeroway", "aerodrome")],
+            airspace_tag_list=[("aeroway", "aerodrome")], #("amenity", "hospital"), 
             max_episode_steps=max_steps_per_episode,
             seed=env_seed,  # Use the specified environment seed
             obs_space_str= "UAM_UAV", # "LSTM-A2C",
             sorting_criteria= None, # "closest first",
             render_mode="human" if render else None,
-            max_uavs=4,
-            max_vertiports=6,
+            max_uavs=100, #set these as some hyperparameters 
+            max_vertiports=150, #set these as some hyperparameters 
         )
         
         for episode in range(episodes):
@@ -169,7 +169,7 @@ def test_map_env_with_random_actions(episodes=2, max_steps_per_episode=50, rende
                         if render:
                             try:
                                 env.render()
-                                time.sleep(0.05)  # Slightly longer pause for visibility
+                                time.sleep(0)  # Slightly longer pause for visibility
                             except Exception as e:
                                 print(f"Render error: {e}")
                                 traceback.print_exc()
@@ -311,10 +311,10 @@ if __name__ == "__main__":
     
     # Increase to 500 steps to see more movement
     test_map_env_with_random_actions(
-        episodes=2,
-        max_steps_per_episode=250,
+        episodes=1,
+        max_steps_per_episode=2000,
         render=True,
-        save_animation=has_animation,
+        save_animation=False,
         env_seed=env_seed,
         episode_seeds=episode_seeds,
         mp4_only=True  # Set to True to only save MP4 files

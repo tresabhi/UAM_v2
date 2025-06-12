@@ -66,6 +66,7 @@ class Airspace:
         self.number_of_vertiports = number_of_vertiports
         self.vertiport_list:List = []
         self.max_vertiports = max_vertiports 
+        self.polygon_dict = {}
 
     def __repr__(self) -> str:
         return "Airspace({location_name})".format(location_name=self.location_name)
@@ -86,6 +87,20 @@ class Airspace:
             print('Max number of vertiports reached, additonal vertiports will not be added')
         return None 
     
+    def set_vertiports(self, vertiports:List[Vertiport], sample_number=None):
+        '''Given a list of vertiports, 
+            add randomly sampled 'sample_number' of vertiports 
+            to airspace's vertiport_list'''
+        
+        if sample_number:
+            sampled_vertiports = random.sample(vertiports, sample_number)
+        
+        for vertiport in sampled_vertiports:
+            self.set_vertiport(vertiport)
+        
+        return None
+
+
     def get_vertiport_list(self):
         """
         Returns the list of vertiports.
@@ -153,7 +168,43 @@ class Airspace:
                 return _vertiport
         
         print('Not a valid position for vertiport')
+
+        return None
+    
+
+
+    #TODO: polygons that are used for vertiports, 
+    #      will need to be rendered(maybe)
+    #      but they will not be part of static obstacles 
+
+    def create_vertiport_from_polygon(self,polygon:shapely.Polygon) -> Vertiport:
+        '''Given a polygon, find the centeroid of the polygon, 
+        and place a vertiport at that polygon'''
         
+        poly_centeroid = polygon.centroid
+        return Vertiport(poly_centeroid)
+        
+
+    def create_vertiports_from_polygons(self,polygon_list:List[shapely.Polygon]) -> List[Vertiport]:
+        '''Use polygons from polygon_list to create vertiports at each polygon'''
+        
+        vertiport_list = []
+        for polygon in polygon_list:
+            vertiport_list.append(self.create_vertiport_from_polygon(polygon))
+        return vertiport_list
+        
+
+    def make_polygon_dict(self, tag_str):
+        
+        #TODO: check if tag_str in tag_list
+        # if True, then use tag_str as key for dict
+
+        self.polygon_dict[tag_str] = [obj for obj in self.location_utm[tag_str].geometry if isinstance(obj, shapely.Polygon)]
+
+        return None
+    
+
+    
             
 
 

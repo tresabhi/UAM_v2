@@ -11,6 +11,8 @@ class Vertiport:
         self.uav_list: List = uav_list
         # vertiport capacity 
         self.landing_takeoff_capacity = 4
+        # vertiport region id/number
+        self.region = None
 
     def __repr__(
         self,
@@ -40,3 +42,7 @@ class Vertiport:
         pass
 
     
+
+if __name__ == '__main__':
+    random_vertiport = Vertiport(Point(12,13))
+    print(random_vertiport.location)

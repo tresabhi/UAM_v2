@@ -2,7 +2,7 @@
 .DS_Store
 cache
 __pycache__
-*scratch*.*
+# *scratch*.*
 sarsa_logs
 non_learning_logs
 *.gif

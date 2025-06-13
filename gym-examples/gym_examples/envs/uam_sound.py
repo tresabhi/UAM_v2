@@ -51,7 +51,7 @@ def create_noise_matrix(min_x, min_y, max_x, max_y, cell_dim = 100):
 
 def uav_array_window(window_ln, center_idx):
     ''' Given window length, and window center index,
-        return indices of surrounding UAV. The window indices are 
+        return indices surrounding UAV. The window indices are 
         indices of the noise matrix, around UAV.  
         
         Args: 

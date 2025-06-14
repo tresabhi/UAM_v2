@@ -6,10 +6,11 @@ from geopandas import GeoSeries, GeoDataFrame
 from osmnx import features as ox_features
 from osmnx import geocode_to_gdf as geocode_to_gdf
 from osmnx import projection as ox_projection
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 import math
 from shapely import Point
 import random
+from sklearn.cluster import KMeans as KM 
 
 from vertiport import Vertiport
 #FIX:
@@ -173,10 +174,6 @@ class Airspace:
     
 
 
-    #TODO: polygons that are used for vertiports, 
-    #      will need to be rendered(maybe)
-    #      but they will not be part of static obstacles 
-
     def create_vertiport_from_polygon(self,polygon:shapely.Polygon) -> Vertiport:
         '''Given a polygon, find the centeroid of the polygon, 
         and place a vertiport at that polygon'''
@@ -195,16 +192,65 @@ class Airspace:
         
 
     def make_polygon_dict(self, tag_str):
-        
         #TODO: check if tag_str in tag_list
         # if True, then use tag_str as key for dict
+        
+        '''Add polygons of specific "tag_str" to an instance dictionary called self.poly_dict.
+        These polygons will be used to create vertiports using OSMNx tags'''
+
 
         self.polygon_dict[tag_str] = [obj for obj in self.location_utm[tag_str].geometry if isinstance(obj, shapely.Polygon)]
 
         return None
     
 
+    def assign_region_to_vertiports(self, vertiport_list:List[Vertiport]) -> List[Vertiport]:
+        #TODO: this needs to be an internal method 
+        
+        '''Assign regions to each vertioport from vertiport list. '''
+
+        location_tuple = [(vertiport.x, vertiport.y) for vertiport in vertiport_list]
+
+        kmeans = KM(n_clusters=4, random_state=0, n_init="auto").fit(location_tuple)
+        
+        print(f' These are the labels: {np.unique(kmeans.labels_)}')
+
+
+        for i in range(len(kmeans.labels_)):
+            vertiport = vertiport_list[i]
+            vertiport.region = kmeans.labels_[i]
+
     
+        return vertiport_list
+
+
+    def make_region_dict(self, vertiport_list:List[Vertiport], num_regions:int) -> Dict:
+        '''Return a dictionary, with keys as regions and values as list of vertiports of that region.
+        This will be used later to sample vertiport from each region'''
+
+        region_vertiport_dict = {}
+        for region_id in range(num_regions):
+            region_vertiport_dict[region_id] = []
+            for vertiport in vertiport_list:
+                if vertiport.region == region_id:
+                    region_vertiport_dict[region_id].append(vertiport)
+        
+
+        return region_vertiport_dict
+                    
+
+    def sample_vertiport_from_region(self, region_dict:Dict, n_sample_from_region:int = 1):
+        '''From the dictionary of regions with vertiports, 
+        sample "n_sample_from_region" number of vertiports from vertiports list of that region'''
+
+        sampled_vertiports = []
+        
+        for region in region_dict.keys():
+            sampled_vertiports += random.sample(region_dict[region], n_sample_from_region)
+        
+        return sampled_vertiports
+
+
             
 
 

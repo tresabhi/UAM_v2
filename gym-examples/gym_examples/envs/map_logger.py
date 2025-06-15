@@ -27,7 +27,7 @@ class MapLogger:
     def _initialize_new_episode(self):
         """Initialize or reinitialize for a new episode with a new timestamp"""
         # Create a unique timestamp for this episode
-        self.timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.timestamp = datetime.now().strftime("%Y_%m_%d_%H%M")
         
         # Create episode directory with timestamp
         self.episode_dir = os.path.join(self.base_log_dir, f"episode_{self.timestamp}")
@@ -80,6 +80,9 @@ class MapLogger:
         step_data = {
             'state': self._serialize_array(state),
             'action': self._serialize_array(action)
+            # TODO: possible location to add current distance
+            # distance += state.distance_covered
+            # TODO: might have to add a new attribute to UAV to calculate the distance it has covered
         }
         self.non_learning_trajectories[agent_id].append(step_data)
 
@@ -91,6 +94,8 @@ class MapLogger:
                 self.episode_metadata['learning_agents'].append(agent_id)
             
         transition = {
+            # TODO: if the UAV has new attribute for distance covered, then need to add that attr to its state/obs 
+            # TODO: OR - use the attr of UAV and store it here as a key:value  
             'state': self._serialize_array(state),
             'action': self._serialize_array(action),
             'reward': reward,
@@ -150,8 +155,8 @@ class MapLogger:
         
         # Update final metadata values
         self.episode_metadata['num_non_learning_agents'] = len(self.non_learning_trajectories)
-        self.episode_metadata['num_learning_agents'] = len(self.learning_transitions)
-        self.episode_metadata['completed_agents'] = list(self.completed_agents)
+        self.episode_metadata['num_learning_agents'] = len(self.learning_transitions) #why is transitions = num_learning_agents
+        self.episode_metadata['completed_agents'] = list(self.completed_agents) 
         
         # Save metadata for the episode
         with open(os.path.join(self.episode_dir, 'metadata.json'), 'w') as f:

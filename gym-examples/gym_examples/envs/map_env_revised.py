@@ -129,6 +129,9 @@ class MapEnv(gym.Env):
         """
         # Update learning agent with provided action
         self.agent.dynamics.update(self.agent, action)
+
+        #Update the odometer of AUTO UAV 
+        self.agent.update_odometer()
         
         # Save animation data for all UAVs
         self.renderer.add_data(self.agent)
@@ -237,8 +240,11 @@ class MapEnv(gym.Env):
                 
                 # Get and apply non-learning UAV's action based on its controller
                 uav_action = uav.get_action(observation=observation)
-                uav.dynamics.update(uav, uav_action)
+                uav.dynamics.update(uav, uav_action) #updates the current_position
 
+                #Update the odometer of UAV 
+                uav.update_odometer()
+                
                 # Log the state-action pair for this non-learning UAV
                 self.logger.log_non_learning_step(uav.id, observation, uav_action)
         
@@ -698,6 +704,9 @@ class MapEnv(gym.Env):
             vertiports[end_idx]
         )
 
+        # Reset odometer for AutoUAV
+        self.agent.reset_odometer()
+
         # Create non-learning UAVs
         num_uavs = min(self.max_uavs, self.number_of_uav)
 
@@ -744,6 +753,10 @@ class MapEnv(gym.Env):
                 vertiports[uav_start_idx], 
                 vertiports[uav_end_idx]
             )
+
+            #Reset Odometer
+            uav.reset_odometer() 
+
 
        
         

@@ -69,6 +69,10 @@ class UAV_v2_template(ABC):
         self.start = start
         self.end = end
         self.current_position = start
+        
+        # ADDED odometer attr:
+        self.previous_position = start
+
         self.current_heading = math.atan2((end.y - start.y), (end.x - start.x))
         self.final_heading = math.atan2((end.y - self.current_position.y), (end.x - self.current_position.x))
         self.body = self.current_position.buffer(self.radius)
@@ -182,3 +186,15 @@ class UAV_v2_template(ABC):
         ref_orth = np.array([-ref_prll[1], ref_prll[0]])
 
         return ref_prll, ref_orth
+    
+    def reset_odometer(self):
+        self.odometer_reading = 0
+        return None
+    
+    def update_odometer(self):
+        distance = self.current_position.distance(self.previous_position)
+        self.odometer_reading += distance
+        self.previous_position = self.current_position
+
+        
+

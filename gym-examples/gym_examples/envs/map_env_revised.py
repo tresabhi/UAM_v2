@@ -814,6 +814,49 @@ class MapEnv(gym.Env):
     
     Reward worked for goal direction task but failed to conduct collision avoidance
     Trained on 25,000 steps with PPO"""
+    
+    def _collect_initial_metrics(self, ):
+        '''For all UAVs in the env collect their 
+        distance: start-end point, 
+        time_avg: dist/avg-speed,
+        arrival_rate,
+        service-rate '''
+
+        self.uav_pre_fligt_info = {}
+        
+        for uav in self.atc.get_uav_list():
+            self.uav_pre_fligt_info[uav.id] = {'distance': uav.start.distance(uav.end),
+                                          'time_avg': self.uav_pre_fligt_info[uav.id]['distance']/uav.max_speed,
+                                          'arrival_rate': 0,  # this info will come from start vertiport
+                                          'service_rate': 0 } # this is an expected service rate of UAVs }
+        pass
+    
+    def _collect_episode_end_metrics(self):
+        '''For all UAVs in the env collect the following
+         distance-factor: dist-covered(odometer reading)/distance,
+         time-factor: time2reach/time-avg,
+         NMAC count,
+         RA violation count,'''
+        
+
+        self.uav_post_fligt_info = {}
+        
+        for uav in self.atc.get_uav_list():
+            self.uav_post_fligt_info[uav.id] = {
+                                          'distance_factor': uav.odometer_reading/uav.start.distance(uav.end),
+                                          'time_factor': time_traveled/self.uav_post_fligt_info[uav.id]['distance']/uav.max_speed,
+                                          'NMAC_count': None,  # need something to collect total NMAC count
+                                          'RA_violation_count': None } # need something to collect total RA violation
+
+
+
+
+        pass
+    
+    
+    
+    
+    
     # def _get_reward(self):
     #     #FIX: 
     #     # Depending on the type of obs_constructor used,

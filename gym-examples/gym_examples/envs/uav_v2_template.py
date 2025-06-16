@@ -65,6 +65,12 @@ class UAV_v2_template(ABC):
             start (Point): Starting position of the UAV.
             end (Point): Target position of the UAV.
         """
+        # TODO: 
+        # collect start-end information from vertiport location
+        # adjust the arguments to accept two vertiports
+        # from each vertiport collect their location, and assign that as start/end point  
+
+
         self.mission_complete_status = False
         self.start = start
         self.end = end

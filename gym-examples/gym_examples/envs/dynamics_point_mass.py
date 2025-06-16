@@ -51,7 +51,7 @@ class PointMassDynamics(DynamicsTemplate):
             #!TODO - need to make sure we enforce max speed limit
             new_speed = uav.current_speed + self._acceleration * self.dt
             # Ensure speed is within bounds
-            # new_speed = max(0, min(new_speed, uav.max_speed))
+            new_speed = max(0, min(new_speed, uav.max_speed))
             # Bound heading between -π and π
             new_heading = uav.current_heading + self._heading_change
             new_heading = ((new_heading + math.pi) % (2 * math.pi)) - math.pi

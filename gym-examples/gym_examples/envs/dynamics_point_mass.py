@@ -15,34 +15,34 @@ class PointMassDynamics(DynamicsTemplate):
         """Update the UAV's position, speed, and heading based on the action taken."""
         # action[0] -> acceleration
         # action[1] -> heading_change 
-        print(f"action: {action}")
+        # print(f"action: {action}")
 
         if isinstance(uav, UAV_v2):
             self.is_learning = False
-            print("===UAV_v2===")
+            # print("===UAV_v2===")
         elif isinstance(uav, Auto_UAV_v2): 
             self.is_learning = True
-            print("===Auto_UAV_v2===")
+            # print("===Auto_UAV_v2===")
         else:
             raise ValueError("Unknown UAV type")
 
         if self.is_learning:
-            print("===is_learning block===")
+            # print("===is_learning block===")
             # Force action to be a numpy array and flatten to ensure operation in action sampling and prediction
             action = np.array(action)
             action = action.flatten()
             # Normalize action to match UAV's dynamics
             self._acceleration = uav.max_acceleration * action[0] # max_acceleration set to 1
             self._heading_change = uav.max_heading_change * action[1] # max_heading_change set to math.pi
-            print(self._acceleration)
-            print(self._heading_change)
+            # print(self._acceleration)
+            # print(self._heading_change)
         else:
-            print("===not learning block===")
+            # print("===not learning block===")
             # Use the action directly
             self._acceleration = action[0]
             self._heading_change = action[1]
-            print(self._acceleration)
-            print(self._heading_change)
+            # print(self._acceleration)
+            # print(self._heading_change)
 
         if uav.mission_complete_status:
             #UAV has reached its destination

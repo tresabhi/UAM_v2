@@ -101,7 +101,7 @@ class MapEnv(gym.Env):
             )
         
         self.action_space = spaces.Box(
-            low=np.array([0, -1]),  # [acceleration, heading_change]
+            low= np.array([0, -1]),  # [acceleration, heading_change]
             high=np.array([1, 1]),
             shape=(2,),  # Updated shape back to (2,)
             dtype=np.float64,
@@ -826,7 +826,7 @@ class MapEnv(gym.Env):
         
         for uav in self.atc.get_uav_list():
             self.uav_pre_fligt_info[uav.id] = {'distance': uav.start.distance(uav.end),
-                                          'time_avg': self.uav_pre_fligt_info[uav.id]['distance']/uav.max_speed,
+                                          'time_avg': uav.start.distance(uav.end)/uav.max_speed,
                                           'arrival_rate': 0,  # this info will come from start vertiport
                                           'service_rate': 0 } # this is an expected service rate of UAVs }
         pass
@@ -839,12 +839,12 @@ class MapEnv(gym.Env):
          RA violation count,'''
         
 
-        self.uav_post_fligt_info = {}
+        self.uav_post_flight_info = {}
         
         for uav in self.atc.get_uav_list():
-            self.uav_post_fligt_info[uav.id] = {
+            self.uav_post_flight_info[uav.id] = {
                                           'distance_factor': uav.odometer_reading/uav.start.distance(uav.end),
-                                          'time_factor': time_traveled/self.uav_post_fligt_info[uav.id]['distance']/uav.max_speed,
+                                          #'time_factor': time_traveled/self.uav_post_fligt_info[uav.id]['distance']/uav.max_speed,
                                           'NMAC_count': None,  # need something to collect total NMAC count
                                           'RA_violation_count': None } # need something to collect total RA violation
 

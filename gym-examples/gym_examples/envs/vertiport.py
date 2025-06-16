@@ -13,6 +13,8 @@ class Vertiport:
         self.landing_takeoff_capacity = 4
         # vertiport region id/number
         self.region = None
+        # passenger arrival rate - an exponential distribution learned from metro data
+        
 
     def __repr__(
         self,

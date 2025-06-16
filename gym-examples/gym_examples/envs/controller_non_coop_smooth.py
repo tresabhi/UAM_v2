@@ -18,11 +18,8 @@ class NonCoopControllerSmooth(ControllerTemplate):
         
         d_heading = (d_heading + math.pi) % (2*math.pi) - math.pi
 
-        if abs(d_heading) > self.max_heading_change:
-            heading_change = -math.copysign(self.max_heading_change, d_heading)
-        else:
-            heading_change = -d_heading
-
+        
+        heading_change = max(-self.max_heading_change, min(d_heading,self.max_heading_change))
         acceleration = self.max_acceleration # replace with constant acceleration 
         
         action = (acceleration, heading_change)

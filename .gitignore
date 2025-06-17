@@ -10,3 +10,5 @@ non_learning_logs
 logs
 output.txt
 # *.ipynb
+/gym-examples/gym_examples/envs/avg_plot_results
+/gym-examples/gym_examples/envs/Metrics

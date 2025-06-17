@@ -95,3 +95,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+# python plot_avg_distance.py ./Metrics/*.json --out results/avg_dist_vs_uavs.png

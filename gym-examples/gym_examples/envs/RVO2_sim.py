@@ -50,6 +50,7 @@ class RVO2_simulator:
             
             #CONVERT - TUPLE TO POINT
             orca_agent_current_position = shapely.Point(orca_agent_current_position)
+            
             # updating the MAPPED_ENV UAV agent's current_position
             self.orca_agent_to_mapped_agent[orca_agent_key].current_position = orca_agent_current_position
             

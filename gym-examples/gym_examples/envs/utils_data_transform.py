@@ -652,14 +652,14 @@ def transform_for_uam(data):
     
     # Create the transformed data dictionary with consistent numpy arrays
     transformed_data = {
-        'agent_id': agent_id,
+        'agent_id': agent_id, #TODO: change these to have no ID instead of int64 - these large number might cause learning instability since they are large compared to other state values
         'agent_speed': agent_speed,
-        'agent_current_heading': agent_current_heading,
+        'agent_current_heading': agent_current_heading, #TODO: normalise these values for both agent and intruder
         'agent_deviation': agent_deviation,
         'agent_dist_to_goal': agent_dist_to_goal,
         
         'intruder_detected': intruder_detected,
-        'intruder_id': intruder_id,
+        'intruder_id': intruder_id, #TODO: change these to have no ID instead of int64 - these large number might cause learning instability since they are large compared to other state values
         'distance_to_intruder': distance_to_intruder,
         'intruder_position_x': intruder_position_x,
         'intruder_position_y': intruder_position_y,

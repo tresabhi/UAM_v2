@@ -68,3 +68,12 @@ class PointMassDynamics(DynamicsTemplate):
             uav.current_position = Point(_x, _y)
             uav.current_speed = new_speed
             uav.current_heading = new_heading
+            
+            #TODO: this needs to be placed somewhere more appropriate 
+            if isinstance(uav, Auto_UAV_v2):
+                print('Updating final heading of Auto UAV ')
+                print(f'current final heading: {uav.final_heading}')
+                uav.final_heading = math.atan2(uav.end.y - uav.current_position.y,
+                                               uav.end.x - uav.current_position.x)
+                print(f'new final heading: {uav.final_heading}')
+                

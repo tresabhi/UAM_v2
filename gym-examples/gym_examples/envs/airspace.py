@@ -42,25 +42,26 @@ class Airspace:
         self.location_utm_gdf: gpd.GeoDataFrame = ox_projection.project_gdf(location_gdf)  # default projection - UTM projection #! GeoDataFrame has deprication warning - need quick fix
         self.location_utm_gdf["boundary"] = (self.location_utm_gdf.boundary)  # adding column 'boundary'
         
-        # airspace features and restricted airspace 
-        self.location_tags = {}
-        self.location_feature = {}
-        self.location_utm = {}
-        self.location_utm_buffer = {}
-        
-        self.airspace_restricted_area_buffer_array = []
-        self.airspace_restricted_area_array = []
-        
-        for tag, tag_value in self.airspace_tag_list:
-            self.location_tags[tag_value] = tag
-            self.location_feature[tag_value] = ox_features.features_from_polygon(location_gdf["geometry"][0], tags={tag:tag_value})
-            self.location_utm[tag_value] = ox_projection.project_gdf(self.location_feature[tag_value])
-            self.location_utm_buffer[tag_value] = self.location_utm[tag_value].buffer(self.buffer_radius)
-            self.airspace_restricted_area_array.append(self.location_utm[tag_value])
-            self.airspace_restricted_area_buffer_array.append(self.location_utm_buffer[tag_value])
-        
-        self.restricted_airspace_buffer_geo_series = pd.concat(self.airspace_restricted_area_buffer_array)
-        self.restricted_airspace_geo_series = pd.concat(self.airspace_restricted_area_array)
+        if self.airspace_tag_list:
+            # airspace features and restricted airspace 
+            self.location_tags = {}
+            self.location_feature = {}
+            self.location_utm = {}
+            self.location_utm_buffer = {}
+            
+            self.airspace_restricted_area_buffer_array = []
+            self.airspace_restricted_area_array = []
+            
+            for tag, tag_value in self.airspace_tag_list:
+                self.location_tags[tag_value] = tag
+                self.location_feature[tag_value] = ox_features.features_from_polygon(location_gdf["geometry"][0], tags={tag:tag_value})
+                self.location_utm[tag_value] = ox_projection.project_gdf(self.location_feature[tag_value])
+                self.location_utm_buffer[tag_value] = self.location_utm[tag_value].buffer(self.buffer_radius)
+                self.airspace_restricted_area_array.append(self.location_utm[tag_value])
+                self.airspace_restricted_area_buffer_array.append(self.location_utm_buffer[tag_value])
+            
+            self.restricted_airspace_buffer_geo_series = pd.concat(self.airspace_restricted_area_buffer_array)
+            self.restricted_airspace_geo_series = pd.concat(self.airspace_restricted_area_array)
 
 
         # Vertiport
@@ -134,12 +135,17 @@ class Airspace:
         if num_vertiports > self.number_of_vertiports:
             raise RuntimeError('Exceeds vertiport number defined for initialization')
 
-        for tag_value in self.location_tags.keys():
-            sample_space = self.location_utm_gdf.iloc[0,0].difference(
-                self.location_utm_buffer[tag_value].unary_union
-            )
+        if self.airspace_tag_list:
+            for tag_value in self.location_tags.keys():
+                sample_space = self.location_utm_gdf.iloc[0,0].difference(
+                    self.location_utm_buffer[tag_value].unary_union
+                )
+            sample_space_gdf = GeoSeries(sample_space)
+        else: 
+            sample_space = self.location_utm_gdf
+            sample_space_gdf = sample_space.geometry
 
-        sample_space_gdf = GeoSeries(sample_space)
+        
         sample_vertiport: GeoSeries = sample_space_gdf.sample_points(num_vertiports, seed=seed)
         sample_vertiport_array: np.ndarray = shapely.get_parts(sample_vertiport[0])
 
@@ -154,12 +160,17 @@ class Airspace:
         """Create a vertiport at position(x,y)."""
         position = Point(position[0], position[1])
         
-        for tag_value in self.location_tags.keys():
-            sample_space = self.location_utm_gdf.iloc[0,0].difference(
-                self.location_utm_buffer[tag_value].unary_union
-            )
+        if self.airspace_tag_list:
+            for tag_value in self.location_tags.keys():
+                sample_space = self.location_utm_gdf.iloc[0,0].difference(
+                    self.location_utm_buffer[tag_value].unary_union
+                )
+            sample_space_gdf = GeoSeries(sample_space)
+        else: 
+            sample_space = self.location_utm_gdf
+            sample_space_gdf = sample_space.geometry
 
-        sample_space_gdf = GeoSeries(sample_space)
+
         sample_space_array: np.ndarray = shapely.get_parts(sample_space_gdf)
 
         for sample in sample_space_array:
@@ -260,7 +271,7 @@ class Airspace:
 
     
 if __name__ == '__main__':
-    airspace = Airspace(12, "Austin, Texas, USA", airspace_tag_list=[("building", "hospital"),("aeroway", "aerodrome")])
+    airspace = Airspace(12, "Austin, Texas, USA", airspace_tag_list=[])
     vertiport = airspace.create_vertiport_at_location((630250,3358894))
 
 

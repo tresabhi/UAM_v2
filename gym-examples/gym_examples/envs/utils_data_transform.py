@@ -573,7 +573,7 @@ def transform_for_uam(data):
     # Auto UAV aka Host data
     host_data = data[0]
     host_deviation = host_data['current_heading'] - host_data['final_heading']  
-    
+    host_final_heading = host_data['final_heading']
     # Other agents data
     other_uav_data = data[1][0] 
     
@@ -655,6 +655,7 @@ def transform_for_uam(data):
         'agent_id': agent_id, #TODO: change these to have no ID instead of int64 - these large number might cause learning instability since they are large compared to other state values
         'agent_speed': agent_speed,
         'agent_current_heading': agent_current_heading, #TODO: normalise these values for both agent and intruder
+        'agent_final_heading': host_final_heading,
         'agent_deviation': agent_deviation,
         'agent_dist_to_goal': agent_dist_to_goal,
         

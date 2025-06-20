@@ -157,34 +157,35 @@ class MapSensor(SensorTemplate):
         uav_detection_area = self_uav.current_position.buffer(self_uav.detection_radius)
         
         # Check intersection with each restricted area
-        for tag_value in self.airspace.location_tags.keys():
-            # Get restricted area buffers (hospitals, airports, etc)
-            restricted_areas_buffer = self.airspace.location_utm_buffer[tag_value]
-            
-            # each restricted_areas_buffer is a polygon
-            # Check for intersection with any restricted area buffer
-            # restricted_areas_buffer is a list of polygon
-            for i in range(len(restricted_areas_buffer)):
-                # restricted_area is a polygon
-                restricted_area = restricted_areas_buffer.iloc[i]
-                # Extract geometry object from GeoSeries/GeoDataFrame
-                if hasattr(restricted_area, 'geometry'):
-                    restricted_geometry = restricted_area.geometry
-                else:
-                    restricted_geometry = restricted_area
+        if hasattr(self.airspace, 'location_tags'):
+            for tag_value in self.airspace.location_tags.keys():
+                # Get restricted area buffers (hospitals, airports, etc)
+                restricted_areas_buffer = self.airspace.location_utm_buffer[tag_value]
+                
+                # each restricted_areas_buffer is a polygon
+                # Check for intersection with any restricted area buffer
+                # restricted_areas_buffer is a list of polygon
+                for i in range(len(restricted_areas_buffer)):
+                    # restricted_area is a polygon
+                    restricted_area = restricted_areas_buffer.iloc[i]
+                    # Extract geometry object from GeoSeries/GeoDataFrame
+                    if hasattr(restricted_area, 'geometry'):
+                        restricted_geometry = restricted_area.geometry
+                    else:
+                        restricted_geometry = restricted_area
 
-                if uav_detection_area.intersects(restricted_geometry):
-                    # Calculate distance to the restricted area
-                    distance = self_uav.current_position.distance(restricted_geometry.boundary)
-                    # radial angle of vector pointing from centroid of ra to UAVs current_position
-                    ra_heading = math.atan2((self_uav.current_position.y - restricted_geometry.centroid.y), (self_uav.current_position.x - restricted_geometry.centroid.x))
-                    # Return detection info
-                    ra_data.append({
-                        'type': tag_value,
-                        'distance': distance,
-                        'ra_heading':ra_heading,
-                        'area': restricted_geometry
-                    })
+                    if uav_detection_area.intersects(restricted_geometry):
+                        # Calculate distance to the restricted area
+                        distance = self_uav.current_position.distance(restricted_geometry.boundary)
+                        # radial angle of vector pointing from centroid of ra to UAVs current_position
+                        ra_heading = math.atan2((self_uav.current_position.y - restricted_geometry.centroid.y), (self_uav.current_position.x - restricted_geometry.centroid.x))
+                        # Return detection info
+                        ra_data.append({
+                            'type': tag_value,
+                            'distance': distance,
+                            'ra_heading':ra_heading,
+                            'area': restricted_geometry
+                        })
         
         return ra_data
     
@@ -202,30 +203,31 @@ class MapSensor(SensorTemplate):
         uav_body = self_uav.current_position.buffer(self_uav.radius)
         
         # Check intersection with each restricted area
-        for tag_value in self.airspace.location_tags.keys():
-            # Get actual restricted areas (not buffers)
-            restricted_areas = self.airspace.location_utm[tag_value]
-            
-            # Check for intersection with any restricted area
-            for i in range(len(restricted_areas)):
-                # Get the actual geometry from the GeoDataFrame/GeoSeries
-                restricted_area = restricted_areas.iloc[i]
-                if hasattr(restricted_area, 'geometry'):
-                    restricted_geometry = restricted_area.geometry
-                else:
-                    restricted_geometry = restricted_area
+        if hasattr(self.airspace, 'location_tags'):
+            for tag_value in self.airspace.location_tags.keys():
+                # Get actual restricted areas (not buffers)
+                restricted_areas = self.airspace.location_utm[tag_value]
                 
-                try:
-                    if uav_body.intersects(restricted_geometry):
-                        return True, {
-                            'type': tag_value,
-                            'area': restricted_geometry
-                        }
-                except TypeError:
-                    # If an error occurs, log detailed info for debugging
-                    print(f"Type error with: {type(restricted_area)}, {type(restricted_geometry)}")
-                    print(f"UAV body type: {type(uav_body)}")
-                    continue
+                # Check for intersection with any restricted area
+                for i in range(len(restricted_areas)):
+                    # Get the actual geometry from the GeoDataFrame/GeoSeries
+                    restricted_area = restricted_areas.iloc[i]
+                    if hasattr(restricted_area, 'geometry'):
+                        restricted_geometry = restricted_area.geometry
+                    else:
+                        restricted_geometry = restricted_area
+                    
+                    try:
+                        if uav_body.intersects(restricted_geometry):
+                            return True, {
+                                'type': tag_value,
+                                'area': restricted_geometry
+                            }
+                    except TypeError:
+                        # If an error occurs, log detailed info for debugging
+                        print(f"Type error with: {type(restricted_area)}, {type(restricted_geometry)}")
+                        print(f"UAV body type: {type(uav_body)}")
+                        continue
         
         return False, {}
     

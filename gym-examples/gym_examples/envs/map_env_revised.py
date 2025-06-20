@@ -139,8 +139,8 @@ class MapEnv(gym.Env):
         # Check collision with static objects (restricted airspace)
         static_collision, static_collision_info = self.agent.sensor.get_ra_collision(self.agent)
         if static_collision:
-            print("--- Restricted Airspace COLLISION ---")
-            print(f"Collision with restricted airspace: {static_collision_info}")
+            # print("--- Restricted Airspace COLLISION ---")
+            # print(f"Collision with restricted airspace: {static_collision_info}")
             self.logger.record_collision([self.agent.id], 'static')
 
             # Clean up trajectory data for collided agent
@@ -152,16 +152,16 @@ class MapEnv(gym.Env):
         # Check NMAC and collision for learning agent with other UAVs
         is_nmac, nmac_list = self.agent.sensor.get_nmac(self.agent)
         if is_nmac:
-            print(f"--- Agent {self.agent.id} NMAC ---")
-            print(f"NMAC detected with {[uav.id for uav in nmac_list]}\n")
+            # print(f"--- Agent {self.agent.id} NMAC ---")
+            # print(f"NMAC detected with {[uav.id for uav in nmac_list]}\n")
             # Log NMAC event with all IDs involved
             nmac_ids = [self.agent.id] + [uav.id for uav in nmac_list]
             self.logger.record_nmac(nmac_ids, self.current_time_step)
         
         is_collision, collision_uav_ids = self.agent.sensor.get_uav_collision(self.agent)
         if is_collision:
-            print("--- COLLISION ---")
-            print(f"Collision detected: {is_collision}, and collision with {collision_uav_ids}\n")
+            # print("--- COLLISION ---")
+            # print(f"Collision detected: {is_collision}, and collision with {collision_uav_ids}\n")
             self.logger.record_collision(collision_uav_ids, 'dynamic')
 
             # Clean up trajectory data for collided agents
@@ -172,7 +172,7 @@ class MapEnv(gym.Env):
 
             self.atc.remove_uavs_by_id(collision_uav_ids)
             if self.atc.get_uav_list() == 0:
-                print("No more UAVs in space")
+                # print("No more UAVs in space")
                 #       obs,            reward, terminated, truncated, info
                 return self._get_obs(), -100,   False,      True,      {"collision": True, "type": "dynamic"}
         
@@ -192,29 +192,32 @@ class MapEnv(gym.Env):
                 # Check static collisions for non-learning UAVs
                 static_collision, static_info = uav.sensor.get_ra_collision(uav)
                 if static_collision:
-                    print(f"--- UAV {uav.id} Restricted Airspace COLLISION ---")
+                    self.total_collision_count += 1
+                    # # print(f"--- UAV {uav.id} Restricted Airspace COLLISION ---")
                     self.logger.record_collision([uav.id], 'static')
 
                     # Clean up trajectory for this UAV
                     if hasattr(self, 'trajectory_by_id') and uav.id in self.trajectory_by_id:
                         del self.trajectory_by_id[uav.id]
                     
-                    #TODO: need to add logic where UAV with ORCA will be disregarded 
+                    #TODO: need to add logic for, when ORCA agent is removed, that agent is also removed from the RVO2_sim properly
                     self.atc.remove_uavs_by_id([uav.id])
                     continue
                 
                 # Check NMAC and dynamic collisions
                 is_nmac, nmac_list = uav.sensor.get_nmac(uav)
                 if is_nmac:
-                    print(f"--- UAV {uav.id} NMAC ---")
-                    print(f"NMAC detected with {[other_uav.id for other_uav in nmac_list]}\n")
+                    # Logic for NMAC count
+                    self.total_nmac_count += 1
+                    # print(f"--- UAV {uav.id} NMAC ---")
+                    # print(f"NMAC detected with {[other_uav.id for other_uav in nmac_list]}\n")
                     # Log NMAC event with all IDs involved
                     nmac_ids = [uav.id] + [other_uav.id for other_uav in nmac_list]
                     self.logger.record_nmac(nmac_ids, self.current_time_step)
                 
                 is_collision, collision_uav_ids = uav.sensor.get_uav_collision(uav)
                 if is_collision:
-                    print(f"--- UAV {uav.id} COLLISION ---")
+                    # print(f"--- UAV {uav.id} COLLISION ---")
                     self.logger.record_collision(collision_uav_ids, 'dynamic')
 
                     # Clean up trajectory for collided UAVs
@@ -223,6 +226,7 @@ class MapEnv(gym.Env):
                             if coll_id in self.trajectory_by_id:
                                 del self.trajectory_by_id[coll_id]
 
+                    #TODO: need to add logic for, when ORCA agent is removed, that agent is also removed from the RVO2_sim properly
                     self.atc.remove_uavs_by_id(collision_uav_ids)
                     continue
                 
@@ -235,7 +239,8 @@ class MapEnv(gym.Env):
                     self.logger.mark_agent_complete(uav.id)
                     if hasattr(self, 'trajectory_by_id') and uav.id in self.trajectory_by_id:
                         del self.trajectory_by_id[uav.id]
-                    self.atc.remove_uavs_by_id([uav.id])
+                    #TODO: need to add logic for, when ORCA agent is removed, that agent is also removed from the RVO2_sim properly
+                    #self.atc.remove_uavs_by_id([uav.id])
                     continue
                 
                 # Get and apply non-learning UAV's action based on its controller
@@ -627,7 +632,7 @@ class MapEnv(gym.Env):
             self._seed = seed
             random.seed(self._seed)
             np.random.seed(self._seed)
-            print(f"Environment reset with seed: {self._seed}")
+            # print(f"Environment reset with seed: {self._seed}")
             
         # Reset logger and rendering for new episode
         self.logger.reset()
@@ -676,16 +681,18 @@ class MapEnv(gym.Env):
         )
 
         #### START - Create ORCA agents ####
+        
         # collect num ORCA agents
         self.ORCA_agent_list = [UAV_v2(self.orca_controller, self.orca_dynamics, self.map_sensor, radius=self.uav_radius, nmac_radius=self.NMAC_radius,detection_radius=self.detection_radius) for _ in range(self.num_ORCA_uav)]
         #ATC needs to know about these agents - change this style of open addition
         self.atc.uav_list += self.ORCA_agent_list
         #TODO: these agents needs to work with vertiport assignment
         #TODO: these agents need to check when they leave and reach vertiport
-        self.rvo2_sim = RVO2_simulator(timestep=0.1, radius=500, max_speed=80, mapped_env_orca_agent_list=self.ORCA_agent_list) #TODO: there is discrepancy between ORCA_agent and UAV(ORCA), their radius are different  
+        self.rvo2_sim = RVO2_simulator(timestep=0.1, radius=self.uav_radius, max_speed=80, mapped_env_orca_agent_list=self.ORCA_agent_list) #TODO: there is discrepancy between ORCA_agent and UAV(ORCA), their radius are different  
         # collect Restricted airspace polygons
-        self.rvo2_sim.set_polygon_coords(self.airspace.restricted_airspace_buffer_geo_series)
-        
+        if hasattr(self.airspace, 'restricted_airspace_buffer_geo_series'):
+            self.rvo2_sim.set_polygon_coords(self.airspace.restricted_airspace_buffer_geo_series)
+
 
 
         #### END --- ORCA agents ####
@@ -756,10 +763,11 @@ class MapEnv(gym.Env):
 
             #Reset Odometer
             uav.reset_odometer() 
-
-
-       
         
+        
+        # Start/Reset total_nmac_count and collision_count
+        self.total_nmac_count = 0
+        self.total_collision_count = 0
         # Initialize tracking for reward function
         self.previous_distance = self.agent.current_position.distance(self.agent.end)
 
@@ -767,13 +775,13 @@ class MapEnv(gym.Env):
         obs = self._get_obs()
         info = {}
 
-        # Print debug info for vertiport assignments
-        print("--- Vertiport Assignments ---")
+        # # print debug info for vertiport assignments
+        # print("--- Vertiport Assignments ---")
         for uav in self.atc.get_uav_list():
-            if not isinstance(uav, Auto_UAV_v2):  # Only print for non-learning UAVs
+            if not isinstance(uav, Auto_UAV_v2):  # Only # print for non-learning UAVs
                 print(f'UAV {uav.id} - Start: {uav.start} end: {uav.end}')
-        print(f'Agent {self.agent.id} - Start: {self.agent.start} end: {self.agent.end}')
-        print("---------------------------")
+        # print(f'Agent {self.agent.id} - Start: {self.agent.start} end: {self.agent.end}')
+        # print("---------------------------")
         
         #### START - RESET ORCA/RVO2 ####
         self.rvo2_sim.reset()
@@ -829,7 +837,7 @@ class MapEnv(gym.Env):
                                           'time_avg': uav.start.distance(uav.end)/uav.max_speed,
                                           'arrival_rate': 0,  # this info will come from start vertiport
                                           'service_rate': 0 } # this is an expected service rate of UAVs }
-        pass
+        
     
     def _collect_episode_end_metrics(self):
         '''For all UAVs in the env collect the following
@@ -840,18 +848,19 @@ class MapEnv(gym.Env):
         
 
         self.uav_post_flight_info = {}
-        
         for uav in self.atc.get_uav_list():
+            
             self.uav_post_flight_info[uav.id] = {
                                           'distance_factor': uav.odometer_reading/uav.start.distance(uav.end),
                                           #'time_factor': time_traveled/self.uav_post_fligt_info[uav.id]['distance']/uav.max_speed,
-                                          'NMAC_count': None,  # need something to collect total NMAC count
-                                          'RA_violation_count': None } # need something to collect total RA violation
+                                          'NMAC_count': self.total_nmac_count,  # this is total nmac incidence during episode, ie for all UAVs, might need to change it to individual UAV
+                                          'RA_violation_count': self.total_collision_count,
+                                          'mission_complete': uav.mission_complete_status} # this is total RA collision incidence during episode, ie for all UAVs, might need to change it to individual UAV
 
 
 
 
-        pass
+        
     
     
     

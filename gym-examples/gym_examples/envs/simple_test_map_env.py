@@ -20,10 +20,60 @@ import random
 from map_logging_loader import MapLoader
 from map_renderer import MapRenderer
 
+from datetime import datetime
+import json 
+
+
 # Ensure no global randomness affects our tests
 #FIX: why is seed being used here, seed should be a variable that is passed to the env
 random.seed(0)
 np.random.seed(0)
+
+
+def save_episode_metrics(uav_pre_fligt_info,
+                         uav_post_flight_info,
+                         episode: int,
+                         seed: int,
+                         base_dir: str = '.'):
+    """
+    Save the pre- and post-flight metric dicts to JSON.
+    Creates a subdir named 'YYYY-MM-DD_HH-MM' under base_dir.
+    """
+    # 1. Compute total number of UAVs
+    total_uavs = len(uav_pre_fligt_info)
+
+    # 2. Build timestamped directory name
+    now = datetime.now()
+    common_dir_name = 'Metrics'
+    
+    # total_uav_str = f'total_uav{total_uavs}'
+    # dir_name = now.strftime('%Y-%m-%d_%H-%M')
+    
+    save_dir = os.path.join(base_dir, common_dir_name) # total_uav_str, dir_name
+    os.makedirs(save_dir, exist_ok=True)
+
+    # 3. Prepare filename and payload
+    filename = f'uav_count_{total_uavs}_episode_{episode}_seed_{seed}.json'
+    filepath = os.path.join(save_dir, filename)
+
+    payload = {
+        'episode': episode,
+        'seed': seed,
+        'total_uavs': total_uavs,
+        'uav_pre_fligt_info': uav_pre_fligt_info,
+        'uav_post_flight_info': uav_post_flight_info
+    }
+
+    # 4. Write JSON
+    with open(filepath, 'w') as f:
+        json.dump(payload, f, indent=4)
+
+    print(f"Saved metrics for episode {episode} -> {filepath}")
+
+
+
+
+
 
 # Check for ffmpeg installation
 def check_ffmpeg():
@@ -52,7 +102,7 @@ def simple_reward(self):
 # Apply the monkey patches
 MapEnv._get_reward = simple_reward
 
-def test_map_env_with_random_actions(episodes=2, max_steps_per_episode=50, render=True, 
+def test_map_env_with_random_actions(number_orca_agents, number_uav, number_of_vp, episodes=2, max_steps_per_episode=50, render=True, 
                                      save_animation=True, env_seed=42, episode_seeds=None,
                                      mp4_only=True):
     """
@@ -105,11 +155,11 @@ def test_map_env_with_random_actions(episodes=2, max_steps_per_episode=50, rende
         # Initialize environment with selected observation space
         print(f"\n=== Creating environment with seed {env_seed} ===")
         env = MapEnv(
-            number_of_uav= 0,
-            num_ORCA_uav=40,
-            number_of_vertiport= 45,
+            number_of_uav= number_uav,
+            num_ORCA_uav=number_orca_agents,
+            number_of_vertiport= number_of_vp,
             location_name="Austin, Texas, USA",
-            airspace_tag_list=[("aeroway", "aerodrome")], #("amenity", "hospital"), 
+            airspace_tag_list=[], #("amenity", "hospital"), ("aeroway", "aerodrome")
             max_episode_steps=max_steps_per_episode,
             seed=env_seed,  # Use the specified environment seed
             obs_space_str= "UAM_UAV", # "LSTM-A2C",
@@ -130,6 +180,13 @@ def test_map_env_with_random_actions(episodes=2, max_steps_per_episode=50, rende
                 obs, info = env.reset(seed=episode_seed)
                 # Print initial observations for debugging
                 print(f"Initial observation keys: {obs.keys() if isinstance(obs, dict) else 'not a dict'}")
+
+                #EPISODE metrics
+                # TODO: 
+                # 1. save pre-flight dict as a JSON with episode no, and date
+                env._collect_initial_metrics()
+                print(env.uav_pre_fligt_info)
+                # save to JSON with episode no.
 
                 # Track the episode directory created by the logger
                 episode_timestamp = env.logger.timestamp
@@ -195,11 +252,22 @@ def test_map_env_with_random_actions(episodes=2, max_steps_per_episode=50, rende
                         print(f"Continuing to next episode...")
                         break
                 
+                #TODO: place the metrics extraction code here 
+                # 1. collect metrics
+                # 2. save metrics dict as JSON with episode no, and date
+                # 3. use the saved metrics to plot  
+                env._collect_episode_end_metrics()
+                print(env.uav_post_flight_info)
+                # save to JSON with episode number
+                save_episode_metrics(env.uav_pre_fligt_info, env.uav_post_flight_info, episode, episode_seed) 
+
+
+
                 # Episode summary
-                print(f"\nEpisode {episode+1} summary:")
-                print(f"Total steps: {steps}")
-                print(f"Goal reached: {goal_reached}")
-                print(f"Collision detected: {collision_detected}")
+                # print(f"\nEpisode {episode+1} summary:")
+                # print(f"Total steps: {steps}")
+                # print(f"Goal reached: {goal_reached}")
+                # print(f"Collision detected: {collision_detected}")
                 
                 # Create animation for this episode
                 if save_animation and steps > 0:
@@ -262,6 +330,7 @@ def test_map_env_with_random_actions(episodes=2, max_steps_per_episode=50, rende
                 try:
                     # Print episode summary with error handling
                     try:
+                        # TODO: place a switch here to toggle on/off
                         loader.print_episode_summary(episode_dir)
                     except Exception as e:
                         print(f"Error printing episode summary: {e}")
@@ -311,13 +380,16 @@ if __name__ == "__main__":
     
     # Increase to 500 steps to see more movement
     test_map_env_with_random_actions(
+        number_uav= 3,
+        number_orca_agents= 4,
+        number_of_vp=10,
         episodes=1,
-        max_steps_per_episode=2000,
+        max_steps_per_episode=3000,
         render=True,
         save_animation=False,
         env_seed=env_seed,
         episode_seeds=episode_seeds,
-        mp4_only=True  # Set to True to only save MP4 files
+        mp4_only=False  # Set to True to only save MP4 files
     )
     
     print("Test script completed.")

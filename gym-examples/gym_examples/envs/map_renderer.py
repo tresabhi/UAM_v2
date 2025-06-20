@@ -180,14 +180,15 @@ class MapRenderer:
         all_y_coords = vp_y_coords + uav_y_coords
         
         # Add restricted areas dimensions
-        for tag_value in self.env.airspace.location_tags.keys():
-            # Get bounds of restricted areas
-            restricted_bounds = self.env.airspace.location_utm[tag_value].bounds
-            if len(restricted_bounds) > 0:
-                for bound in restricted_bounds.values:
-                    if len(bound) >= 4:  # minx, miny, maxx, maxy
-                        all_x_coords.extend([bound[0], bound[2]])
-                        all_y_coords.extend([bound[1], bound[3]])
+        if hasattr(self.env.airspace, 'location_tags'):
+            for tag_value in self.env.airspace.location_tags.keys():
+                # Get bounds of restricted areas
+                restricted_bounds = self.env.airspace.location_utm[tag_value].bounds
+                if len(restricted_bounds) > 0:
+                    for bound in restricted_bounds.values:
+                        if len(bound) >= 4:  # minx, miny, maxx, maxy
+                            all_x_coords.extend([bound[0], bound[2]])
+                            all_y_coords.extend([bound[1], bound[3]])
         
         # Set limits with margin
         if all_x_coords and all_y_coords:
@@ -368,14 +369,15 @@ class MapRenderer:
                 all_y_coords = vp_y_coords + uav_y_coords
                 
                 # Add restricted areas dimensions
-                for tag_value in self.env.airspace.location_tags.keys():
-                    # Get bounds of restricted areas
-                    restricted_bounds = self.env.airspace.location_utm[tag_value].bounds
-                    if len(restricted_bounds) > 0:
-                        for bound in restricted_bounds.values:
-                            if len(bound) >= 4:  # minx, miny, maxx, maxy
-                                all_x_coords.extend([bound[0], bound[2]])
-                                all_y_coords.extend([bound[1], bound[3]])
+                if hasattr(self.env.airspace, 'location_tags'):
+                    for tag_value in self.env.airspace.location_tags.keys():
+                        # Get bounds of restricted areas
+                        restricted_bounds = self.env.airspace.location_utm[tag_value].bounds
+                        if len(restricted_bounds) > 0:
+                            for bound in restricted_bounds.values:
+                                if len(bound) >= 4:  # minx, miny, maxx, maxy
+                                    all_x_coords.extend([bound[0], bound[2]])
+                                    all_y_coords.extend([bound[1], bound[3]])
                 
                 # Set limits with margin
                 if all_x_coords and all_y_coords:
@@ -541,11 +543,12 @@ class MapRenderer:
         # plt.grid(visible=True)
         
         # Draw restricted areas
-        for tag_value in self.env.airspace.location_tags.keys():
-            # Draw actual restricted areas
-            self.env.airspace.location_utm[tag_value].plot(ax=ax, color="red", alpha=0.7)
-            # Draw buffer zones
-            self.env.airspace.location_utm_buffer[tag_value].plot(ax=ax, color="orange", alpha=0.3)
+        if hasattr(self.env.airspace, 'location_tags'):
+            for tag_value in self.env.airspace.location_tags.keys():
+                # Draw actual restricted areas
+                self.env.airspace.location_utm[tag_value].plot(ax=ax, color="red", alpha=0.7)
+                # Draw buffer zones
+                self.env.airspace.location_utm_buffer[tag_value].plot(ax=ax, color="orange", alpha=0.3)
         
         # # Draw vertiports
         # vertiport_points = [v for v in self.env.airspace.get_vertiport_list()]

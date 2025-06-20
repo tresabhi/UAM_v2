@@ -851,7 +851,7 @@ class MapEnv(gym.Env):
         for uav in self.atc.get_uav_list():
             
             self.uav_post_flight_info[uav.id] = {
-                                          'distance_factor': uav.odometer_reading/uav.start.distance(uav.end),
+                                          'distance_factor': uav.odometer_reading/uav.start.distance(uav.end), #TODO: what if this metric was multiplied with percentage mission_completion
                                           #'time_factor': time_traveled/self.uav_post_fligt_info[uav.id]['distance']/uav.max_speed,
                                           'NMAC_count': self.total_nmac_count,  # this is total nmac incidence during episode, ie for all UAVs, might need to change it to individual UAV
                                           'RA_violation_count': self.total_collision_count,

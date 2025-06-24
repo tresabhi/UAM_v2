@@ -140,6 +140,8 @@ class MapSensor(SensorTemplate):
     
     
     #### Restricted Area ####
+    # TODO: this method needs to be tested,
+    # TODO: to see what is the output when there is detection of Restricted Airspace
     def get_ra_detection(self, self_uav: UAV_v2_template) -> List[Dict]:
         """
         Check if the UAV's detection radius intersects with restricted airspace.

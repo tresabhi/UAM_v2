@@ -99,7 +99,12 @@ class MapEnv(gym.Env):
                 "env.__init__ needs both obs_space_str and sorting_criteria "
                 "for LSTM_A2C model ie sequential observation space"
             )
-        
+        elif self.obs_space_str == "UAV_5_intruders" and self.sorting_criteria is None:
+            raise RuntimeError(
+                "env.__init__ needs both obs_space_str and sorting_criteria "
+                "for UAV_5_intruders model ie uav_5_intruders observation space"
+            )
+
         self.action_space = spaces.Box(
             low= np.array([0, -1]),  # [acceleration, heading_change]
             high=np.array([1, 1]),
@@ -617,6 +622,24 @@ class MapEnv(gym.Env):
                 self.max_number_other_agents_observed,
                 'UAM_UAV'
             )
+            return transformed_data
+        
+        elif self.obs_space_str == 'UAV_5_intruders':
+            # Get Auto-UAV observation data
+            raw_obs = self.agent.get_obs()
+
+            with open("output.txt", "w") as file:
+                print(f"Raw observation format: {type(raw_obs)}", file=file)
+                print(f"Raw observation content: {raw_obs}", file=file)
+
+            # Transform data for sequential observation format
+            transformed_data = transform_sensor_data(
+                raw_obs,
+                self.max_number_other_agents_observed,
+                self.obs_space_str,
+                self.sorting_criteria,
+            )
+            
             return transformed_data
 
         else:

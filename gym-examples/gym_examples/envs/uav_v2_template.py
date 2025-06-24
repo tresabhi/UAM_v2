@@ -156,7 +156,7 @@ class UAV_v2_template(ABC):
         # add self obs with other_uav obs
         sensor_data = self.get_sensor_data()
         
-        return (own_data, sensor_data)
+        return (own_data, sensor_data) # TODO: named tuple would be better for sensor data.
 
     def get_action(self, observation):
         """

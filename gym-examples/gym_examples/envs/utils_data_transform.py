@@ -300,7 +300,7 @@ def transform_for_uav_5_intruders(data, sorting_criteria, max_number_intruders )
         other_uav_data = data[1][0] #if len(data[1][0]) > 0 else [] #TODO: this if else is not needed 
         # You can also extract restricted areas data if needed
         # restricted_areas -> List[Dict]
-        restricted_areas_data = data[1][1]
+        restricted_areas_list = data[1][1]
     
     # TODO: check if this else is ever used
     # else is NOT used in current env implementation
@@ -395,11 +395,11 @@ def transform_for_uav_5_intruders(data, sorting_criteria, max_number_intruders )
 
         # TODO: this section will fail, test it using multiple resticted areas
         # TODO: also test sensor.get_ra_detection()
-        if isinstance(data, tuple) and restricted_areas_data and len(restricted_areas_data) > 0:
-            ra_data = restricted_areas_data #data[1][1] is a list of dicts
-            # logic below needs to be fixed to handle multiple restricted areas
-            static_collsion_detected = 1
-            distance_to_restricted = ra_data.get('distance', float('inf'))
+        if restricted_areas_list:
+            for restriceted_area in restricted_areas_list:
+                # logic below needs to be fixed to handle multiple restricted areas
+                static_collsion_detected = 1
+                distance_to_restricted = restriceted_area.get('distance', float('inf'))
 
         
         transformed_data = {
@@ -436,7 +436,7 @@ def transform_for_sequence(data, sorting_criteria, max_number_other_agents_obser
         host_data = data[0]
         other_uav_data = data[1][0] if len(data[1][0]) > 0 else []
         # You can also extract restricted areas data if needed
-        restricted_areas_data = data[1][1]
+        restricted_areas_list = data[1][1]
     else:
         # Original list format
         host_data = data[0]
@@ -532,10 +532,11 @@ def transform_for_sequence(data, sorting_criteria, max_number_other_agents_obser
     distance_to_restricted = float('inf')
     
     # If restricted areas data exists and contains something
-    if isinstance(data, tuple) and restricted_areas_data and len(restricted_areas_data) > 0:
-        ra_data = restricted_areas_data #this is a dict -> data[1][1]
-        static_collision_detected = 1
-        distance_to_restricted = ra_data.get('distance', float('inf'))
+    # if isinstance(data, tuple) and restricted_areas_list and len(restricted_areas_list) > 0:
+    if restricted_areas_list:
+        for restricted_area in restricted_areas_list:
+            static_collision_detected = 1
+            distance_to_restricted = restricted_area.get('distance', float('inf'))
     
     # Create the transformed data dictionary
     transformed_data = {
@@ -558,7 +559,7 @@ def transform_for_graph(data, max_number_other_agents_observed) -> Dict:
         host_agent = data[0]
         other_uav_data = data[1][0] if len(data[1][0]) > 0 else []
         # You can also extract restricted areas data if needed
-        restricted_areas_data = data[1][1]
+        restricted_areas_list = data[1][1]
     else:
         # Original list format
         host_agent = data[0]

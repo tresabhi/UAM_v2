@@ -323,7 +323,10 @@ class MapEnv(gym.Env):
         
         # Increment time step
         self.current_time_step += 1
-        
+        # FYI: unless there is a collision with static or dynamic object, 
+        #      obs = self._get_obs()
+        print('from env.step() - Observation:')
+        print(obs)
         return obs, reward, terminated, truncated, info
 
 
@@ -613,6 +616,9 @@ class MapEnv(gym.Env):
             #FIX: test this - chech if this method works and produces correct response
         #   (own_dict, (other_agents, restricted_areas))
             raw_obs = self.agent.get_obs()
+            print('from env._get_obs()')
+            print('raw obs:')
+            print(raw_obs)
             with open("output.txt", "w") as file:
                 print(raw_obs, file=file)
 
@@ -627,7 +633,9 @@ class MapEnv(gym.Env):
         elif self.obs_space_str == 'UAV_5_intruders':
             # Get Auto-UAV observation data
             raw_obs = self.agent.get_obs()
-
+            print('from env._get_obs()')
+            print('raw obs:')
+            print(raw_obs)
             with open("output.txt", "w") as file:
                 print(f"Raw observation format: {type(raw_obs)}", file=file)
                 print(f"Raw observation content: {raw_obs}", file=file)

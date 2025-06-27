@@ -69,7 +69,7 @@ def setup_logging():
             logging.StreamHandler(sys.stdout)
         ]
     )
-    return logging.getLogger(), timestamp
+    return logging.getLogger(), timestamp # why is timestamp returned?
 
 # Simple callback to track progress
 class SimpleTrackingCallback(BaseCallback):
@@ -177,18 +177,20 @@ class SimpleTrackingCallback(BaseCallback):
 
 def create_env(seed=42, max_steps=500):
     """Create a single instance of the environment"""
+    # TODO: MapEnv needs new arguments for UAV_5_intruders, and UAV_UAM
     env = MapEnv(
         number_of_uav=3,  # Fewer UAVs for faster training
-        number_of_vertiport=5,
+        number_ORCA_uav = 4,
+        number_of_vertiport=10,
         location_name="Austin, Texas, USA",
-        airspace_tag_list=[("amenity", "hospital"), ("aeroway", "aerodrome")],
+        airspace_tag_list=[], #("amenity", "hospital"), ("aeroway", "aerodrome")
         max_episode_steps=max_steps,
         seed=seed,
         obs_space_str="UAM_UAV",
-        sorting_criteria=None,
+        sorting_criteria="closest first",
         render_mode=None,
-        max_uavs=4,
-        max_vertiports=6
+        max_uavs=100,
+        max_vertiports=150
     )
     return Monitor(env)
 
@@ -348,4 +350,7 @@ def main(timesteps=5000, max_episode_steps=500, seed=42):
 
 if __name__ == "__main__":
     # Run with smaller numbers initially
+    # TODO: update max_episode steps to have other_UAV completion as a factor.
+    #      If other_UAVs complete then episode ends as well
+    # TODO: Change the max_episode_steps to 3750    
     main(timesteps=100000, max_episode_steps=2000, seed=42)

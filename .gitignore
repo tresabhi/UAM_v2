@@ -12,3 +12,5 @@ output.txt
 # *.ipynb
 /gym-examples/gym_examples/envs/avg_plot_results
 /gym-examples/gym_examples/envs/Metrics
+/gym-examples/gym_examples/envs/Python-RVO2
+

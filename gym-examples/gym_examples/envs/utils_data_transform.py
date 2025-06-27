@@ -2,7 +2,7 @@ from typing import List, Dict, Tuple
 import numpy as np
 from utils import compute_time_to_impact
 import math
-from gymnasium.spaces import Dict, Box, Discrete
+from gymnasium.spaces import Dict, Box, Discrete, MultiBinary
 
 def choose_obs_space_constructor(obs_space_string:str, max_number_other_agents_observed=7):
     '''This helper method uses the argument to return correct obs_space constructor for gym env
@@ -118,39 +118,35 @@ def obs_space_uam():
 
     return Dict(
             {
-                # agent ID for debugging
-                # TODO: This cannot be part of observation space, this will only be used for debugging
-                "agent_id": Box(
-                    low=0,
-                    high=100000,
-                    shape=(1,),
-                    dtype=np.int64,
-                ),
                 # agent speed
+                # normalize between 0 and 1 : max-min normalization
                 "agent_speed": Box(
                     low=0,
-                    high=100,
+                    high=1,
                     shape=(1,),
                     dtype=np.float32,  # Changed to float32 for consistency
                 ),
                 # agent current heading
+                # normalize between -1 and 1 : max-min normalization
                 "agent_current_heading": Box(
-                    low=-180,
-                    high=180,
+                    low=-1,
+                    high=1,
                     shape=(1,),  # Changed to (1,) for consistency
                     dtype=np.float32,
                 ),
                 # agent deviation
+                # normalize between -1 and 1 : max-min normalization
                 "agent_deviation": Box(
-                    low=-180,
-                    high=180,
+                    low=-1,
+                    high=1,
                     shape=(1,),
                     dtype=np.float32,  # Changed to float32 for consistency
                 ),
                 # agent distance to goal
+                # normalize between 0 and 1 : max-min normalization
                 "agent_dist_to_goal": Box(
                     low=0,
-                    high=100000,
+                    high=1,
                     shape=(1,),
                     dtype=np.float32  # Changed to float32 for consistency
                 ),
@@ -158,78 +154,80 @@ def obs_space_uam():
                 "intruder_detected": Discrete(
                     2  # 0 for no intruder, 1 for intruder detected
                 ),
-                # intruder id for debugging
-                # TODO: This cannot be part of observation space, this will only be used for debugging
-                "intruder_id": Box(
-                    low=-1,  # Changed to allow -1 for no intruder
-                    high=100000,
-                    shape=(1,),
-                    dtype=np.int64,
-                ),
+
                 # intruder current position x and y
-                'intruder_position_x': Box(  # Split into x and y components
-                    low=-10000000,
-                    high=10000000,
-                    shape=(1,),
-                    dtype=np.float32,
-                ),
-                'intruder_position_y': Box(  # Split into x and y components
-                    low=-10000000,
-                    high=10000000,
-                    shape=(1,),
-                    dtype=np.float32,
-                ),
+                # normalize between -1 and 1 : max-min normalization
+                # 'intruder_position_x': Box(  # Split into x and y components
+                #     low=-10000000,
+                #     high=10000000,
+                #     shape=(1,),
+                #     dtype=np.float32,
+                # ),
+                # 'intruder_position_y': Box(  # Split into x and y components
+                #     # normalize between -1 and 1 : max-min normalization
+                #     low=-10000000,
+                #     high=10000000,
+                #     shape=(1,),
+                #     dtype=np.float32,
+                # ),
                 # distance to intruder
+                # normalize between 0 and 1 : max-min normalization
                 #TODO: this should be limited to the detection radius of 500m
                 "distance_to_intruder": Box(
                     low=0,
-                    high=500,  # Increased to match other scales
+                    high=1000,  # Increased to match other scales
                     shape=(1,),
                     dtype=np.float32,  # Changed to float32 for consistency
                 ),
                 # Relative heading of intruder
+                # normalize between -1 and 1 : max-min normalization
                 "relative_heading_intruder": Box(
-                    low=-180, 
-                    high=180, 
+                    low=-1, 
+                    high=1, 
                     shape=(1,), 
                     dtype=np.float32  # Changed to float32 for consistency
                 ),
                 # intruder's current heading
-                "intruder_current_heading": Box(
-                    low=-180, 
-                    high=180, 
-                    shape=(1,), 
-                    dtype=np.float32,  # Changed to float32 for consistency
-                ),
+                # normalize between -1 and 1 : max-min normalization
+                # "intruder_current_heading": Box(
+                #     low=-180, 
+                #     high=180, 
+                #     shape=(1,), 
+                #     dtype=np.float32,  # Changed to float32 for consistency
+                # ),
                 # relative speed
+                # normalize between -1 and 1 : max-min normalization
                 "relative_intruder_speed": Box(
-                    low=0,
-                    high=100,  # Reduced to realistic value
+                    low=-1,
+                    high=1,  # Reduced to realistic value
                     shape=(1,),
                     dtype=np.float32,  # Changed to float32 for consistency
                 ),
                 # intruder speed
-                "intruder_speed": Box(
-                    low=0,
-                    high=100,  # Reduced to realistic value
-                    shape=(1,),
-                    dtype=np.float32,  # Changed to float32 for consistency
-                ),                                               
+                # normalize between 0 and 1 : max-min normalization
+                # "intruder_speed": Box(
+                #     low=0,
+                #     high=100,  # Reduced to realistic value
+                #     shape=(1,),
+                #     dtype=np.float32,  # Changed to float32 for consistency
+                # ),                                               
                 # restricted airspace
                 "restricted_airspace_detected":Discrete(
                     2 # 0 for no ra, 1 for ra detected
                 ),
                 # distance to airspace 
+                # normalize between 0 and 1 : max-min normalization
                 "distance_to_restricted_airspace": Box(
                     low=0,
-                    high=10000,
+                    high=1,
                     shape=(1,),
                     dtype=np.float32,  # Changed to float32 for consistency
                 ),
                 # relative heading restricted airspace
+                # normalize between -1 and 1 : max-min normalization
                 "relative_heading_restricted_airspace": Box(
-                    low=-180,
-                    high=180,
+                    low=-1,
+                    high=1,
                     shape=(1,),
                     dtype=np.float32,  # Changed to float32 for consistency
                 )
@@ -248,15 +246,18 @@ def obs_space_uav_5_intruders(max_number_intruders=5):
         'heading_ego_frame': Box(low=-180, high=180, shape=(), dtype=np.float32),
         'current_speed': Box(low=0, high=50, shape=(), dtype=np.float32),
         'radius': Box(low=0, high=20, shape=(), dtype=np.float32),  # UAV size
-        'no_other_agents_detected': Box(low=0, high=max_number_intruders, shape=(), dtype=np.int32),  # Number of
+        'no_other_agents_detected': Discrete(max_number_intruders + 1),  # Number of
+        'other_uav_mask': MultiBinary(max_number_intruders),
         'other_agents_state': Box(  # p_parall, p_orth, v_parall, v_orth, other_agent_radius, combined_radius, dist_2_other
             low=np.full((max_number_intruders, 7), -np.inf),
             high=np.full((max_number_intruders, 7), np.inf),
             shape=(max_number_intruders, 7),
             dtype=np.float32,
-        ),        # Static object detection
+        ),        
+        # Static object detection
+        'restricted_area_mask':MultiBinary(1),
         'static_collision_detected': Box(low=0, high=1, shape=(), dtype=np.int32),
-        'distance_to_restricted': Box(low=0, high=10000, shape=(), dtype=np.float32),
+        'distance_to_restricted': Box(low=0, high=np.inf, shape=(), dtype=np.float32),
     })
 
 #### DATA TRANSFORMATION ####
@@ -286,7 +287,10 @@ def transform_sensor_data(data,
         raise RuntimeError('Incorrect data_format passed to transform_sensor_data')
 
 
-def transform_for_uav_5_intruders(data, sorting_criteria, max_number_intruders ):
+# TODO: normalize the return data
+def transform_for_uav_5_intruders(data: Tuple[Dict, Tuple[List[Dict], List[Dict]]], 
+                                  sorting_criteria, 
+                                  max_number_intruders):
     """Transform UAV data into observation for RL training, ensuring all values are consistently shaped"""
     #       host_data,  (other_uavs, restricted_areas)
     # data -> dict, tuple(list,         list); dict is host data, tuple[0]-other_uav, tuple[1]-restricted area
@@ -314,18 +318,29 @@ def transform_for_uav_5_intruders(data, sorting_criteria, max_number_intruders )
                               host_data['current_position'].y])
     host_velocity = np.array([host_data['current_speed'] * np.cos(host_data['current_heading']),
                             host_data['current_speed'] * np.sin(host_data['current_heading'])])
-    host_heading = host_data['current_heading']
-    host_radius = host_data['radius']
-    host_ref_prll = host_data['ref_prll']
-    host_ref_orth = host_data['ref_orth']
+    host_heading = np.array(host_data['current_heading'])
+    host_radius = np.array(host_data['radius'])
+    host_ref_prll = np.array(host_data['ref_prll'])
+    host_ref_orth = np.array(host_data['ref_orth'])
+    host_dist_goal = np.array(host_data['distance_to_goal'])
+    host_current_speed = np.array(host_data['current_speed'])
 
     # Other UAVs
     #TODO: add mask for intruders 
 
     # Initialize empty array for other UAVs' states
     other_uav_states = np.zeros((max_number_intruders, 7), dtype=np.float32)
+    
     #TODO: place the mask for intruders here 
-    num_other_agents = 0
+    other_uav_mask_array = np.zeros(max_number_intruders, dtype=np.int8)
+
+    num_other_agents = np.array(0)
+
+    #resticted area data
+    static_collsion_detected = np.array(0)
+    distance_to_restricted = np.array(float('inf'))
+    restriceted_area_mask = np.zeros(1, dtype=np.int8)
+    
     
     # Process other UAVs if any exist
     if other_uav_data:
@@ -388,29 +403,34 @@ def transform_for_uav_5_intruders(data, sorting_criteria, max_number_intruders )
             # Fill the pre-allocated array with sorted states
             if i < max_number_intruders:
                 other_uav_states[i] = state
+                other_uav_mask_array[i] = 1
         
-        #resticted area data
-        static_collsion_detected = 0
-        distance_to_restricted = float('inf')
+        
 
         # TODO: this section will fail, test it using multiple resticted areas
         # TODO: also test sensor.get_ra_detection()
         if restricted_areas_list:
             for restriceted_area in restricted_areas_list:
                 # logic below needs to be fixed to handle multiple restricted areas
-                static_collsion_detected = 1
-                distance_to_restricted = restriceted_area.get('distance', float('inf'))
+                static_collsion_detected = np.array(1)
+                distance_to_restricted = np.array(restriceted_area.get('distance', float('inf')))
+                restriceted_area_mask[0] = 1
 
+
+    else:
+        pass
         
-        transformed_data = {
-            'dist_goal': host_data['distance_to_goal'],
-            'heading_ego_frame': host_heading,
-            'current_speed': host_data['current_speed'],
-            'radius': host_radius,
-            'no_other_agents_detected': num_other_agents,  # Number of other agents observed
-            'other_agents_state': other_uav_states,
-            'static_collision_detected': static_collsion_detected,
-            'distance_to_restricted': distance_to_restricted
+    transformed_data = {
+        'dist_goal': host_dist_goal, #host_data['distance_to_goal'],
+        'heading_ego_frame': host_heading,
+        'current_speed': host_current_speed, #host_data['current_speed'],
+        'radius': host_radius,
+        'no_other_agents_detected': num_other_agents,  # Number of other agents observed
+        'other_agents_mask': other_uav_mask_array, 
+        'other_agents_state': other_uav_states, #! print this to console and make sure this is correct
+        'restricted_area_mask': restriceted_area_mask,
+        'static_collision_detected': static_collsion_detected,
+        'distance_to_restricted': distance_to_restricted
         }
 
     return transformed_data
@@ -629,12 +649,13 @@ def transform_for_graph(data, max_number_other_agents_observed) -> Dict:
     
     return transformed_data
 
-#                               own_data,(    other_agents, restricted_area)
+
 def transform_for_uam(data):
     """Transform UAV data into observation for RL training, ensuring all values are consistently shaped"""
     # Auto UAV aka Host data
-    host_data = data[0]
+    host_data = data[0] 
     host_deviation = host_data['current_heading'] - host_data['final_heading']  
+    host_deviation = (host_deviation + math.pi) % (2 * math.pi) - math.pi
     host_final_heading = host_data['final_heading']
     # Other agents data
     other_uav_data = data[1][0] 
@@ -673,15 +694,17 @@ def transform_for_uam(data):
         ])
         intruder_angle = math.atan2(intruder_vector[1], intruder_vector[0])
         
-        relative_heading_intruder = np.array(
-            [((intruder_angle - host_data['current_heading'] + np.pi) % (2 * np.pi) - np.pi) * 180 / np.pi], 
-            dtype=np.float32
-        )
+        # normalized realtive heading
+        # TODO: change the bounds in obs space 
+        temp_rel_heading_intruder = normalize_minus_one_one(((intruder_angle - host_data['current_heading'] + np.pi) % (2 * np.pi) - np.pi), -math.pi, math.pi)
+        relative_heading_intruder = np.array([temp_rel_heading_intruder ],dtype=np.float32) 
+        
         
         # Intruder's current heading
         intruder_current_heading = np.array([closest_intruder['other_uav_current_heading']], dtype=np.float32)
         intruder_speed = np.array([closest_intruder['other_uav_current_speed']], dtype=np.float32)
-        intruder_relative_speed = np.array([abs(host_data['current_speed'] - closest_intruder['other_uav_current_speed'])], dtype=np.float32)
+        # speed_intruder_relative_to_host = v_int_wrt_earth - v_host_wrt_earth (relative speed in 1D: v_a_earth = v_a_b + v_b_earth)
+        intruder_relative_speed = np.array([normalize_minus_one_one(closest_intruder['other_uav_current_speed'] - host_data['current_speed'], 0, host_data['max_speed'])], dtype=np.float32)
     else:
         intruder_detected = np.array([0], dtype=np.float32)
         intruder_id = np.array([-1], dtype=np.int64)
@@ -698,8 +721,8 @@ def transform_for_uam(data):
         # Sort by distance
         closest_ra = sorted(ra_data, key=lambda x: x['distance'])[0] if len(ra_data) > 1 else ra_data[0]
         ra_detected = np.array([1], dtype=np.float32)
-        ra_distance = np.array([closest_ra['distance']], dtype=np.float32)
-        ra_heading = np.array([closest_ra['ra_heading']], dtype=np.float32)
+        ra_distance = np.array([normalize_zero_one(closest_ra['distance'], 0, host_data['detection_radius'])], dtype=np.float32)
+        ra_heading = np.array([normalize_minus_one_one(closest_ra['ra_heading'], -math.pi, math.pi)], dtype=np.float32)
     else:
         ra_detected = np.array([0], dtype=np.float32)
         ra_distance = np.array([0.0], dtype=np.float32)
@@ -707,29 +730,26 @@ def transform_for_uam(data):
     
     # Ensure host data is properly formatted as numpy arrays
     agent_id = np.array([host_data['id']], dtype=np.int64)
-    agent_speed = np.array([host_data['current_speed']], dtype=np.float32)
-    agent_current_heading = np.array([host_data['current_heading']], dtype=np.float32)
-    agent_deviation = np.array([host_deviation], dtype=np.float32)
-    agent_dist_to_goal = np.array([host_data['distance_to_goal']], dtype=np.float32)
+    agent_speed = np.array([normalize_zero_one(host_data['current_speed'], host_data['min_speed'], host_data['max_speed'])], dtype=np.float32)
+    agent_current_heading = np.array([normalize_minus_one_one(host_data['current_heading'], -math.pi, math.pi)], dtype=np.float32)
+    agent_deviation = np.array([normalize_minus_one_one(host_deviation, -math.pi, math.pi)], dtype=np.float32)
+    agent_dist_to_goal = np.array([normalize_zero_one(host_data['distance_covered'], 0, host_data['max_dist'])], dtype=np.float32)
     
     # Create the transformed data dictionary with consistent numpy arrays
     transformed_data = {
-        'agent_id': agent_id, #TODO: change these to have no ID instead of int64 - these large number might cause learning instability since they are large compared to other state values
         'agent_speed': agent_speed,
-        'agent_current_heading': agent_current_heading, #TODO: normalise these values for both agent and intruder
-        'agent_final_heading': host_final_heading,
+        'agent_current_heading': agent_current_heading, 
+        
         'agent_deviation': agent_deviation,
         'agent_dist_to_goal': agent_dist_to_goal,
         
         'intruder_detected': intruder_detected,
-        'intruder_id': intruder_id, #TODO: change these to have no ID instead of int64 - these large number might cause learning instability since they are large compared to other state values
         'distance_to_intruder': distance_to_intruder,
-        'intruder_position_x': intruder_position_x,
-        'intruder_position_y': intruder_position_y,
+
         'relative_heading_intruder': relative_heading_intruder,
-        'intruder_current_heading': intruder_current_heading,
+
         'relative_intruder_speed': intruder_relative_speed,
-        'intruder_speed': intruder_speed,
+
         
         'restricted_airspace_detected': ra_detected,
         'distance_to_restricted_airspace': ra_distance,
@@ -737,3 +757,16 @@ def transform_for_uam(data):
     }
     
     return transformed_data
+
+
+
+def normalize_zero_one(val, min_val, max_val):
+    normal_val = (val - min_val)/(max_val - min_val)
+    return normal_val
+
+
+def normalize_minus_one_one(val, min_val, max_val):
+    normal_val = 2 * normalize_zero_one(val, min_val, max_val) - 1
+    return normal_val
+    
+

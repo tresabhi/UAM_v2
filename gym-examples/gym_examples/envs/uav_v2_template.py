@@ -78,7 +78,9 @@ class UAV_v2_template(ABC):
         
         # ADDED odometer attr:
         self.previous_position = start
-
+        # TODO: change current heading at start to a random direction. let controller change current heading over time
+        # performing this change will have impact on ORCA agent visualization
+        # TODO: fix arrow visualization for ORCA agents - the arrow of ORCA agents should get updated as current heading is changes  
         self.current_heading = math.atan2((end.y - start.y), (end.x - start.x))
         self.final_heading = math.atan2((end.y - self.current_position.y), (end.x - self.current_position.x))
         self.body = self.current_position.buffer(self.radius)
@@ -120,6 +122,12 @@ class UAV_v2_template(ABC):
         ref_prll, ref_orth = self.get_ref()
         return {'id':self.id,
                 'current_position':self.current_position,
+                'distance_to_end': self.current_position.distance(self.end),
+                'distance_covered': self.start.distance(self.current_position),
+                'max_dist': self.start.distance(self.end),
+                'min_dist': 0,
+                'min_speed': 0,
+                'max_speed': self.max_speed, 
                 'current_speed': self.current_speed,
                 'current_heading': self.current_heading,
                 'final_heading': self.final_heading,
@@ -128,6 +136,7 @@ class UAV_v2_template(ABC):
                 'ref_prll':ref_prll,
                 'ref_orth':ref_orth,
                 'distance_to_goal': self.current_position.distance(self.end),
+                'detection_radius': self.detection_radius
                 }
 
     @abstractmethod

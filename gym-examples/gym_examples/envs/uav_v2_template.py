@@ -122,8 +122,9 @@ class UAV_v2_template(ABC):
         ref_prll, ref_orth = self.get_ref()
         return {'id':self.id,
                 'current_position':self.current_position,
-                'distance_to_end': self.current_position.distance(self.end),
-                'distance_covered': self.start.distance(self.current_position),
+                'distance_to_end': self.start.distance(self.end),
+                'distance_covered': self.start.distance(self.current_position), #TODO: wrong def 
+                'distance_to_goal': self.current_position.distance(self.end),
                 'max_dist': self.start.distance(self.end),
                 'min_dist': 0,
                 'min_speed': 0,
@@ -135,7 +136,6 @@ class UAV_v2_template(ABC):
                 'radius': self.radius,
                 'ref_prll':ref_prll,
                 'ref_orth':ref_orth,
-                'distance_to_goal': self.current_position.distance(self.end),
                 'detection_radius': self.detection_radius
                 }
 
@@ -190,7 +190,8 @@ class UAV_v2_template(ABC):
         Returns:
             Tuple[np.ndarray, np.ndarray]: Parallel and orthogonal reference directions.
         """
-        goal_dir = np.array([self.end.x - self.current_position.x, self.end.y - self.current_position.y])
+        goal_dir = np.array([self.end.x - self.current_position.x, 
+                             self.end.y - self.current_position.y])
         self.dist_to_goal = self.current_position.distance(self.end)
 
         if self.dist_to_goal > 1e-8:

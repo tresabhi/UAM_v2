@@ -726,7 +726,7 @@ def transform_for_uam(data):
     agent_speed = np.array([normalize_zero_one(host_data['current_speed'], host_data['min_speed'], host_data['max_speed'])], dtype=np.float32)
     agent_current_heading = np.array([normalize_minus_one_one(host_data['current_heading'], -math.pi, math.pi)], dtype=np.float32)
     agent_deviation = np.array([normalize_minus_one_one(host_deviation, -math.pi, math.pi)], dtype=np.float32)
-    agent_dist_to_goal = np.array([normalize_zero_one(host_data['distance_to_goal'], 0, host_data['dist_to_end'])], dtype=np.float32)
+    agent_dist_to_goal = np.array([normalize_zero_one(host_data['distance_to_goal'], 0, host_data['max_dist'])], dtype=np.float32)
     
     # Create the transformed data dictionary with consistent numpy arrays
     transformed_data = {

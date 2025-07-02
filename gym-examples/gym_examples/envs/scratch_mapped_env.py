@@ -11,8 +11,8 @@ from map_env_revised import MapEnv
 def simple_reward(self):
     return 0.0
 
-number_orca_agents = 3
-number_uav = 2
+number_orca_agents = 0
+number_uav = 0
 number_of_vp = 8
 episodes = 1
 max_steps_per_episode = 2

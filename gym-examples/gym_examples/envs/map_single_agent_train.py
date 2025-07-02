@@ -26,8 +26,9 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.callbacks import BaseCallback
 
-# Import your environment
+# Import your environment and reward function
 from map_env_revised import MapEnv
+from rewards_utils import _get_reward_simple
 
 # Create output directories
 os.makedirs("training_logs", exist_ok=True)
@@ -179,8 +180,8 @@ def create_env(seed=42, max_steps=500):
     """Create a single instance of the environment"""
     # TODO: MapEnv needs new arguments for UAV_5_intruders, and UAV_UAM
     env = MapEnv(
-        number_of_uav=3,  # Fewer UAVs for faster training
-        number_ORCA_uav = 4,
+        number_of_uav=0,  # Fewer UAVs for faster training
+        num_ORCA_uav = 0,
         number_of_vertiport=10,
         location_name="Austin, Texas, USA",
         airspace_tag_list=[], #("amenity", "hospital"), ("aeroway", "aerodrome")
@@ -192,7 +193,13 @@ def create_env(seed=42, max_steps=500):
         max_uavs=100,
         max_vertiports=150
     )
-    return Monitor(env)
+
+    env = Monitor(env)
+
+    # Override the reward function
+    env._get_reward = lambda: _get_reward_simple(env)
+
+    return env
 
 def save_model_checkpoint(model, checkpoint_dir, timestamp):
     """Save a model checkpoint with error handling"""
@@ -217,18 +224,22 @@ def create_animation(model_path, seed=101, max_steps=500):
         
         # Create env with rendering
         env = MapEnv(
-            number_of_uav=3,
-            number_of_vertiport=5,
-            location_name="Austin, Texas, USA",
-            airspace_tag_list=[("amenity", "hospital"), ("aeroway", "aerodrome")],
+            number_of_uav=0,
+            num_ORCA_uav=0,
+            number_of_vertiport=10,
+            location_name="Austin, Texas, USA", 
+            airspace_tag_list=[], #("amenity", "hospital"), ("aeroway", "aerodrome")
             max_episode_steps=max_steps,
             seed=seed,
             obs_space_str="UAM_UAV",
-            sorting_criteria=None,
+            sorting_criteria="closest first",
             render_mode="human",  # Enable rendering
             max_uavs=4,
             max_vertiports=6
         )
+
+        # Override the reward function
+        env._get_reward = lambda: _get_reward_simple(env)
         
         # Run one episode
         obs, _ = env.reset(seed=seed)
@@ -352,5 +363,6 @@ if __name__ == "__main__":
     # Run with smaller numbers initially
     # TODO: update max_episode steps to have other_UAV completion as a factor.
     #      If other_UAVs complete then episode ends as well
-    # TODO: Change the max_episode_steps to 3750    
-    main(timesteps=100000, max_episode_steps=2000, seed=42)
+    # TODO: Change the max_episode_steps to 3750   
+    # timesteps = 100000 
+    main(timesteps=50000, max_episode_steps=3750, seed=42)

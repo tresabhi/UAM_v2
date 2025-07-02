@@ -28,7 +28,7 @@ def _get_reward_simple(self):
     reward += punishment_existence
     
     # Get current state information
-    obs = self._get_obs
+    obs = self._get_obs()
     current_distance = self.agent.current_position.distance(self.agent.end)
     if self.obs_space_str == 'UAM_UAV':
         # Agent info
@@ -110,11 +110,12 @@ def _get_reward_simple(self):
     
     ### We're keeping this for later
     # Speed management reward
-    target_speed = self.agent.dynamics.max_speed
+    # agent.dynamics.max_speed updated to be agent.max_speed for env compatibility
+    target_speed = self.agent.max_speed
     if current_distance < 1000:
         # Reduce target speed when approaching goal
-        target_speed = max(5.0, self.agent.dynamics.max_speed * (current_distance / 1000))
-    speed_efficiency = 1.0 - abs(current_speed - target_speed) / self.agent.dynamics.max_speed
+        target_speed = max(5.0, self.agent.max_speed * (current_distance / 1000))
+    speed_efficiency = 1.0 - abs(current_speed - target_speed) / self.agent.max_speed
     reward += speed_efficiency * 2.0
     
     # Terminal rewards

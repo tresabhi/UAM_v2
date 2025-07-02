@@ -678,10 +678,9 @@ def transform_for_uam(data):
         intruder_id = np.array([closest_intruder['other_uav_id']], dtype=np.int64)
         
         # Calculate distance to intruder
-        distance_to_intruder = np.array(
-            [host_data['current_position'].distance(closest_intruder['other_uav_current_position'])], 
-            dtype=np.float32
-        )
+        distance_to_intruder = np.array([normalize_zero_one(
+            host_data['current_position'].distance(closest_intruder['other_uav_current_position']), 0, 500)],
+            dtype=np.float32)
         
         # Get intruder position coordinates
         intruder_position_x = np.array([closest_intruder['other_uav_current_position'].x], dtype=np.float32)
@@ -733,7 +732,7 @@ def transform_for_uam(data):
     agent_speed = np.array([normalize_zero_one(host_data['current_speed'], host_data['min_speed'], host_data['max_speed'])], dtype=np.float32)
     agent_current_heading = np.array([normalize_minus_one_one(host_data['current_heading'], -math.pi, math.pi)], dtype=np.float32)
     agent_deviation = np.array([normalize_minus_one_one(host_deviation, -math.pi, math.pi)], dtype=np.float32)
-    agent_dist_to_goal = np.array([normalize_zero_one(host_data['distance_covered'], 0, host_data['max_dist'])], dtype=np.float32)
+    agent_dist_to_goal = np.array([normalize_zero_one(host_data['distance_to_goal'], 0, host_data['max_dist'])], dtype=np.float32)
     
     # Create the transformed data dictionary with consistent numpy arrays
     transformed_data = {

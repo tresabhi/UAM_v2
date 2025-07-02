@@ -325,8 +325,9 @@ class MapEnv(gym.Env):
         self.current_time_step += 1
         # FYI: unless there is a collision with static or dynamic object, 
         #      obs = self._get_obs()
-        print('from env.step() - Observation:')
-        print(obs)
+        #!DEBUG print statement
+        # print('from env.step() - Observation:')
+        # print(obs)
         return obs, reward, terminated, truncated, info
 
 
@@ -364,9 +365,9 @@ class MapEnv(gym.Env):
             uav_relative_heading = obs['relative_heading_intruder'][0]
             
             # Intruder position info
-            intruder_position_x = obs['intruder_position_x'][0]
-            intruder_position_y = obs['intruder_position_y'][0]
-            intruder_speed = obs['intruder_speed'][0]
+            intruder_position_x = obs.get('intruder_position_x', [0])[0]
+            intruder_position_y = obs.get('intruder_position_y', [0])[0]
+            intruder_speed = obs.get('intruder_speed', [0])[0]
             
             # Create a Point object from coordinates for _get_nmac_state_reward function
             from shapely import Point
@@ -586,9 +587,10 @@ class MapEnv(gym.Env):
             # Get Auto-UAV observation data
             raw_obs = self.agent.get_obs()
 
-            with open("output.txt", "w") as file:
-                print(f"Raw observation format: {type(raw_obs)}", file=file)
-                print(f"Raw observation content: {raw_obs}", file=file)
+            #!DEBUG print statement
+            # with open("output.txt", "w") as file:
+            #     print(f"Raw observation format: {type(raw_obs)}", file=file)
+            #     print(f"Raw observation content: {raw_obs}", file=file)
 
             # Transform data for sequential observation format
             transformed_data = transform_sensor_data(
@@ -616,11 +618,12 @@ class MapEnv(gym.Env):
             #FIX: test this - chech if this method works and produces correct response
         #   (own_dict, (other_agents, restricted_areas))
             raw_obs = self.agent.get_obs()
-            print('from env._get_obs()')
-            print('raw obs:')
-            print(raw_obs)
-            with open("output.txt", "w") as file:
-                print(raw_obs, file=file)
+            #!DEBUG print statement
+            # print('from env._get_obs()')
+            # print('raw obs:')
+            # print(raw_obs)
+            # with open("output.txt", "w") as file:
+            #     print(raw_obs, file=file)
 
             # Transform data for UAM observation format
             transformed_data = transform_sensor_data(
@@ -633,12 +636,13 @@ class MapEnv(gym.Env):
         elif self.obs_space_str == 'UAV_5_intruders':
             # Get Auto-UAV observation data
             raw_obs = self.agent.get_obs()
-            print('from env._get_obs()')
-            print('raw obs:')
-            print(raw_obs)
-            with open("output.txt", "w") as file:
-                print(f"Raw observation format: {type(raw_obs)}", file=file)
-                print(f"Raw observation content: {raw_obs}", file=file)
+            #!DEBUG print statement
+            # print('from env._get_obs()')
+            # print('raw obs:')
+            # print(raw_obs)
+            # with open("output.txt", "w") as file:
+            #     print(f"Raw observation format: {type(raw_obs)}", file=file)
+            #     print(f"Raw observation content: {raw_obs}", file=file)
 
             # Transform data for sequential observation format
             transformed_data = transform_sensor_data(

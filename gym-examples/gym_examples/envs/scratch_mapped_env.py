@@ -5,7 +5,7 @@ import random
 from map_renderer import MapRenderer
 from map_logging_loader import MapLoader
 from map_env_revised import MapEnv
-
+from rewards_utils import _get_reward_only_agent
 
 
 def simple_reward(self):
@@ -15,7 +15,7 @@ number_orca_agents = 0
 number_uav = 0
 number_of_vp = 8
 episodes = 1
-max_steps_per_episode = 2
+max_steps_per_episode = 4
 render = False
 save_animation = False
 env_seed = 42
@@ -51,7 +51,7 @@ for episode in range(episodes):
         action = env.action_space.sample()
 
         next_obs, reward, terminated, truncated, info = env.step(action)
-
+ 
         if terminated:
             print('Terminated')
         

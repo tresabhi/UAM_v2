@@ -2,6 +2,63 @@ import math
 import numpy as np
 
 
+
+def _get_reward_only_agent(self):
+    # use this reward for for single_agent training,
+    # progressively add newer terms to this reward function
+    # as we introduce other_agent and restricted airspace 
+    
+    reward = 0.0
+
+
+    # variables
+    punishment_existence = -0.1
+    heading_efficiency = 0
+    progress = 0
+
+    reward += punishment_existence
+
+    # obs is a DICT
+    obs = self._get_obs() #this returns transformed data for 'UAM-UAV'
+    
+    # Agent info
+    current_distance = self.agent.current_position.distance(self.agent.end)
+    #TODO: use current_speed as a reward parameter 
+    current_speed = obs['agent_speed']
+    current_heading = obs['agent_current_heading']
+    current_deviation = obs['agent_deviation']
+
+    if hasattr(self, 'previous_distance') and self.previous_distance is not None:
+        progress = self.previous_distance - current_distance
+        # Exponential scaling for distance factor to emphasize final approach
+        distance_factor = np.exp(-current_distance / 5000)
+        reward += progress * 15.0 * (1.0 + distance_factor)
+    self.previous_distance = current_distance
+
+    heading_efficiency = np.cos(current_deviation)
+    reward += heading_efficiency * 0.5
+
+    # Add goal reached reward (using mission_complete_distance)
+    if current_distance < self.agent.mission_complete_distance:
+        reward += 1000.0
+
+
+    pass
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 """Old simple goal direction dense reward function with punishments for static and dynamic collision avoidance.
     
     Reward worked for goal direction task but failed to conduct collision avoidance.

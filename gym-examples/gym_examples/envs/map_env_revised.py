@@ -624,13 +624,19 @@ class MapEnv(gym.Env):
             # print(raw_obs)
             # with open("output.txt", "w") as file:
             #     print(raw_obs, file=file)
-
+            # print('raw obs before:')
+            # print(raw_obs)
             # Transform data for UAM observation format
             transformed_data = transform_sensor_data(
                 raw_obs,
                 self.max_number_other_agents_observed,
                 'UAM_UAV'
             )
+            # print('transformed obs:')
+            # print(transformed_data)
+
+            # print('checking raw obs:')
+            # print(raw_obs)
             return transformed_data
         
         elif self.obs_space_str == 'UAV_5_intruders':

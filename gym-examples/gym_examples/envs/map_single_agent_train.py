@@ -28,7 +28,7 @@ from stable_baselines3.common.callbacks import BaseCallback
 
 # Import your environment and reward function
 from map_env_revised import MapEnv
-from rewards_utils import _get_reward_simple
+from rewards_utils import _get_reward_simple, _get_reward_only_agent
 
 # Create output directories
 os.makedirs("training_logs", exist_ok=True)
@@ -176,7 +176,7 @@ class SimpleTrackingCallback(BaseCallback):
         plt.savefig(f"{self.log_dir}/rewards_{self.total_episodes}.png")
         plt.close()
 
-def create_env(seed=42, max_steps=500):
+def create_env(seed=42, max_episode_steps=5000):
     """Create a single instance of the environment"""
     # TODO: MapEnv needs new arguments for UAV_5_intruders, and UAV_UAM
     env = MapEnv(
@@ -185,7 +185,7 @@ def create_env(seed=42, max_steps=500):
         number_of_vertiport=10,
         location_name="Austin, Texas, USA",
         airspace_tag_list=[], #("amenity", "hospital"), ("aeroway", "aerodrome")
-        max_episode_steps=max_steps,
+        max_episode_steps=max_episode_steps,
         seed=seed,
         obs_space_str="UAM_UAV",
         sorting_criteria="closest first",
@@ -197,7 +197,7 @@ def create_env(seed=42, max_steps=500):
     env = Monitor(env)
 
     # Override the reward function
-    env._get_reward = lambda: _get_reward_simple(env)
+    env._get_reward = lambda: _get_reward_only_agent(env) #_get_reward_simple(env)
 
     return env
 
@@ -286,11 +286,11 @@ def create_animation(model_path, seed=101, max_steps=500):
         if 'env' in locals():
             env.close()
 
-def main(timesteps=5000, max_episode_steps=500, seed=42):
+def main(total_timesteps=1_000_000, max_episode_steps=1024*3, seed=42):
     """Main training function with better error handling"""
     # Setup
     logger, timestamp = setup_logging()
-    logger.info(f"Starting training with {timesteps} timesteps and seed {seed}")
+    logger.info(f"Starting training with {total_timesteps} timesteps and seed {seed}")
     
     # Set random seeds for reproducibility
     random.seed(seed)
@@ -298,7 +298,7 @@ def main(timesteps=5000, max_episode_steps=500, seed=42):
     
     # Create environment
     try:
-        env = create_env(seed=seed, max_steps=max_episode_steps)
+        env = create_env(seed=seed, max_episode_steps=max_episode_steps)
         logger.info(f"Environment created successfully")
     except Exception as e:
         logger.error(f"Failed to create environment: {e}")
@@ -312,9 +312,9 @@ def main(timesteps=5000, max_episode_steps=500, seed=42):
             env,
             verbose=1,
             learning_rate=3e-4,
-            n_steps=1024,  # Reduced from 2048 for faster updates
+            n_steps=1024,  #number of step(s), 'env.step()' to run in environment before policy update  #Reduced from 2048 for faster updates
             batch_size=64,
-            n_epochs=10,
+            n_epochs=10, #number of passes over the collected data from env.step() above
             gamma=0.99,
             gae_lambda=0.95,
             ent_coef=0.01,
@@ -338,7 +338,7 @@ def main(timesteps=5000, max_episode_steps=500, seed=42):
         start_time = time.time()
         
         model.learn(
-            total_timesteps=timesteps,
+            total_timesteps=total_timesteps, # total number of interactions with the env, ie number of times env.step() is called
             callback=callback,
             progress_bar=True
         )
@@ -361,8 +361,12 @@ def main(timesteps=5000, max_episode_steps=500, seed=42):
 
 if __name__ == "__main__":
     # Run with smaller numbers initially
-    # TODO: update max_episode steps to have other_UAV completion as a factor.
+    # TODO: update max_episode_steps to have other_UAV completion as a factor.
     #      If other_UAVs complete then episode ends as well
     # TODO: Change the max_episode_steps to 3750   
     # timesteps = 100000 
-    main(timesteps=50000, max_episode_steps=3750, seed=42)
+    # REMEMBER
+    # total_timesteps - number of total env.step() called during training 
+    # max_episode_steps - number of steps after which env will call env.reset()
+    # max_episode_steps - preferably should be multiple/fraction of n_steps 
+    main(total_timesteps=1_000_000, max_episode_steps=1024*3, seed=42)

@@ -147,7 +147,7 @@ def obs_space_uam():
                 # normalize between 0 and 1 : max-min normalization
                 "agent_dist_to_goal": Box(
                     low=0,
-                    high=1,
+                    high=10, #! I have still not found a proper way to normalize this attribute, so providing it with 10 - since agent can move away from goal, normalization process increases the value to more than one 
                     shape=(1,),
                     dtype=np.float32  # Changed to float32 for consistency
                 ),

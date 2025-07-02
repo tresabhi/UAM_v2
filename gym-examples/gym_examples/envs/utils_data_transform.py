@@ -3,6 +3,7 @@ import numpy as np
 from utils import compute_time_to_impact
 import math
 from gymnasium.spaces import Dict, Box, Discrete, MultiBinary
+import copy
 
 def choose_obs_space_constructor(obs_space_string:str, max_number_other_agents_observed=7):
     '''This helper method uses the argument to return correct obs_space constructor for gym env
@@ -31,8 +32,8 @@ def obs_space_seq(max_number_other_agents_observed):
         "no_other_agents": Box(
             low=0, high=max_number_other_agents_observed, shape=()
         ),
-        "dist_goal": Box(low=0, high=10000, shape=(), dtype=np.float32),
-        "heading_ego_frame": Box(low=-180, high=180, shape=(), dtype=np.float32),
+        "agent_dist_goal": Box(low=0, high=10000, shape=(), dtype=np.float32),
+        "agent_current_heading": Box(low=-180, high=180, shape=(), dtype=np.float32),
         "current_speed": Box(low=0, high=50, shape=(), dtype=np.float32),
         "radius": Box(low=0, high=20, shape=(), dtype=np.float32),  # UAV size
         # Static object detection
@@ -172,10 +173,9 @@ def obs_space_uam():
                 # ),
                 # distance to intruder
                 # normalize between 0 and 1 : max-min normalization
-                #TODO: this should be limited to the detection radius of 500m
                 "distance_to_intruder": Box(
                     low=0,
-                    high=1000,  # Increased to match other scales
+                    high=1,  
                     shape=(1,),
                     dtype=np.float32,  # Changed to float32 for consistency
                 ),
@@ -242,11 +242,12 @@ def obs_space_uav_5_intruders(max_number_intruders=5):
     # 1. host/auto_UAV bearing to destination
     # 2. might need to add bearing for other UAVs too  
     return Dict({
-        'dist_goal': Box(low=0, high=10000, shape=(), dtype=np.float32),
-        'heading_ego_frame': Box(low=-180, high=180, shape=(), dtype=np.float32),
-        'current_speed': Box(low=0, high=50, shape=(), dtype=np.float32),
-        'radius': Box(low=0, high=20, shape=(), dtype=np.float32),  # UAV size
-        'no_other_agents_detected': Discrete(max_number_intruders + 1),  # Number of
+        'agent_current_speed': Box(low=0, high=1, shape=(1), dtype=np.float32),
+        'agent_current_heading': Box(low=-1, high=1, shape=(1), dtype=np.float32),
+        'agent_deviation':Box(low=-1, high=1, shape=(1,), dtype=np.float32),
+        'agent_dist_goal': Box(low=0, high=1, shape=(1), dtype=np.float32),
+        'agent_radius': Box(low=0, high=20, shape=(1), dtype=np.float32),  # UAV size
+        'no_other_agents_detected': Discrete(max_number_intruders + 1),  # Number of other agents 
         'other_uav_mask': MultiBinary(max_number_intruders),
         'other_agents_state': Box(  # p_parall, p_orth, v_parall, v_orth, other_agent_radius, combined_radius, dist_2_other
             low=np.full((max_number_intruders, 7), -np.inf),
@@ -295,50 +296,43 @@ def transform_for_uav_5_intruders(data: Tuple[Dict, Tuple[List[Dict], List[Dict]
     #       host_data,  (other_uavs, restricted_areas)
     # data -> dict, tuple(list,         list); dict is host data, tuple[0]-other_uav, tuple[1]-restricted area
     transformed_data = {}
-    
+    data_copy = copy.deepcopy(data)
     # Check data format and extract host and other UAV data
-    if isinstance(data, tuple):
+    if isinstance(data_copy, tuple):
         # Format: (host_data, (other_agents_list, restricted_areas_list))
-        host_data = data[0]
+        host_data = data_copy[0]
         # other_uav_data -> List[Dict]
-        other_uav_data = data[1][0] #if len(data[1][0]) > 0 else [] #TODO: this if else is not needed 
+        other_uav_data = data_copy[1][0] #if len(data[1][0]) > 0 else [] #TODO: this if else is not needed 
         # You can also extract restricted areas data if needed
         # restricted_areas -> List[Dict]
-        restricted_areas_list = data[1][1]
+        restricted_areas_list = data_copy[1][1]
     
     # TODO: check if this else is ever used
     # else is NOT used in current env implementation
     else:
         # Original list format
-        host_data = data[0]
-        other_uav_data = data[1:] if len(data) > 1 else []
+        host_data = data_copy[0]
+        other_uav_data = data_copy[1:] if len(data_copy) > 1 else []
     
     # Host UAV (AutoUAV)
     host_position = np.array([host_data['current_position'].x,
                               host_data['current_position'].y])
     host_velocity = np.array([host_data['current_speed'] * np.cos(host_data['current_heading']),
                             host_data['current_speed'] * np.sin(host_data['current_heading'])])
-    host_heading = np.array(host_data['current_heading'])
-    host_radius = np.array(host_data['radius'])
-    host_ref_prll = np.array(host_data['ref_prll'])
-    host_ref_orth = np.array(host_data['ref_orth'])
-    host_dist_goal = np.array(host_data['distance_to_goal'])
-    host_current_speed = np.array(host_data['current_speed'])
+    host_heading = np.array([normalize_minus_one_one(host_data['current_heading'], -math.pi, math.pi)])
+    host_radius = np.array([host_data['radius']])
 
+    host_dist_goal = np.array([normalize_zero_one(host_data['distance_to_goal'], 0, host_data['distance_to_end'])])
+    host_current_speed = np.array([normalize_zero_one(host_data['current_speed'], host_data['min_speed'], host_data['max_speed'])])
+
+    # Initialize empty array for other UAVs' states and Restricted Areas
     # Other UAVs
-    #TODO: add mask for intruders 
-
-    # Initialize empty array for other UAVs' states
     other_uav_states = np.zeros((max_number_intruders, 7), dtype=np.float32)
-    
-    #TODO: place the mask for intruders here 
     other_uav_mask_array = np.zeros(max_number_intruders, dtype=np.int8)
-
-    num_other_agents = np.array(0)
-
+    num_other_agents = np.array([0])
     #resticted area data
-    static_collsion_detected = np.array(0)
-    distance_to_restricted = np.array(float('inf'))
+    static_collsion_detected = np.array([0])
+    distance_to_restricted = np.array([0])
     restriceted_area_mask = np.zeros(1, dtype=np.int8)
     
     
@@ -358,13 +352,15 @@ def transform_for_uav_5_intruders(data: Tuple[Dict, Tuple[List[Dict], List[Dict]
             other_radius = other_uav['other_uav_radius']
 
             rel_pos = other_position - host_position
-            p_parallel_ego_frame = np.dot(rel_pos, host_ref_prll)
-            p_orthog_ego_frame = np.dot(rel_pos, host_ref_orth)
+            relative_x = rel_pos[0]
+            relative_y = rel_pos[1]
+
             dist_between_centers = np.linalg.norm(rel_pos)
             dist_to_other = dist_between_centers - host_radius - other_radius
 
-            v_parallel_ego_frame = np.dot(other_velocity, host_ref_prll)
-            v_orthog_ego_frame = np.dot(other_velocity, host_ref_orth)
+            rel_vel = other_velocity - host_velocity
+            rel_vx = rel_vel[0]
+            rel_vy = rel_vel[1]
 
             # TODO: is this attr needed for RL?
             time_to_impact = float('inf')
@@ -377,17 +373,15 @@ def transform_for_uav_5_intruders(data: Tuple[Dict, Tuple[List[Dict], List[Dict]
                     time_to_impact = time_impact
 
             uav_state = [
-                p_parallel_ego_frame,
-                p_orthog_ego_frame,
-                v_parallel_ego_frame,
-                v_orthog_ego_frame,
+                normalize_zero_one(relative_x, 0, 500), # 500 should be uav.detection_radius
+                normalize_zero_one(relative_y, 0, 500),
+                normalize_minus_one_one(rel_vx, -host_data['max_speed'], 0),
+                normalize_minus_one_one(rel_vy, -host_data['max_speed'], 0),
                 other_radius,
                 host_radius + other_radius,
                 dist_to_other
             ]
             other_uav_states_list.append(uav_state) 
-            # other_uav_states_list -> list of lists, [[uav1_state], [uav2_state], ...]
-            # other_uav_states_list can have variable length, 0,1,2.....
         
         # Sort local other_uav_states_listbased on criteria
         if sorting_criteria == 'closest first':
@@ -397,7 +391,7 @@ def transform_for_uav_5_intruders(data: Tuple[Dict, Tuple[List[Dict], List[Dict]
         else: 
             raise RuntimeError('Incorrect sorting_criteria passed to transform_for_uav_5_intruders')
         
-        num_other_agents = len(other_uav_states_list)
+        num_other_agents = np.array([len(other_uav_states_list)])
         
         for i, state in enumerate(other_uav_states_list):
             # Fill the pre-allocated array with sorted states
@@ -421,10 +415,10 @@ def transform_for_uav_5_intruders(data: Tuple[Dict, Tuple[List[Dict], List[Dict]
         pass
         
     transformed_data = {
-        'dist_goal': host_dist_goal, #host_data['distance_to_goal'],
-        'heading_ego_frame': host_heading,
-        'current_speed': host_current_speed, #host_data['current_speed'],
-        'radius': host_radius,
+        'agent_dist_goal': host_dist_goal, #host_data['distance_to_goal'],
+        'agent_current_heading': host_heading,
+        'agent_current_speed': host_current_speed, #host_data['current_speed'],
+        'agent_radius': host_radius,
         'no_other_agents_detected': num_other_agents,  # Number of other agents observed
         'other_agents_mask': other_uav_mask_array, 
         'other_agents_state': other_uav_states, #! print this to console and make sure this is correct
@@ -560,8 +554,8 @@ def transform_for_sequence(data, sorting_criteria, max_number_other_agents_obser
     
     # Create the transformed data dictionary
     transformed_data = {
-        'dist_goal': host_data['distance_to_goal'],
-        'heading_ego_frame': host_heading,
+        'agent_dist_goal': host_data['distance_to_goal'],
+        'agent_current_heading': host_heading,
         'current_speed': host_data['current_speed'],
         'radius': host_radius,
         'no_other_agents': num_other_agents,  # Number of other agents observed
@@ -653,15 +647,16 @@ def transform_for_graph(data, max_number_other_agents_observed) -> Dict:
 def transform_for_uam(data):
     """Transform UAV data into observation for RL training, ensuring all values are consistently shaped"""
     # Auto UAV aka Host data
-    host_data = data[0] 
+    data_copy = copy.deepcopy(data)
+    host_data = data_copy[0]
     host_deviation = host_data['current_heading'] - host_data['final_heading']  
     host_deviation = (host_deviation + math.pi) % (2 * math.pi) - math.pi
     host_final_heading = host_data['final_heading']
     # Other agents data
-    other_uav_data = data[1][0] 
+    other_uav_data = data_copy[1][0] 
     
     # Restricted Area data
-    ra_data = data[1][1]
+    ra_data = data_copy[1][1]
     
     # Process closest intruder if any exist
     if len(other_uav_data):
@@ -694,7 +689,6 @@ def transform_for_uam(data):
         intruder_angle = math.atan2(intruder_vector[1], intruder_vector[0])
         
         # normalized realtive heading
-        # TODO: change the bounds in obs space 
         temp_rel_heading_intruder = normalize_minus_one_one(((intruder_angle - host_data['current_heading'] + np.pi) % (2 * np.pi) - np.pi), -math.pi, math.pi)
         relative_heading_intruder = np.array([temp_rel_heading_intruder ],dtype=np.float32) 
         
@@ -703,14 +697,14 @@ def transform_for_uam(data):
         intruder_current_heading = np.array([closest_intruder['other_uav_current_heading']], dtype=np.float32)
         intruder_speed = np.array([closest_intruder['other_uav_current_speed']], dtype=np.float32)
         # speed_intruder_relative_to_host = v_int_wrt_earth - v_host_wrt_earth (relative speed in 1D: v_a_earth = v_a_b + v_b_earth)
-        intruder_relative_speed = np.array([normalize_minus_one_one(closest_intruder['other_uav_current_speed'] - host_data['current_speed'], 0, host_data['max_speed'])], dtype=np.float32)
+        relative_intruder_speed = np.array([normalize_minus_one_one(closest_intruder['other_uav_current_speed'] - host_data['current_speed'], 0, host_data['max_speed'])], dtype=np.float32)
     else:
         intruder_detected = np.array([0], dtype=np.float32)
         intruder_id = np.array([-1], dtype=np.int64)
         distance_to_intruder = np.array([0.0], dtype=np.float32)
         relative_heading_intruder = np.array([0.0], dtype=np.float32)
         intruder_current_heading = np.array([0.0], dtype=np.float32)
-        intruder_relative_speed = np.array([0.0], dtype=np.float32)
+        relative_intruder_speed = np.array([0.0], dtype=np.float32)
         intruder_speed = np.array([0.0], dtype=np.float32)
         intruder_position_x = np.array([0.0], dtype=np.float32)
         intruder_position_y = np.array([0.0], dtype=np.float32)
@@ -732,7 +726,7 @@ def transform_for_uam(data):
     agent_speed = np.array([normalize_zero_one(host_data['current_speed'], host_data['min_speed'], host_data['max_speed'])], dtype=np.float32)
     agent_current_heading = np.array([normalize_minus_one_one(host_data['current_heading'], -math.pi, math.pi)], dtype=np.float32)
     agent_deviation = np.array([normalize_minus_one_one(host_deviation, -math.pi, math.pi)], dtype=np.float32)
-    agent_dist_to_goal = np.array([normalize_zero_one(host_data['distance_to_goal'], 0, host_data['max_dist'])], dtype=np.float32)
+    agent_dist_to_goal = np.array([normalize_zero_one(host_data['distance_to_goal'], 0, host_data['dist_to_end'])], dtype=np.float32)
     
     # Create the transformed data dictionary with consistent numpy arrays
     transformed_data = {
@@ -747,7 +741,7 @@ def transform_for_uam(data):
 
         'relative_heading_intruder': relative_heading_intruder,
 
-        'relative_intruder_speed': intruder_relative_speed,
+        'relative_intruder_speed': relative_intruder_speed,
 
         
         'restricted_airspace_detected': ra_detected,

@@ -81,7 +81,8 @@ class UAV_v2_template(ABC):
         # TODO: change current heading at start to a random direction. let controller change current heading over time
         # performing this change will have impact on ORCA agent visualization
         # TODO: fix arrow visualization for ORCA agents - the arrow of ORCA agents should get updated as current heading is changes  
-        self.current_heading = math.atan2((end.y - start.y), (end.x - start.x))
+        #self.current_heading = math.atan2((end.y - start.y), (end.x - start.x))
+        self.current_heading = np.random.uniform(-math.pi, math.pi)
         self.final_heading = math.atan2((end.y - self.current_position.y), (end.x - self.current_position.x))
         self.body = self.current_position.buffer(self.radius)
         return None

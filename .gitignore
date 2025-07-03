@@ -13,4 +13,6 @@ output.txt
 /gym-examples/gym_examples/envs/avg_plot_results
 /gym-examples/gym_examples/envs/Metrics
 /gym-examples/gym_examples/envs/Python-RVO2
+/gym-examples/gym_examples/envs/models
+/gym-examples/gym_examples/envs/training_logs
 

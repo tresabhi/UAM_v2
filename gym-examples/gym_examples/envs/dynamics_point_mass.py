@@ -77,5 +77,5 @@ class PointMassDynamics(DynamicsTemplate):
                                                uav.end.x - uav.current_position.x)
                 
                 uav.final_heading = updated_final_heading
-                print(f'new final heading: {uav.final_heading}')
+                # print(f'new final heading: {uav.final_heading}')
                 

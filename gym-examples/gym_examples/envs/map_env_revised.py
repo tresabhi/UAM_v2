@@ -304,12 +304,20 @@ class MapEnv(gym.Env):
                 del self.trajectory_by_id[self.agent.id]
         
         # Prepare info dictionary
+        # info = {
+        #     'distance_to_goal': self.agent.current_position.distance(self.agent.end),
+        #     'current_step': self.current_time_step,
+        #     'timeout': timeout
+        # }
+        agent_info = self.agent.get_obs()[0] #index 0 -> agent DICT
         info = {
-            'distance_to_goal': self.agent.current_position.distance(self.agent.end),
-            'current_step': self.current_time_step,
-            'timeout': timeout
+            'current_position':agent_info['current_position'],
+            'end':agent_info['end'],
+            'distance_to_goal':agent_info['distance_to_goal'],
+            'current_speed':agent_info['current_speed'],
+            'current_heading':agent_info['current_heading'],
+            'final_heading':agent_info['final_heading']
         }
-        
         # Add static object detection info
         ra_data_list = self.agent.sensor.get_ra_detection(self.agent)
         if len(ra_data_list) > 0:
@@ -814,7 +822,17 @@ class MapEnv(gym.Env):
 
         # Get initial observation and info
         obs = self._get_obs()
-        info = {}
+
+        agent_info = self.agent.get_obs()[0]
+
+        info = {
+            'current_position':agent_info['current_position'],
+            'end':agent_info['end'],
+            'distance_to_goal':agent_info['distance_to_goal'],
+            'current_speed':agent_info['current_speed'],
+            'current_heading':agent_info['current_heading'],
+            'final_heading':agent_info['final_heading']
+        }
 
         # # print debug info for vertiport assignments
         # print("--- Vertiport Assignments ---")

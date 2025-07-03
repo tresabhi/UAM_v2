@@ -70,10 +70,12 @@ class PointMassDynamics(DynamicsTemplate):
             uav.current_heading = new_heading
             
             #TODO: this needs to be placed somewhere more appropriate 
+            #TODO: WHY only AutoUAV - WHY not other UAVs ??
             if isinstance(uav, Auto_UAV_v2):
-                print('Updating final heading of Auto UAV ')
-                print(f'current final heading: {uav.final_heading}')
-                uav.final_heading = math.atan2(uav.end.y - uav.current_position.y,
+                
+                updated_final_heading = math.atan2(uav.end.y - uav.current_position.y,
                                                uav.end.x - uav.current_position.x)
+                
+                uav.final_heading = updated_final_heading
                 print(f'new final heading: {uav.final_heading}')
                 

@@ -146,7 +146,7 @@ class Airspace:
             sample_space_gdf = sample_space.geometry
 
         
-        sample_vertiport: GeoSeries = sample_space_gdf.sample_points(num_vertiports, seed=seed)#TODO: change seed to rng, to avoid warning 
+        sample_vertiport: GeoSeries = sample_space_gdf.sample_points(num_vertiports, rng=seed)#TODO: change seed to rng, to avoid warning 
         sample_vertiport_array: np.ndarray = shapely.get_parts(sample_vertiport[0])
 
         for location in sample_vertiport_array:

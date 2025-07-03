@@ -31,19 +31,19 @@ def _get_reward_only_agent(self):
     if hasattr(self, 'previous_distance') and self.previous_distance is not None:
         progress = self.previous_distance - current_distance
         # Exponential scaling for distance factor to emphasize final approach
-        distance_factor = np.exp(-current_distance / 5000)
-        reward += progress * 15.0 * (1.0 + distance_factor)
+        distance_factor =  10000 * np.exp(-0.0005 * current_distance)
+        reward += progress *  distance_factor
     self.previous_distance = current_distance
 
-    heading_efficiency = np.cos(current_deviation)
-    reward += heading_efficiency * 0.5
+    heading_efficiency = current_deviation**2
+    reward -= heading_efficiency * 10
 
     # Add goal reached reward (using mission_complete_distance)
     if current_distance < self.agent.mission_complete_distance:
         reward += 1000.0
 
 
-    pass
+    return reward
 
 
 

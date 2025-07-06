@@ -12,7 +12,7 @@ from auto_uav_v2 import Auto_UAV_v2
 class MapRenderer:
     """A dedicated class for handling all rendering functionality in MapEnv."""
     
-    def __init__(self, env, render_mode=None, sleep_time=0.005):
+    def __init__(self, env, render_mode=None, sleep_time=0):
         """
         Initialize the renderer with a reference to the environment.
         

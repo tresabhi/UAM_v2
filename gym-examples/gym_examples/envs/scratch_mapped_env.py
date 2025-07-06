@@ -40,10 +40,10 @@ def simple_reward(self):
     return 0.0
 
 number_orca_agents = 0
-number_uav = 0
-number_of_vp = 8
+number_uav = 1
+number_of_vp = 3
 episodes = 1
-max_steps_per_episode = 30
+max_steps_per_episode = 302
 render = False
 save_animation = False
 env_seed = 42
@@ -100,22 +100,23 @@ for episode in range(episodes):
 
     print('Info:')
     print(info)
-
+    print(env.atc.get_uav_list())
     for step in range(max_steps_per_episode):
         # action = env.action_space.sample()
         action = simple_controller(env.agent.current_position, env.agent.end, env.agent.current_heading)
 
         obs, reward, terminated, truncated, info = env.step(action)
         
+        print(env.atc.get_uav_list())
 
-        print('Observation: ')
-        print(obs)
+        # print('Observation: ')
+        # print(obs)
 
-        print('Reward:')
-        print(reward)
+        # print('Reward:')
+        # print(reward)
 
-        print('Info:')
-        print(info)
+        # print('Info:')
+        # print(info)
 
  
         if terminated:
@@ -128,8 +129,7 @@ for episode in range(episodes):
             elif 'timeout' in info and info['timeout']:
                 print(f"Episode timeout after {step} steps!")
             break
-        
-
+    
 
 
 

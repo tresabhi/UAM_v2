@@ -23,15 +23,20 @@ class RVO2_simulator:
                                         max_speed, # max speed of UAV
                                         )
         
+        # list of restricted areas in env/map
         self.orca_polygon_list = []
-        # ORCA agent list from MAPPED_ENV
+        # UAV list from MAPPED_ENV          List[UAV, UAV, ...]
         self.mapped_env_orca_agent_list = mapped_env_orca_agent_list 
+        
         # RVO2_SIM - orca agent dict
         #                        key        :     value
-        #                        str(uav_id), RVO2_agent_obj
-        self.orca_agent_dict:Dict = {}
-        # MAPPING from RVO2 ORCA agent to MAPPED_ENV AGENT
-        self.orca_agent_to_mapped_agent:Dict[str, UAV_v2_template] = {}
+        #                        str(uav_id), RVO2_agent_number
+        self.orca_agent_id_2_RVO2_number:Dict = {}
+        
+        # MAPPING between env/sim uav_id_str and env/sim UAV_obj
+        #
+        #                                    env/sim uav_id_str,   env/sim UAV_obj                                            
+        self.orca_agent_id_to_mapped_agent_obj:Dict[str, UAV_v2_template] = {}
 
 
     
@@ -42,22 +47,28 @@ class RVO2_simulator:
         # step moves all agents in ORCA/RVO2
         self.rvo2_sim.doStep()
 
-        #assign prefVelocity to all agents 
-        for orca_agent_key, orca_agent_value in self.orca_agent_dict.items():
+        # update prefVelocity to all agents 
+        # the following 'for-loop' takes ORCA agents in env/sim
+        # collects their current position
+        # sets prefVelocity based on current position and end in RVO2 sim
+        #   env/sim agent_id_str,   RVO2_agent_number             dict(), this dict maps env/sim to RVO2_sim
+        for orca_agent_key, orca_agent_value in self.orca_agent_id_2_RVO2_number.items():
             
-            mapped_agent = self.orca_agent_to_mapped_agent[orca_agent_key]
-            orca_agent_current_position = self.rvo2_sim.getAgentPosition(self.orca_agent_dict[orca_agent_key])
+            mapped_agent = self.orca_agent_id_to_mapped_agent_obj[orca_agent_key]
+            # collect the current position of agent in RVO2
+            # use this current position and update current_position of ORCA_UAV in env/sim
+            orca_agent_current_position = self.rvo2_sim.getAgentPosition(self.orca_agent_id_2_RVO2_number[orca_agent_key])
             
             #CONVERT - TUPLE TO POINT
             orca_agent_current_position = shapely.Point(orca_agent_current_position)
             
             # updating the MAPPED_ENV UAV agent's current_position
-            self.orca_agent_to_mapped_agent[orca_agent_key].current_position = orca_agent_current_position
+            mapped_agent.current_position = orca_agent_current_position
             
             #
             self.rvo2_sim.setAgentPrefVelocity(orca_agent_value, self.getPrefVelocity(mapped_agent))
 
-        # get agent current position and update orca_agent_dict
+        # get agent current position and update orca_agent_id_2_RVO2_number
 
 
         return None
@@ -69,16 +80,17 @@ class RVO2_simulator:
         
         
         # ADD agents to RVO2_SIM
+        #           UAV           in        List[UAV, UAV, ... ] 
         for mapped_env_orca_agent in self.mapped_env_orca_agent_list:
-            
+            # collecting start and end point of UAV 
             (x,y) = mapped_env_orca_agent.start.x, mapped_env_orca_agent.start.y 
             
             # key string - using mapped_agent.id 
             uav_id_str = str(mapped_env_orca_agent.id)
             # mapping agent uav_id_str to mapped_agent
-            self.orca_agent_to_mapped_agent[uav_id_str] = mapped_env_orca_agent
+            self.orca_agent_id_to_mapped_agent_obj[uav_id_str] = mapped_env_orca_agent
             # adding agent to PyORCA/RVO2 sim
-            self.orca_agent_dict[uav_id_str] = self.rvo2_sim.addAgent((x,y))
+            self.orca_agent_id_2_RVO2_number[uav_id_str] = self.rvo2_sim.addAgent((x,y)) # <- return: number of RVO2_agent in RVO2 sim
         
 
         # ADD OBSTACLE IN RVO2_SIM - restriced airspace polygons 
@@ -87,11 +99,28 @@ class RVO2_simulator:
             self.rvo2_sim.processObstacles()
         
         # ASSIGN prefVelocity IN RVO2_SIM - to agents
-        #   orca_agent:str
-        for orca_agent_key, orca_agent_value in self.orca_agent_dict.items():
-            mapped_agent = self.orca_agent_to_mapped_agent[orca_agent_key]
+        # orca_agent_key:id_str, orca_agent_value:RVO2_sim_agent_number
+        for orca_agent_key, orca_agent_value in self.orca_agent_id_2_RVO2_number.items():
+            
+            # UAV        =      Dict[key:id_str]
+            mapped_agent = self.orca_agent_id_to_mapped_agent_obj[orca_agent_key]
+            #                                  RVO2_sim_agent_no,     getPrefVelocity(UAV)
             self.rvo2_sim.setAgentPrefVelocity(orca_agent_value, self.getPrefVelocity(mapped_agent)) 
         
+        return None
+    
+    def addAgent(self, new_agent:UAV_v2_template):
+        # add new_agent to ORCA_agent_list - List[UAV]
+        new_agent_id_str = str(new_agent.id)
+        self.mapped_env_orca_agent_list.append(new_agent)
+        # add new agent dicts
+        # add to orca_agent_id_to_mapped_agent_obj
+        self.orca_agent_id_to_mapped_agent_obj[new_agent_id_str] = new_agent
+        # collect start point of new_agent
+        (x,y) = new_agent.start.x, new_agent.start.y
+        # add to orca_agent_id_to_RVO2_number
+        self.orca_agent_id_2_RVO2_number[new_agent_id_str] = self.rvo2_sim.addAgent((x,y))
+
         return None
         
     def getPrefVelocity(self, agent:UAV_v2_template):

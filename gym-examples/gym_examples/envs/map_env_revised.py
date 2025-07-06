@@ -46,6 +46,7 @@ class MapEnv(gym.Env):
         number_of_vertiport=None, # number of vertiorts for this simulation 
         location_name="Austin, Texas, USA", # name of city 
         airspace_tag_list=[("amenity", "hospital"), ("aeroway", "aerodrome")], # 
+        vertiport_tag_list = [],
         max_episode_steps=1000, # number of gym steps per episode 
         number_of_other_agents_for_model=7, # max number of other agents that learning agent tracks for LSTM-A2C model 
         sleep_time=0.005,
@@ -55,6 +56,8 @@ class MapEnv(gym.Env):
         render_mode=None,
         max_uavs=8, # this is maximum number of UAVs allowed in env
         max_vertiports=12, # this is maximum number of vertiports allowed in env
+
+        make_uav_at_timestep = 300,
     ):  
         super().__init__()
         
@@ -67,6 +70,7 @@ class MapEnv(gym.Env):
         self.number_of_vertiport = number_of_vertiport
         self.location_name = location_name
         self.airspace_tag_list = airspace_tag_list
+        self.vertiport_tag_list = vertiport_tag_list
         self.max_uavs = max_uavs
         self.max_vertiports = max_vertiports
         self.max_number_other_agents_observed = number_of_other_agents_for_model
@@ -79,8 +83,10 @@ class MapEnv(gym.Env):
         self.current_time_step = 0
         self.render_history = []  # Store positions for trajectory visualization
         self.uav_radius = 17
-        self.NMAC_radius = 150
+        self.NMAC_radius = 200
         self.detection_radius = 500
+
+        self.make_uav_at_timestep = make_uav_at_timestep
 
         # Initialize logger for non-learning agents
         self.logger = MapLogger(base_log_dir="logs")
@@ -113,6 +119,7 @@ class MapEnv(gym.Env):
         )
 
     def step(self, action):
+        # print('step:', self.current_time_step)
         #! why is the UAV detection not used, we only use nmac and collsion 
         #FUTURE: 
         # there needs to be two lists, one for learning_agents, and another for non-learning agents
@@ -187,6 +194,7 @@ class MapEnv(gym.Env):
         
         # Now update all non-learning UAVs
         for uav in self.atc.get_uav_list():
+            # print('Len uav list:', len(self.atc.get_uav_list()))
             if not isinstance(uav, Auto_UAV_v2):  # Only process non-learning UAVs
                 # Save animation data
                 self.renderer.add_data(uav)
@@ -328,6 +336,63 @@ class MapEnv(gym.Env):
                 # Find the closest one if multiple are detected
                 closest_ra = sorted(ra_data_list, key=lambda x: x['distance'])[0]
                 info['distance_to_restricted'] = closest_ra['distance']
+        
+        #### ADDING UAVS at timesteps ####
+        if self.current_time_step != 0 and self.current_time_step % self.make_uav_at_timestep == 0:
+            for vertiport in self.atc.vertiport_list:
+                start = vertiport
+                end = random.sample(
+                    list(filter(lambda x: x is not start, self.atc.vertiport_list)),
+                    k=1)[0]
+                
+                print(start, end)
+
+                # TODO: add the ORCA agent properly -
+                # since its getting added in the middle of the simulation,
+                # the ORCA agent needs to be part of RVO2 
+                # an agent needs to be created in RVO2
+                # added to RVO2 list
+                # and then stepped in RVO2 sim
+                # and all other tasks related to RVO2 
+                # then it needs to be cleared from the env properly -
+                # deleted from env when mission complets 
+                # deleter from RVO2 when mission completes  
+                # collect num ORCA agents
+                new_uav = UAV_v2(self.orca_controller, 
+                                 self.orca_dynamics, 
+                                 self.map_sensor, 
+                                 radius=self.uav_radius, 
+                                 nmac_radius=self.NMAC_radius,
+                                 detection_radius=self.detection_radius) 
+                #ATC needs to know about these agents - change this style of open addition
+                self.ORCA_agent_list += [new_uav]
+                self.atc.uav_list += [new_uav]
+                
+                
+
+                # Assign to UAV
+                self.atc.assign_vertiport_uav(
+                    new_uav, 
+                    start, 
+                    end
+                )
+
+                new_uav.reset_odometer()
+
+                # add new_uav to RVO2 sim
+                self.rvo2_sim.addAgent(new_agent=new_uav)
+
+                #TODO: add to rendering
+
+
+
+
+
+
+
+
+
+        #### ADDING UAVS at timesteps ####
         
         # Increment time step
         self.current_time_step += 1
@@ -687,7 +752,7 @@ class MapEnv(gym.Env):
         self.logger.reset()
         self.renderer.reset()
 
-        # Reset tracking for learning agent logging
+        # Reset tracking for learning AGENT logging
         self.previous_obs = None
         self.previous_action = None
 
@@ -695,7 +760,7 @@ class MapEnv(gym.Env):
         self.current_time_step = 0
         
         # Create the airspace with restricted areas
-        self.airspace = Airspace(self.number_of_vertiport, self.location_name, airspace_tag_list=self.airspace_tag_list)
+        self.airspace = Airspace(self.number_of_vertiport, self.location_name, airspace_tag_list=self.airspace_tag_list, vertiport_tag_list=self.vertiport_tag_list)
         
         # Create space, sensors, controllers, and dynamics
         self.atc = ATC(airspace=self.airspace, seed=self._seed)
@@ -731,14 +796,18 @@ class MapEnv(gym.Env):
 
         #### START - Create ORCA agents ####
         
-        # collect num ORCA agents
+        # make list of ORCA agents
         self.ORCA_agent_list = [UAV_v2(self.orca_controller, self.orca_dynamics, self.map_sensor, radius=self.uav_radius, nmac_radius=self.NMAC_radius,detection_radius=self.detection_radius) for _ in range(self.num_ORCA_uav)]
-        #ATC needs to know about these agents - change this style of open addition
+        # add ORCA controller UAV to uav_list
         self.atc.uav_list += self.ORCA_agent_list
         #TODO: these agents needs to work with vertiport assignment
         #TODO: these agents need to check when they leave and reach vertiport
-        self.rvo2_sim = RVO2_simulator(timestep=0.1, radius=self.uav_radius, max_speed=80, mapped_env_orca_agent_list=self.ORCA_agent_list) #TODO: there is discrepancy between ORCA_agent and UAV(ORCA), their radius are different  
-        # collect Restricted airspace polygons
+
+        self.rvo2_sim = RVO2_simulator(timestep=0.1, 
+                                       radius=self.uav_radius, 
+                                       max_speed=80, 
+                                       mapped_env_orca_agent_list=self.ORCA_agent_list) 
+        # collect Restricted Airspace polygons
         if hasattr(self.airspace, 'restricted_airspace_buffer_geo_series'):
             self.rvo2_sim.set_polygon_coords(self.airspace.restricted_airspace_buffer_geo_series)
 

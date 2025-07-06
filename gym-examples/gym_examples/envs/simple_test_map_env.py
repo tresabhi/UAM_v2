@@ -162,7 +162,7 @@ def test_map_env_with_random_actions(number_orca_agents, number_uav, number_of_v
             airspace_tag_list=[], #("amenity", "hospital"), ("aeroway", "aerodrome")
             max_episode_steps=max_steps_per_episode,
             seed=env_seed,  # Use the specified environment seed
-            obs_space_str= "UAV_5_intruders", #"UAM_UAV", # "LSTM-A2C",
+            obs_space_str= "UAM_UAV", #"UAM_UAV", # "LSTM-A2C",
             sorting_criteria= 'closest first',#None, # "closest first",
             render_mode="human" if render else None,
             max_uavs=100, #set these as some hyperparameters 
@@ -381,12 +381,12 @@ if __name__ == "__main__":
     # Increase to 500 steps to see more movement
     test_map_env_with_random_actions(
         number_uav= 3,
-        number_orca_agents= 4,
-        number_of_vp=10,
+        number_orca_agents= 1,
+        number_of_vp=5,
         episodes=1,
-        max_steps_per_episode=3,
+        max_steps_per_episode=6000,
         render=False,
-        save_animation=False,
+        save_animation=True,
         env_seed=env_seed,
         episode_seeds=episode_seeds,
         mp4_only=False  # Set to True to only save MP4 files

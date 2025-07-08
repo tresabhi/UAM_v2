@@ -13,8 +13,7 @@ from typing import List, Tuple, Dict, Optional
 class MCTSNode:
     """ Represents a node in the Monte Carlo Tree Search. """
     #                  state: of env,          parent: MCTSNode with initial state where the selected_vertiport_list is empty
-    def __init__(self, mcts_env, state: Tuple[int, int], parent: Optional['MCTSNode'] = None, action_that_led_here: Optional[int] = None):
-        self.mcts_env = mcts_env
+    def __init__(self, state: Tuple[int, int], parent: Optional['MCTSNode'] = None, action_that_led_here: Optional[int] = None):
         self.state: Tuple[int, int] = state #! this the state of ENV/SIM,
         #                                      the list of selected_vertiports so far
         #                                      for each node this list will be different,
@@ -29,9 +28,17 @@ class MCTSNode:
         
         #TODO: add attr -> env.airspace.regions.vertiports OR env.regions.vertiports
         # untried_actions are related to current REGION(level of the tree) -  region.vertiports
+        #!                                self.mcts_env -> this is NOT defined in the __init__
         self.untried_actions: List[int] = self.mcts_env.get_possible_actions(state) # Actions not yet expanded from this node
+        # logic for accomplishing the above
+        # regions are ordered with numbers - for a given vertiport from region n 
+        #                           possible actions are vertiports from region n+1 
+        # since a node is a vertiport (and its region information)
+        # i can use these two to query the next region and all available vertiports there
+        # copy/deepcopy the vertiports from the following region into *untried_actions*
+        #                                                              each of the vertiports from region n+1 wil be tried once and untried_actions will become an empty list 
         
-        self.visit_count: int = 0
+        self.visit_count: int = 0   # remember for vertiport design problem this means a list of vertiports that have been used/selected
         self.total_value: float = 0.0 # Sum of rewards from rollouts through this node
         
     def is_fully_expanded(self) -> bool:
@@ -40,6 +47,9 @@ class MCTSNode:
         
     def is_terminal(self) -> bool:
         """ Checks if the state represented by this node is terminal. """
+        #!     self.mcts_env -> this is NOT defined in the __init__
+        # in vertiport design problem - the env has reached terminal state 
+        # when list of selected vertiports has one vertiport from each region 
         return self.mcts_env.is_terminal(self.state)
         
     def get_average_value(self) -> float:
@@ -63,8 +73,8 @@ def select_best_child_uct(node: MCTSNode, exploration_constant: float) -> MCTSNo
     """
     best_score = -float('inf')
     best_child = None
-    #!                   empty_list.children points to region 1 dict
-    for action, child in node.children.items():
+    #! (starting state)empty_list.children points to region 1 dict
+    for action, child in     node.children.items():
         if child.visit_count == 0:
             # Ensure unvisited children are selected first
             uct_score = float('inf') 
@@ -86,7 +96,8 @@ def select_best_child_uct(node: MCTSNode, exploration_constant: float) -> MCTSNo
     return best_child
 
 
-def expand_node(node: MCTSNode) -> MCTSNode:
+def expand_node(mcts_env, node: MCTSNode) -> MCTSNode:
+    #! EXPANSION is about trying UNTRIED actions 
     """
     Expands the given node by choosing an untried action, simulating it,
     and adding the resulting state as a new child node.
@@ -98,6 +109,7 @@ def expand_node(node: MCTSNode) -> MCTSNode:
     - MCTSNode: The newly created child node.
     """
     #! since node.untried_actions are being 'pop'ed once all the 'actions' aka vertiports are tried the untried_actions list will be empty
+    #! expand_node() will not be called on a node whose actions have all been tried 
     if not node.untried_actions:
         raise RuntimeError("Cannot expand a fully expanded node.")
         
@@ -105,10 +117,14 @@ def expand_node(node: MCTSNode) -> MCTSNode:
     action = node.untried_actions.pop() #! <- this method should return a vertiport
     
     # Simulate this action from the node's state using the environment model
+    #!   what should this       simulate_step() DO!!!!!
+    #! next_state <- what is the meaning of this next_state in terms of MCTS/vertiport design problem 
     next_state, _, _ = mcts_env.simulate_step(node.state, action) # We only need next state here
     
     # Create the new child node
     child_node = MCTSNode(state=next_state, parent=node, action_that_led_here=action)
+    #* since action selected a vertiport from the next region, v_k_R3
+    #* child node is [v_i_R1, v_j_R2, v_k_R3, ......] 
     
     # Add the child to the parent's children dictionary
     node.children[action] = child_node
@@ -118,7 +134,7 @@ def expand_node(node: MCTSNode) -> MCTSNode:
 
 #!                          how to define max_depth
 #                                         max_depth = num_regions ??  
-def perform_rollout(start_node: MCTSNode, max_depth: int, gamma: float) -> float:
+def perform_rollout(mcts_env, start_node: MCTSNode, max_depth: int, gamma: float) -> float:
     """
     Performs a Monte Carlo simulation (rollout) from the start node's state.
     Uses a random policy for the rollout.
@@ -201,6 +217,8 @@ def mcts_search(
         # --- 1. Selection ---
         # Traverse down the tree using UCT until a leaf node is found
         while not current_node.is_terminal() and current_node.is_fully_expanded() and current_node.children:
+            # try all untried nodes and then choose the node that has highest UCT value 
+            #current_node (new_node) a child of current_node from above  
             current_node = select_best_child_uct(current_node, exploration_constant)
 
         # --- 2. Expansion ---
@@ -223,7 +241,7 @@ def mcts_search(
 
 
 
-def choose_best_mcts_action(root_node: MCTSNode) -> int:
+def choose_best_mcts_action(mcts_env, root_node: MCTSNode) -> int:
     """
     Selects the best action from the root node after MCTS is complete.
     Typically chooses the action leading to the most visited child node.

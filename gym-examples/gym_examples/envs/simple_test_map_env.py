@@ -160,6 +160,7 @@ def test_map_env_with_random_actions(number_orca_agents, number_uav, number_of_v
             number_of_vertiport= number_of_vp,
             location_name="Austin, Texas, USA",
             airspace_tag_list=[], #("amenity", "hospital"), ("aeroway", "aerodrome")
+            vertiport_tag_list=[('building', 'commercial')],
             max_episode_steps=max_steps_per_episode,
             seed=env_seed,  # Use the specified environment seed
             obs_space_str= "UAM_UAV", #"UAM_UAV", # "LSTM-A2C",
@@ -384,9 +385,9 @@ if __name__ == "__main__":
         number_orca_agents= 1,
         number_of_vp=5,
         episodes=1,
-        max_steps_per_episode=6000,
+        max_steps_per_episode=6,
         render=False,
-        save_animation=True,
+        save_animation=False,
         env_seed=env_seed,
         episode_seeds=episode_seeds,
         mp4_only=False  # Set to True to only save MP4 files

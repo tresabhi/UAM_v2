@@ -47,6 +47,9 @@ class MapEnv(gym.Env):
         location_name="Austin, Texas, USA", # name of city 
         airspace_tag_list=[("amenity", "hospital"), ("aeroway", "aerodrome")], # 
         vertiport_tag_list = [],
+        vertiport_tag_str = 'commercial',
+        num_vertiport_region = 5,
+        n_sample_from_region = 2,
         max_episode_steps=1000, # number of gym steps per episode 
         number_of_other_agents_for_model=7, # max number of other agents that learning agent tracks for LSTM-A2C model 
         sleep_time=0.005,
@@ -71,6 +74,9 @@ class MapEnv(gym.Env):
         self.location_name = location_name
         self.airspace_tag_list = airspace_tag_list
         self.vertiport_tag_list = vertiport_tag_list
+        self.vertiport_tag_str = vertiport_tag_str
+        self.num_vertiport_region = num_vertiport_region
+        self.n_sample_from_region = n_sample_from_region
         self.max_uavs = max_uavs
         self.max_vertiports = max_vertiports
         self.max_number_other_agents_observed = number_of_other_agents_for_model
@@ -776,10 +782,19 @@ class MapEnv(gym.Env):
         self.orca_controller = ORCA_controller(12,12)
         self.orca_dynamics = ORCA_Dynamics()
 
-
+        #TODO: UPDATE HOW VERTIPORTS ARE CREATED 
         # Create vertiports
         num_vertiports = min(self.max_vertiports, self.number_of_vertiport)  # Use a reasonable number
-        self.airspace.create_n_random_vertiports(num_vertiports, seed=self._seed)
+        # create vertiport OPTION 1
+        # self.airspace.create_n_random_vertiports(num_vertiports, seed=self._seed)
+        # print('Vertiports in atc-airspace: ',self.atc.vertiport_list)
+        # print('Vertiports in airspace: ', self.airspace.vertiport_list)
+        # create vertiport OPTION 2
+        #TODO: tag_str passed to the argument should come from init ??
+        self.airspace.create_vertiports_from_regions(self.vertiport_tag_str, self.num_vertiport_region, self.n_sample_from_region)
+        # print('Vertiports in atc-airspace: ',self.atc.vertiport_list)
+        # print('Vertiports in airspace: ', self.airspace.vertiport_list)
+        # time.sleep(10)
 
         # Verify we have at least 2 vertiports
         if len(self.airspace.get_vertiport_list()) < 2:

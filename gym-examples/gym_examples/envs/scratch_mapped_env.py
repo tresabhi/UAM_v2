@@ -59,6 +59,7 @@ env = MapEnv(
             number_of_vertiport= number_of_vp,
             location_name="Austin, Texas, USA",
             airspace_tag_list=[], #("amenity", "hospital"), ("aeroway", "aerodrome")
+            vertiport_tag_list=[('building','commercial')],
             max_episode_steps=max_steps_per_episode,
             seed=env_seed,  # Use the specified environment seed
             obs_space_str= "UAM_UAV", #"UAV_5_intruders",  # "LSTM-A2C",

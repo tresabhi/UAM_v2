@@ -329,7 +329,7 @@ class Airspace: #                                                               
         #     print(f'Region {region} has {len(regions_dict[region])} vertiports')
 
         #step 5
-        self.vertiport_list = self.sample_vertiport_from_region(regions_dict, n_sample_from_region)
+        self.vertiport_list += self.sample_vertiport_from_region(regions_dict, n_sample_from_region)
         
         return None
 

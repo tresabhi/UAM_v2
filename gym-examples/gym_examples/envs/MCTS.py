@@ -1,35 +1,33 @@
 import math
 import random
 from typing import List, Tuple, Dict, Optional
+from vertiport import Vertiport
 
 
-
-
-
-
-
-
-
+# MCTS NODE
 class MCTSNode:
     """ Represents a node in the Monte Carlo Tree Search. """
     #                  state: of env,          parent: MCTSNode with initial state where the selected_vertiport_list is empty
-    def __init__(self, state: Tuple[int, int], parent: Optional['MCTSNode'] = None, action_that_led_here: Optional[int] = None):
-        self.state: Tuple[int, int] = state #! this the state of ENV/SIM,
+    def __init__(self, state: List, parent: Optional['MCTSNode'] = None, action_that_led_here = None, mcts_env = None):
+        self.state: List = state #! this the list of vertiports selected by MCTS for ENV/SIM,
         #                                      the list of selected_vertiports so far
         #                                      for each node this list will be different,
         #                                      since each node will contain different number of regions,
         #                                      ex: start_node has empty list, level 3 will have 3 VERTIPORTS ... and so on  
+        self.region = len(self.state)
+        self.mcts_env = mcts_env
+
         self.parent: Optional[MCTSNode] = parent
 
         #! action_that_led_here -> is the veriport choice, that makes current_state be the vertiport from the region
-        self.action_that_led_here: Optional[int] = action_that_led_here # Action taken by parent to reach this node
+        self.action_that_led_here = action_that_led_here # Action taken by parent to reach this node
         
-        self.children: Dict[int, MCTSNode] = {} # Maps action(the act of choosing the vertiport) -> child node(all possible vertiports)
+        self.children: Dict[Vertiport, MCTSNode] = {} # Maps action(the act of choosing the vertiport) -> child node(all possible vertiports)
         
         #TODO: add attr -> env.airspace.regions.vertiports OR env.regions.vertiports
         # untried_actions are related to current REGION(level of the tree) -  region.vertiports
-        #!                                self.mcts_env -> this is NOT defined in the __init__
-        self.untried_actions: List[int] = self.mcts_env.get_possible_actions(state) # Actions not yet expanded from this node
+        #! untried actions will be pop-ed will this cause an issue 
+        self.untried_actions: List[Vertiport] = self.mcts_env.get_possible_actions(self.region) # Actions not yet expanded from this node
         # logic for accomplishing the above
         # regions are ordered with numbers - for a given vertiport from region n 
         #                           possible actions are vertiports from region n+1 
@@ -58,7 +56,7 @@ class MCTSNode:
             return 0.0 # Or perhaps -infinity or another default for unvisited
         return self.total_value / self.visit_count
     
-
+#### PARTS OF MCTS ALGO ####
 def select_best_child_uct(node: MCTSNode, exploration_constant: float) -> MCTSNode:
     """
     Selects the child node with the highest UCT score.
@@ -185,10 +183,18 @@ def backpropagate(node: MCTSNode, reward: float) -> None:
         # Move up to the parent node
         current_node = current_node.parent
 
+#### PARTS OF MCTS ALGO ####
 
+
+
+
+
+
+
+#### MCTS SEARCH ALGO ####
 
 def mcts_search(
-    root_state: Tuple[int, int],
+    root_state: List,
     num_simulations: int,
     exploration_constant: float,
     rollout_max_depth: int,
@@ -211,6 +217,7 @@ def mcts_search(
     root_node: MCTSNode = MCTSNode(state=root_state)
 
     # Perform the specified number of simulations
+    #! num_simulation should be larger than number of vertiports for a region
     for _ in range(num_simulations):
         current_node: MCTSNode = root_node
 
@@ -218,7 +225,8 @@ def mcts_search(
         # Traverse down the tree using UCT until a leaf node is found
         while not current_node.is_terminal() and current_node.is_fully_expanded() and current_node.children:
             # try all untried nodes and then choose the node that has highest UCT value 
-            #current_node (new_node) a child of current_node from above  
+            #current_node is reassigned a child of current_node from above
+            # child node  
             current_node = select_best_child_uct(current_node, exploration_constant)
 
         # --- 2. Expansion ---
@@ -229,6 +237,8 @@ def mcts_search(
 
         # --- 3. Simulation ---
         # Perform a rollout from the expanded node and calculate the reward
+        # perform_rollout also simulates steps - it does not make any changes to internal states
+        # this is because MCTS informs what would happen on average as given a state  
         rollout_reward: float = perform_rollout(simulation_start_node, rollout_max_depth, gamma)
 
         # --- 4. Backpropagation ---
@@ -238,7 +248,7 @@ def mcts_search(
     # Return the root node with updated statistics
     return root_node
 
-
+#### MCTS SEARCH ALGO ####
 
 
 def choose_best_mcts_action(mcts_env, root_node: MCTSNode) -> int:
@@ -255,6 +265,9 @@ def choose_best_mcts_action(mcts_env, root_node: MCTSNode) -> int:
     best_visit_count = -1
     best_action = -1
 
+    #! root_node.children = {} OR {vp1, vp2, vp3, ...}
+    #! if {} -> False
+    #! if {vp1, vp2, vp3, ...} -> True
     if not root_node.children:  # If no actions were expanded (e.g., only 1 simulation)
         # Fallback: Choose a random action if possible
         possible_actions = mcts_env.get_possible_actions(root_node.state)

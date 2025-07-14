@@ -59,8 +59,8 @@ class MapEnv(gym.Env):
         render_mode=None,
         max_uavs=8, # this is maximum number of UAVs allowed in env
         max_vertiports=12, # this is maximum number of vertiports allowed in env
-
         make_uav_at_timestep = 300,
+        vp_design_problem = False
     ):  
         super().__init__()
         
@@ -91,6 +91,7 @@ class MapEnv(gym.Env):
         self.uav_radius = 17
         self.NMAC_radius = 200
         self.detection_radius = 500
+        self.vp_design_problem = vp_design_problem
 
         self.make_uav_at_timestep = make_uav_at_timestep
 
@@ -744,6 +745,20 @@ class MapEnv(gym.Env):
                 "_get_obs \n incorrect self.obs_space_str, check __init__ and self.obs_space_str"
             )
 
+
+    def set_airspace_vp_design(self):
+        '''Make airspace for vp design problem'''
+        self.airspace = Airspace(
+            self.number_of_vertiport, 
+            self.location_name, 
+            airspace_tag_list=self.airspace_tag_list, 
+            vertiport_tag_list=self.vertiport_tag_list
+            )
+        
+        return None
+
+
+
     def reset(self, seed=None, options=None):
         """Reset environment to initial state."""
         # Reset internal state
@@ -766,7 +781,8 @@ class MapEnv(gym.Env):
         self.current_time_step = 0
         
         # Create the airspace with restricted areas
-        self.airspace = Airspace(self.number_of_vertiport, self.location_name, airspace_tag_list=self.airspace_tag_list, vertiport_tag_list=self.vertiport_tag_list)
+        if not self.vp_design_problem:
+            self.airspace = Airspace(self.number_of_vertiport, self.location_name, airspace_tag_list=self.airspace_tag_list, vertiport_tag_list=self.vertiport_tag_list)
         
         # Create space, sensors, controllers, and dynamics
         self.atc = ATC(airspace=self.airspace, seed=self._seed)
@@ -785,21 +801,26 @@ class MapEnv(gym.Env):
         #TODO: UPDATE HOW VERTIPORTS ARE CREATED 
         # Create vertiports
         num_vertiports = min(self.max_vertiports, self.number_of_vertiport)  # Use a reasonable number
-        # create vertiport OPTION 1
-        # self.airspace.create_n_random_vertiports(num_vertiports, seed=self._seed)
-        # print('Vertiports in atc-airspace: ',self.atc.vertiport_list)
-        # print('Vertiports in airspace: ', self.airspace.vertiport_list)
-        # create vertiport OPTION 2
-        #TODO: tag_str passed to the argument should come from init ??
-        self.airspace.create_vertiports_from_regions(self.vertiport_tag_str, self.num_vertiport_region, self.n_sample_from_region)
-        # print('Vertiports in atc-airspace: ',self.atc.vertiport_list)
-        # print('Vertiports in airspace: ', self.airspace.vertiport_list)
-        # time.sleep(10)
+        
+        if not self.vp_design_problem:
+            #* create vertiport OPTION 1
+            # self.airspace.create_n_random_vertiports(num_vertiports, seed=self._seed)
+            # print('Vertiports in atc-airspace: ',self.atc.vertiport_list)
+            # print('Vertiports in airspace: ', self.airspace.vertiport_list)
+            
+            #* create vertiport OPTION 2
+            self.airspace.create_vertiports_from_regions(self.vertiport_tag_str, self.num_vertiport_region, self.n_sample_from_region)
+            # print('Vertiports in atc-airspace: ',self.atc.vertiport_list)
+            # print('Vertiports in airspace: ', self.airspace.vertiport_list)
+            # time.sleep(10)
+        else: 
+            print('MapEnv is set for Vertiport Design Problem')
+            print(f'Vertiport List: {self.airspace.vertiport_list}')
 
         # Verify we have at least 2 vertiports
-        if len(self.airspace.get_vertiport_list()) < 2:
+        if not self.vp_design_problem and len(self.airspace.get_vertiport_list()) < 2:
             raise RuntimeError("Failed to create at least 2 vertiports - cannot assign meaningful start/end points")
-            
+        
         # Create learning agent first to ensure it gets priority in vertiport assignment
         self.agent = Auto_UAV_v2(
             dynamics=self.agent_pm_dynamics,

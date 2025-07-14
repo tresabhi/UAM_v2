@@ -107,7 +107,7 @@ class Airspace: #                                                               
             print('Max number of vertiports reached, additonal vertiports will not be added')
         return None 
     
-    def set_vertiports(self, vertiports:List[Vertiport], sample_number=None):
+    def set_random_sample_vertiports(self, vertiports:List[Vertiport], sample_number=None):
         '''Given a list of vertiports, 
             add randomly sampled 'sample_number' of vertiports 
             to airspace's vertiport_list'''
@@ -119,6 +119,8 @@ class Airspace: #                                                               
             self.set_vertiport(vertiport)
         
         return None
+    
+    
 
 
     def get_vertiport_list(self):
@@ -227,22 +229,6 @@ class Airspace: #                                                               
         
 
         return region_vertiport_dict
-
-
-
-    def make_region_dict(self, vertiport_list:List[Vertiport], num_regions:int) -> Dict:
-        '''Return a dictionary, with keys as regions and values as list of vertiports of that region.
-        This will be used later to sample vertiport from each region'''
-
-        region_vertiport_dict = {}
-        for region_id in range(num_regions):
-            region_vertiport_dict[region_id] = []
-            for vertiport in vertiport_list:
-                if vertiport.region == region_id:
-                    region_vertiport_dict[region_id].append(vertiport)
-        
-
-        return region_vertiport_dict
                     
 
     def sample_vertiport_from_region(self, region_dict:Dict, n_sample_from_region:int = 1):
@@ -332,16 +318,85 @@ class Airspace: #                                                               
         self.vertiport_list += self.sample_vertiport_from_region(regions_dict, n_sample_from_region)
         
         return None
+    
+
+    def make_regions_dict(self, tag_str, num_regions):
+        '''Using tag_str, and num_region, make an airspace dict attribute that hold regions and vertiports'''
+        #TODO: place a check
+        # check if self.polygon_dict is an attribute if not DO SOMETHING -- ??
+        try: 
+            assert hasattr(self, 'polygon_dict')
+        except:
+            AttributeError("Missing polygon_dict, __init__'s vertiport_tag_list is empty")
+        #step 1 - makes self.poly_dict
+        self.make_polygon_dict(tag_str)
+        #step 2
+        vertiport_list = self.create_vertiports_from_polygons(self.polygon_dict[tag_str])
+        
+        
+        #step 3
+        vertiport_list_with_region = self.assign_region_to_vertiports(vertiport_list, num_regions)
+        
+        #step 4
+        self.regions_dict =  self.assign_vertiports_to_regions(vertiport_list_with_region, num_regions)
+        
+        self.num_regions = len(self.regions_dict.keys())
+        
+        return None
 
 
-            
+    def get_random_vertiport_from_region(self, region):
+        vertiport_list_of_region = self.regions_dict[region]
+        return random.sample(vertiport_list_of_region, k=1)    
+    
+
+
+    def fill_vertiport_from_region(self, partial_vertiport_list):
+        # find how many regions there are for this env
+        required_vertiports = self.num_regions
+        # determine how many vertiports need to be collected 
+        region_index_for_sampling =  len(partial_vertiport_list)
+        if region_index_for_sampling: 
+            for region in range(region_index_for_sampling, required_vertiports):
+                vertiport = random.sample(self.regions_dict[region], k=1)
+                partial_vertiport_list.append(vertiport)
+
+        complete_list_vertiport = partial_vertiport_list
+        return complete_list_vertiport
+
+        # using the previous information about 
+        # how many vertiports there are in partial_vertiport_list and
+        # how many more I need 
+        # 
+        # I will determine the current region to sample from 
+        # and fill the remaining requirement for vertiport 
 
 
 
 
 
+    def set_vertiport_list_vp_design(self, complete_vertiport_list):
+        self.vertiport_list += complete_vertiport_list
+        return None 
+    
+    def get_vertiports_of_region(self, region):
+        vertiports = self.regions_dict[region]
+        return vertiports
 
     
+    # def make_region_dict(self, vertiport_list:List[Vertiport], num_regions:int) -> Dict:
+    #     '''Return a dictionary, with keys as regions and values as list of vertiports of that region.
+    #     This will be used later to sample vertiport from each region'''
+
+    #     region_vertiport_dict = {}
+    #     for region_id in range(num_regions):
+    #         region_vertiport_dict[region_id] = []
+    #         for vertiport in vertiport_list:
+    #             if vertiport.region == region_id:
+    #                 region_vertiport_dict[region_id].append(vertiport)
+        
+
+    #     return region_vertiport_dict
 # if __name__ == '__main__':
 #     airspace = Airspace(12, "Austin, Texas, USA", airspace_tag_list=[], vertiport_tag_list=[('building', 'commercial')])
     

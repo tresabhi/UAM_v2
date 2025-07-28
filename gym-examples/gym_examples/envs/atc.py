@@ -116,6 +116,9 @@ class ATC():
             start: The starting vertiport
             end: The ending vertiport (should be different from start)
         """
+        # print('Printing: In file atc.py')
+        # print(f'end type: {type(end)}')
+        # print(f'end: {end}')
         if start.id == end.id or start.location.equals(end.location):
             # Find a different end vertiport
             alternative_vertiports = [v for v in self.vertiport_list 

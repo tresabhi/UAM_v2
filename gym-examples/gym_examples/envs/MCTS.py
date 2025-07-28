@@ -2,6 +2,7 @@ import math
 import random
 from typing import List, Tuple, Dict, Optional
 from vertiport import Vertiport
+# from vp_design_MCTS import VertiportDesignEnv
 
 
 # MCTS NODE
@@ -14,8 +15,18 @@ class MCTSNode:
         #                                      for each node this list will be different,
         #                                      since each node will contain different number of regions,
         #                                      ex: start_node has empty list, level 3 will have 3 VERTIPORTS ... and so on  
-        self.region = len(self.state)
         self.mcts_env = mcts_env
+
+        # Determine which region to select actions from next
+        total_regions = self.mcts_env.env.airspace.num_regions
+        region_index = len(self.state)
+        if region_index < total_regions:
+            self.region = region_index
+            self.untried_actions: List[Vertiport] = self.mcts_env.get_possible_actions(self.region)
+        else:
+            # Terminal node: no further actions
+            self.region = None
+            self.untried_actions: List[Vertiport] = []
 
         self.parent: Optional[MCTSNode] = parent
 
@@ -27,7 +38,6 @@ class MCTSNode:
         #TODO: add attr -> env.airspace.regions.vertiports OR env.regions.vertiports
         # untried_actions are related to current REGION(level of the tree) -  region.vertiports
         #! untried actions will be pop-ed will this cause an issue 
-        self.untried_actions: List[Vertiport] = self.mcts_env.get_possible_actions(self.region) # Actions not yet expanded from this node
         # logic for accomplishing the above
         # regions are ordered with numbers - for a given vertiport from region n 
         #                           possible actions are vertiports from region n+1 
@@ -113,14 +123,14 @@ def expand_node(mcts_env, node: MCTSNode) -> MCTSNode:
         
     # Choose an action to expand (e.g., the first untried one)
     action = node.untried_actions.pop() #! <- this method should return a vertiport
-    
+    # print(f'In file MCTS.expand() printing action: {action}')
     # Simulate this action from the node's state using the environment model
     #!   what should this       simulate_step() DO!!!!!
     #! next_state <- what is the meaning of this next_state in terms of MCTS/vertiport design problem 
     next_state, _, _ = mcts_env.simulate_step(node.state, action) # We only need next state here
     
     # Create the new child node
-    child_node = MCTSNode(state=next_state, parent=node, action_that_led_here=action)
+    child_node = MCTSNode(state=next_state, parent=node, action_that_led_here=action, mcts_env=mcts_env)
     #* since action selected a vertiport from the next region, v_k_R3
     #* child node is [v_i_R1, v_j_R2, v_k_R3, ......] 
     
@@ -194,7 +204,8 @@ def backpropagate(node: MCTSNode, reward: float) -> None:
 #### MCTS SEARCH ALGO ####
 
 def mcts_search(
-    root_state: List,
+    root_state: List,               # state -> vp_design_env.selected_vertiport_list
+    mcts_env,
     num_simulations: int,
     exploration_constant: float,
     rollout_max_depth: int,
@@ -214,13 +225,12 @@ def mcts_search(
     - MCTSNode: The root node of the search tree after simulations.
     """
     # Create the root node for the current state
-    root_node: MCTSNode = MCTSNode(state=root_state)
+    root_node: MCTSNode = MCTSNode(state=root_state, mcts_env=mcts_env) # the root of the tree is [] empty-list
 
     # Perform the specified number of simulations
     #! num_simulation should be larger than number of vertiports for a region
     for _ in range(num_simulations):
         current_node: MCTSNode = root_node
-
         # --- 1. Selection ---
         # Traverse down the tree using UCT until a leaf node is found
         while not current_node.is_terminal() and current_node.is_fully_expanded() and current_node.children:
@@ -228,18 +238,19 @@ def mcts_search(
             #current_node is reassigned a child of current_node from above
             # child node  
             current_node = select_best_child_uct(current_node, exploration_constant)
-
+            # print('In file: MCTS')
+            # print(f'current node: {current_node}')
         # --- 2. Expansion ---
         # Expand the current node if it is not terminal and not fully expanded
         simulation_start_node: MCTSNode = current_node
         if not current_node.is_terminal() and not current_node.is_fully_expanded():
-            simulation_start_node = expand_node(current_node)
+            simulation_start_node = expand_node(mcts_env, current_node)
 
         # --- 3. Simulation ---
         # Perform a rollout from the expanded node and calculate the reward
         # perform_rollout also simulates steps - it does not make any changes to internal states
         # this is because MCTS informs what would happen on average as given a state  
-        rollout_reward: float = perform_rollout(simulation_start_node, rollout_max_depth, gamma)
+        rollout_reward: float = perform_rollout(mcts_env, simulation_start_node, rollout_max_depth, gamma)
 
         # --- 4. Backpropagation ---
         # Update the statistics of all nodes along the path to the root

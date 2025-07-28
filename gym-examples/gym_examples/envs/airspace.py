@@ -358,10 +358,11 @@ class Airspace: #                                                               
         region_index_for_sampling =  len(partial_vertiport_list)
         if region_index_for_sampling: 
             for region in range(region_index_for_sampling, required_vertiports):
-                vertiport = random.sample(self.regions_dict[region], k=1)
+                vertiport = random.sample(self.regions_dict[region], k=1)[0] #! random.sample() returns a list
                 partial_vertiport_list.append(vertiport)
 
         complete_list_vertiport = partial_vertiport_list
+        # print(f'In file airspace.fill_vertiport_from_region(), printing complete_list_vertiport{complete_list_vertiport}')
         return complete_list_vertiport
 
         # using the previous information about 

@@ -816,7 +816,7 @@ class MapEnv(gym.Env):
             # time.sleep(10)
         else: 
             print('MapEnv is set for Vertiport Design Problem')
-            print(f'Vertiport List: {self.airspace.vertiport_list}')
+            print(f'from map_env_revised.reset() -> Vertiport List: {self.airspace.vertiport_list}')
 
         # Verify we have at least 2 vertiports
         if not self.vp_design_problem and len(self.airspace.get_vertiport_list()) < 2:

@@ -10,6 +10,7 @@ from auto_uav_v2 import Auto_UAV_v2
 from controller_static import StaticController
 from controller_non_coop import NonCoopController
 from controller_non_coop_smooth import NonCoopControllerSmooth
+from simple_controllers import SimpleController
 from dynamics_point_mass import PointMassDynamics
 from map_sensor import MapSensor
 from atc import ATC
@@ -352,7 +353,7 @@ class MapEnv(gym.Env):
                     list(filter(lambda x: x is not start, self.atc.vertiport_list)),
                     k=1)[0]
                 
-                print(start, end)
+                # print(start, end)
 
                 # TODO: add the ORCA agent properly -
                 # since its getting added in the middle of the simulation,
@@ -829,6 +830,8 @@ class MapEnv(gym.Env):
             nmac_radius=self.NMAC_radius,
             detection_radius=self.detection_radius,
         )
+        if self.vp_design_problem:
+            self.agent.controller = SimpleController(self.agent.max_acceleration, self.agent.max_heading_change)
 
         #### START - Create ORCA agents ####
         
@@ -856,6 +859,8 @@ class MapEnv(gym.Env):
         
         # Assign agent to vertiports
         vertiports = self.airspace.get_vertiport_list()
+        # print('Printing: In file map_env_revised')
+        # print(vertiports)
         start_idx = 0
         end_idx = 1 % len(vertiports) # Ensure different start and end
         
@@ -943,7 +948,8 @@ class MapEnv(gym.Env):
         # print("--- Vertiport Assignments ---")
         for uav in self.atc.get_uav_list():
             if not isinstance(uav, Auto_UAV_v2):  # Only # print for non-learning UAVs
-                print(f'UAV {uav.id} - Start: {uav.start} end: {uav.end}')
+                # print(f'UAV {uav.id} - Start: {uav.start} end: {uav.end}')
+                pass
         # print(f'Agent {self.agent.id} - Start: {self.agent.start} end: {self.agent.end}')
         # print("---------------------------")
         

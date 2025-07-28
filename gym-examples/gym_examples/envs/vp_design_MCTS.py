@@ -10,7 +10,7 @@ from MCTS import mcts_search, choose_best_mcts_action
 
 env = MapEnv(number_of_uav=0,
              num_ORCA_uav=0,
-             number_of_vertiport=8,
+             number_of_vertiport=2,
              location_name='Austin, Texas, USA',
              airspace_tag_list=[],
              vertiport_tag_list=[('building', 'commercial')], #! use a tag-tag_str that has few vertiports  
@@ -31,6 +31,7 @@ env = MapEnv(number_of_uav=0,
 class VertiportDesignEnv():
     def __init__(self,
                  env = env, #instance of MapEnv
+                 num_regions = 4,
                  map_env_timestep = 1000,
                  seed=123):
         self.seed = seed
@@ -41,7 +42,7 @@ class VertiportDesignEnv():
         # this will create regions in airspace module 
         # NO vertiports
         self.env.set_airspace_vp_design()
-        self.env.airspace.make_regions_dict('commercial', 4)
+        self.env.airspace.make_regions_dict('commercial', num_regions=num_regions)
 
 
         self.map_env_timestep = map_env_timestep
@@ -111,6 +112,8 @@ class VertiportDesignEnv():
         map_env_obs, map_env_info = self.env.reset(seed=self.seed)
         # step3 - collect pre-run env metrics 
         map_env_start_metric =  self.env._collect_initial_metrics()
+        print('Printing from ')
+        print(env.airspace.vertiport_list)
         # step4 - run env for n-env steps (after n-env steps the mapped env will reach terminal state)
                                         #  and I will be able to collect end metrics 
         
@@ -199,12 +202,13 @@ class VertiportDesignEnv():
 
 
 
-
+# create MCTS ENV
+mcts_env = VertiportDesignEnv(env=env, num_regions=2)
 
 # Hyperparameters for MCTS on Custom Grid World
 NUM_SIMULATIONS = 1       # MCTS iterations per action selection (budget)
 EXPLORATION_C = 1.414       # UCT exploration constant (sqrt(2) is common)
-ROLLOUT_MAX_DEPTH = 5      # Max steps during the simulation phase
+ROLLOUT_MAX_DEPTH = mcts_env.env.airspace.num_regions      # Max steps during the simulation phase
 GAMMA_MCTS = 0.99           # Discount factor for rollout rewards
 
 NUM_EPISODES_MCTS = 5      # Number of episodes to run the agent for visualization
@@ -214,9 +218,6 @@ MAX_STEPS_PER_EPISODE_MCTS = 2 # Max steps per episode
 
 
 print(f"Starting MCTS Agent Interaction (Simulations per step={NUM_SIMULATIONS})...")
-
-# create MCTS ENV
-mcts_env = VertiportDesignEnv(env=env)
 
 # --- MCTS Interaction Loop ---
 mcts_run_rewards = []
@@ -233,7 +234,7 @@ for i_episode in range(1, NUM_EPISODES_MCTS + 1): #! Number of episodes to run t
     # episode_path = [(),]
     episode_path: List[List] = [state] # Store path for visualization
     
-    for t in range(MAX_STEPS_PER_EPISODE_MCTS):   #! Max steps per episode
+    for t in range(MAX_STEPS_PER_EPISODE_MCTS):   #! Max steps per MCTS episode
                                #state -> vp_design_env.selected_vertiport_list
         if mcts_env.is_terminal(state): #! mcts_env.is_terminal() doesn't take argument
             break # Already at goal

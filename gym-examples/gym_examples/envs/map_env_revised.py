@@ -229,6 +229,7 @@ class MapEnv(gym.Env):
                 is_nmac, nmac_list = uav.sensor.get_nmac(uav)
                 if is_nmac:
                     # Logic for NMAC count
+                    #TODO: each UAV instance should have this counter - so that end episode statistic will show NMAC for each UAV 
                     self.total_nmac_count += 1
                     # print(f"--- UAV {uav.id} NMAC ---")
                     # print(f"NMAC detected with {[other_uav.id for other_uav in nmac_list]}\n")
@@ -925,6 +926,7 @@ class MapEnv(gym.Env):
         
         
         # Start/Reset total_nmac_count and collision_count
+        #TODO: move this attribute to UAV base class 
         self.total_nmac_count = 0
         self.total_collision_count = 0
         # Initialize tracking for reward function

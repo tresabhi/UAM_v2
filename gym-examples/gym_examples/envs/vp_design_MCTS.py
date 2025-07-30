@@ -10,7 +10,7 @@ from MCTS import mcts_search, choose_best_mcts_action
 
 env = MapEnv(number_of_uav=0,
              num_ORCA_uav=0,
-             number_of_vertiport=2,
+             number_of_vertiport=2, #! this argument is ONLY used for creating random vertiports 
              location_name='Austin, Texas, USA',
              airspace_tag_list=[],
              vertiport_tag_list=[('building', 'commercial')], #! use a tag-tag_str that has few vertiports  
@@ -27,7 +27,9 @@ env = MapEnv(number_of_uav=0,
              vp_design_problem=True)
 
 
-
+#TODO: create a generic simulator class, and also a simulator object - the generic class will be used for defining the VP_design problem 
+#TODO: the simulator object will be used during implementation 
+#TODO: REMEMBER - in the simulator class/object AutoUAVs HAVE to behave like generic UAVs the RL algo has to be encapsulated in the controller 
 class VertiportDesignEnv():
     def __init__(self,
                  env = env, #instance of MapEnv
@@ -43,19 +45,18 @@ class VertiportDesignEnv():
         # NO vertiports
         self.env.set_airspace_vp_design()
         self.env.airspace.make_regions_dict('commercial', num_regions=num_regions)
-
-
         self.map_env_timestep = map_env_timestep
-
-
         self.selected_vertiport_list:List = []
-
         self.start_state:Tuple = len(self.selected_vertiport_list) == 0
-        self.goal_state = len(self.selected_vertiport_list) == self.env.airspace.num_regions #! remember this attr only available once env.airspace.make_region_and_vertiport_list() method is run
         
+        #! remember this attr only available once env.airspace.make_region_and_vertiport_list() method is run
+        self.goal_state = len(self.selected_vertiport_list) == self.env.airspace.num_regions 
+        
+        #! THIS IS NOT BEING USED ANYWHERE - WHAT TO DO 
         self._internal_state:Tuple = self.selected_vertiport_list
         
-        self.action_dim = None #! the dimension of action is supposed to change with every region
+        #! the dimension of action is supposed to change with every region
+        self.action_dim = None 
         
         return None
 
@@ -75,7 +76,6 @@ class VertiportDesignEnv():
         if len(self.selected_vertiport_list) == self.env.num_regions:
             raise ValueError('VertiportDesignEnv - set_state() - cannot assign vertiport to a complete/full vertiport_list')
         
-        
         self.selected_vertiport_list += vertiport_list # <- add vertiports to this list
         
         return None
@@ -83,14 +83,19 @@ class VertiportDesignEnv():
     def get_possible_actions(self, region):
         #! regions_dict will only be available once env.airspace.make_region_and_vertiport_list() method is run
         print(f'get vertiports from region: {region}')
+        
         print(self.env.airspace.regions_dict.keys())
+        
         possible_vertiports = self.env.airspace.regions_dict[region] #TODO: env needs an attribute region.vertiports
         self.action_dim = len(possible_vertiports)
+        
         return possible_vertiports
         
     def is_terminal(self, state) -> bool:
+        
         #! regions_dict will only be available once env.airspace.make_region_and_vertiport_list() method is run
         terminal = len(state) == self.env.airspace.num_regions
+        
         return terminal
     
     #! need to define a reward function and place in step
@@ -105,6 +110,7 @@ class VertiportDesignEnv():
         vertiports_selected_by_mcts = deepcopy(self.selected_vertiport_list)
 
         vertiports_for_mapped_env = self.env.airspace.fill_vertiport_from_region(vertiports_selected_by_mcts)
+        print(' vp_design_MCTS, VertiportDesignEnv.step() -> vertiports')
         # step1 - add the vertiports list to env
         # run env-simulation with remaining region-vertiports selected randomly 
         self.env.airspace.set_vertiport_list_vp_design(vertiports_for_mapped_env)
@@ -112,18 +118,19 @@ class VertiportDesignEnv():
         map_env_obs, map_env_info = self.env.reset(seed=self.seed)
         # step3 - collect pre-run env metrics 
         map_env_start_metric =  self.env._collect_initial_metrics()
-        print('Printing from ')
+        print('Printing from -> script: vp_design_MCTS.step()[line 115]:  ')
         print(env.airspace.vertiport_list)
         # step4 - run env for n-env steps (after n-env steps the mapped env will reach terminal state)
                                         #  and I will be able to collect end metrics 
         
 
-        current_timestep = 0
-        while current_timestep != self.map_env_timestep:
-            auto_uav_action = self.env.agent.controller(map_env_info) #! convert env to self.env
-            map_env_obs, reward, terminated, truncated, map_env_info = self.env.step(auto_uav_action) #! convert env to self.env
-            current_timestep += 1
-            if terminated or truncated:
+        map_env_current_timestep = 0
+        while map_env_current_timestep != self.map_env_timestep:
+            auto_uav_action = self.env.agent.controller(map_env_info) 
+            #! final map_env_reward could be used along with vp_env_reward
+            map_env_obs, map_env_reward, map_env_terminated, map_env_truncated, map_env_info = self.env.step(auto_uav_action) #! convert env to self.env
+            map_env_current_timestep += 1
+            if map_env_terminated or map_env_truncated:
                 break
         
 
@@ -203,16 +210,20 @@ class VertiportDesignEnv():
 
 
 # create MCTS ENV
-mcts_env = VertiportDesignEnv(env=env, num_regions=2)
+mcts_env = VertiportDesignEnv(env=env, num_regions=4)
 
 # Hyperparameters for MCTS on Custom Grid World
-NUM_SIMULATIONS = 1       # MCTS iterations per action selection (budget)
-EXPLORATION_C = 1.414       # UCT exploration constant (sqrt(2) is common)
+NUM_SIMULATIONS = 1             # MCTS iterations per action selection (budget)
+NUM_EPISODES_MCTS = 5           # Number of episodes to run the agent for visualization
+
+MAX_STEPS_PER_EPISODE_MCTS = mcts_env.env.airspace.num_regions   # Max steps per episode
+
 ROLLOUT_MAX_DEPTH = mcts_env.env.airspace.num_regions      # Max steps during the simulation phase
+print(f'ROLLOUT_MAX_DEPTH:{ROLLOUT_MAX_DEPTH}')
+
+EXPLORATION_C = 1.414       # UCT exploration constant (sqrt(2) is common)
 GAMMA_MCTS = 0.99           # Discount factor for rollout rewards
 
-NUM_EPISODES_MCTS = 5      # Number of episodes to run the agent for visualization
-MAX_STEPS_PER_EPISODE_MCTS = 2 # Max steps per episode
 
 
 
@@ -223,6 +234,7 @@ print(f"Starting MCTS Agent Interaction (Simulations per step={NUM_SIMULATIONS})
 mcts_run_rewards = []
 mcts_run_lengths = []
 
+#                            range(5 + 1)
 for i_episode in range(1, NUM_EPISODES_MCTS + 1): #! Number of episodes to run the agent for visualization
     print(f'Episode: {i_episode}')
     # reset -> state is ()
@@ -233,7 +245,8 @@ for i_episode in range(1, NUM_EPISODES_MCTS + 1): #! Number of episodes to run t
     #!                  for vertiport_env, state -> vertiport
     # episode_path = [(),]
     episode_path: List[List] = [state] # Store path for visualization
-    
+
+#                           range(2)    
     for t in range(MAX_STEPS_PER_EPISODE_MCTS):   #! Max steps per MCTS episode
                                #state -> vp_design_env.selected_vertiport_list
         if mcts_env.is_terminal(state): #! mcts_env.is_terminal() doesn't take argument

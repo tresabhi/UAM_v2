@@ -377,7 +377,10 @@ class Airspace: #                                                               
 
 
     def set_vertiport_list_vp_design(self, complete_vertiport_list):
-        self.vertiport_list += complete_vertiport_list
+        #! why is this +=, that would mean argument is added to previous self.vertiport, 
+        #! complete_vertiport_list consists of all required vertiports for running map_env simulation 
+        #! complete_vertiport_list comes from airspace.fill_vertiport_from_region()
+        self.vertiport_list = complete_vertiport_list 
         return None 
     
     def get_vertiports_of_region(self, region):
